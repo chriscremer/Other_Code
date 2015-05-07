@@ -1,0 +1,149 @@
+
+#to comment a block, ctrl + /
+
+#to train, train.py wine_quality3.yaml
+#to plot, plot_monitor.py wine_quality2.pkl
+
+!obj:pylearn2.train.Train
+{
+
+    dataset: &train !obj:wine_quality_red.load_data
+    {
+        start: 0,
+        stop: 1024
+    },
+
+
+    model: !obj:pylearn2.models.mlp.MLP
+    {
+        layers: [
+                 !obj:pylearn2.models.mlp.RectifiedLinear
+                 {
+                     layer_name: 'h0',
+                     dim: 100,
+                     irange: .05,
+                     #max_col_norm: 1.9365,
+                 },
+                 !obj:pylearn2.models.mlp.RectifiedLinear
+                 {
+                     layer_name: 'h1',
+                     dim: 100,
+                     irange: .05,
+                     #max_col_norm: 1.9365,
+                 },
+                 !obj:pylearn2.models.mlp.LinearGaussian
+                 {
+                    init_bias: !obj:pylearn2.models.mlp.mean_of_targets
+                    {
+                       dataset: *train
+                    },
+                    init_beta: !obj:pylearn2.models.mlp.beta_from_targets
+                    {
+                       dataset: *train 
+                    },
+                    min_beta: 1.,
+                    max_beta: 100.,
+                    beta_lr_scale: 1.,
+                    dim: 1,
+                    # max_col_norm: 1.9365,
+                    layer_name: 'y',
+                    irange: .005
+                 }
+                ],
+        nvis: 11,
+    },
+
+
+    # model: &model !obj:pylearn2.monitor.push_monitor
+    # {
+    #    model: !pkl: "wine_quality3.pkl",
+    #    name: "reused_model"
+    # },
+
+
+
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD
+    {
+        learning_rate: .02,
+
+        batch_size: 1024,
+
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum
+        {
+            init_momentum: .1,
+        },
+
+        #learning_rule : !obj:pylearn2.training_algorithms.learning_rule.RMSProp {},
+        #learning_rule : !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {},
+
+
+        monitoring_dataset:
+        {
+            'train' : *train,
+            'valid' : !obj:wine_quality_red.load_data
+            {
+                start: 1024,
+                stop: 1280
+            },
+            #'test'  : !obj:wine_quality_red.load_data {
+            #            start: 1280,
+            #            stop: 1599
+            #          }
+
+        },
+
+        #termination_criterion: !obj:pylearn2.termination_criteria.MonitorBased
+        # {
+        #    channel_name: "valid_y_mse",
+        #    prop_decrease: 0.,
+        #    N: 50
+        #},
+
+
+        #need to do sum of costs because weight decay alone is just penalty 
+        cost: !obj:pylearn2.costs.cost.SumOfCosts 
+        {
+            costs:
+            [
+                !obj:pylearn2.costs.cost.MethodCost
+                {
+                    method: 'cost_from_X'
+                },
+
+                #need either dropout or cost form X
+                #!obj:pylearn2.costs.mlp.dropout.Dropout {},
+
+                !obj:pylearn2.costs.mlp.L1WeightDecay
+                {
+                    coeffs: [ .01, .001, .001 ]
+                },
+            ]
+        },
+
+
+
+        termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter
+        {
+            max_epochs: 500
+        },
+
+
+    },
+
+
+    #extensions:
+    #[
+    #    !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest
+    #    {
+    #         channel_name: 'valid_y_mse',
+    #         save_path: "${PYLEARN2_TRAIN_FILE_FULL_STEM}_best.pkl",
+    #         start_epoch: 10,
+    #         higher_is_better: False
+    #    },
+    #],
+
+    save_path: "mlp.pkl",
+    save_freq: 800
+
+
+}
