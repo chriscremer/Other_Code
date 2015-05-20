@@ -36,7 +36,8 @@ class the_data(DenseDesignMatrix):
 					if header:
 						header = False
 						continue
-					X.append(row[1:-1])
+					#X.append(row[1:-1])
+                    X.append(map(float,row[1:-1]))
 					if str(row[-1]) == '0.0':
 						y.append([1, 0])
 					else:
