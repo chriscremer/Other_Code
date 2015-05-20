@@ -199,6 +199,23 @@ class Network():
             return cost
 
 
+
+    def accuracy(self, data):
+
+        boundary=0.5
+        accuracy = []
+        for sample in data:
+            output = self.feedforward(sample[0])
+            #print output
+            #print 'output ' + str(output) + ' expected ' + str(sample[1])
+            if (output[1] > boundary and sample[1][1] > boundary) or (output[1] < boundary and sample[1][1] < boundary):
+                accuracy.append(1)
+            else:
+                accuracy.append(0)
+
+        return np.mean(accuracy)
+
+
     def SGD(self, training_data, epochs, mini_batch_size, learn_rate, 
             lmbda = 0.0, 
             evaluation_data=None, 
@@ -264,29 +281,46 @@ class Network():
                 #print mini_batch
                 self.update_mini_batch(mini_batch, learn_rate, lmbda, len(training_data))
 
-            print "Epoch %s training complete" % j
+            #print "Epoch %s training complete" % j
+
+            #stringtoprint = "Cost on training data: {0}".format(cost)
+            # with open('workfile.txt', 'a') as f2:
+            #     f2.write("Cost on training data: {0}".format(cost))
+            #     f2.write('\n')
+
+            #Put all epoch info on one line
+
+
+            training_cost= -1.0
+            training_accuracy= -1.0
+            evaluation_cost= -1.0
+            evaluation_accuracy= -1.0
+
             if monitor_training_cost:
-                cost = self.total_cost(training_data, lmbda)
-                training_cost.append(cost)
-                print "Cost on training data: {0}".format(cost)
-                #stringtoprint = "Cost on training data: {0}".format(cost)
-                # with open('workfile.txt', 'a') as f2:
-                #     f2.write("Cost on training data: {0}".format(cost))
-                #     f2.write('\n')
+                training_cost = self.total_cost(training_data, lmbda)
+                #training_cost.append(cost)
+                #print "Cost on training data: {0}".format(cost)
+
             if monitor_training_accuracy:
-                accuracy = self.accuracy(training_data, convert=True)
-                training_accuracy.append(accuracy)
-                print "Accuracy on training data: {0} / {1}".format(accuracy, n)
+                training_accuracy = self.accuracy(training_data)
+                #training_accuracy.append(accuracy)
+                #print "Accuracy on training data: {0} / {1}".format(accuracy, n)
             if monitor_evaluation_cost:
-                cost = self.total_cost(evaluation_data, lmbda, convert=True)
-                evaluation_cost.append(cost)
-                print "Cost on evaluation data: {0}".format(cost)
+                evaluation_cost = self.total_cost(evaluation_data, lmbda)
+                #evaluation_cost.append(cost)
+                #print "Cost on evaluation data: {0}".format(cost)
             if monitor_evaluation_accuracy:
-                accuracy = self.accuracy(evaluation_data)
-                evaluation_accuracy.append(accuracy)
-                print "Accuracy on evaluation data: {0} / {1}".format(
-                    self.accuracy(evaluation_data), n_data)
-            print
+                evaluation_accuracy = self.accuracy(evaluation_data)
+                #evaluation_accuracy.append(accuracy)
+                #print "Accuracy on evaluation data: {0} / {1}".format(
+
+            print ('Epoch ' + str(j) + 
+                    '|Train cost ' + str(training_cost) + 
+                    '|Train acc ' + str(training_accuracy) + 
+                    '|Eval cost ' + str(evaluation_cost) + 
+                    '|Eval acc ' + str(evaluation_accuracy)
+                    )
+
         return evaluation_cost, evaluation_accuracy, training_cost, training_accuracy
 
 def sigmoid(z):
