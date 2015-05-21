@@ -4,6 +4,7 @@
 import numpy as np
 
 import random
+import pickle
 
 from costs import *
 from activations import *
@@ -13,7 +14,7 @@ from activations import *
 
 class Network():
 
-    def __init__(self, layers, activations, cost=CrossEntropyCost, regularization='l2'):
+    def __init__(self, layer_sizes, activations, cost=CrossEntropyCost, regularization='l2', weights_n_biases=None):
         """The list ``layers`` contains the number of neurons in the respective
         layers of the network.  For example, if the list was [2, 3, 1]
         then it would be a three-layer network, with the first layer
@@ -24,12 +25,20 @@ class Network():
         method).
 
         """
-        self.num_layers = len(layers)
-        self.layers = layers
-        self.default_weight_initializer()
+        self.num_layers = len(layer_sizes)
+        self.layers = layer_sizes
+
         self.cost=cost
         self.activation_functions=activations
         self.regularization=regularization
+
+        if weights_n_biases == None:
+            self.default_weight_initializer()
+            self.best_prev_acc = -1
+        else:
+            self.weights = weights_n_biases[0]
+            self.biases = weights_n_biases[1]
+            self.best_prev_acc = weights_n_biases[2]
 
 
     def default_weight_initializer(self):
@@ -210,6 +219,15 @@ class Network():
         """
         n = len(training_data)
 
+        #for recording best stats
+        best_eval_cost = -1
+        best_acc = -1
+        best_weights = []
+        best_biases = []
+
+        #for early stopping
+        numb_non_dec_epochs = 0
+
         for j in xrange(epochs):
 
             print 'Start epoch ' + str(j)
@@ -236,6 +254,7 @@ class Network():
                 evaluation_cost = self.total_cost(evaluation_data, lmbda)
             if monitor_evaluation_accuracy:
                 evaluation_accuracy = self.accuracy(evaluation_data)
+
             print ('Epoch ' + str(j) + 
                     '|Train cost ' + str(training_cost) + 
                     '|Train acc ' + str(training_accuracy) + 
@@ -249,6 +268,29 @@ class Network():
                 for sample in evaluation_data[:10]:
                     output = self.feedforward(sample[0])
                     print 'output ' + str(output[1]) + ' expected ' + str(sample[1][1])
+
+            #save best model
+            #if eval cost improved and accuracy didnt go down
+            if (evaluation_accuracy >= self.best_prev_acc or self.best_prev_acc == -1) and (evaluation_cost < best_eval_cost or best_eval_cost == -1):
+                best_eval_cost = evaluation_cost
+                best_acc = evaluation_accuracy
+                best_weights = self.weights
+                best_biases = self.biases
+                numb_non_dec_epochs = 0
+                print 'Updated best'
+            else:
+                numb_non_dec_epochs += 1
+                if numb_non_dec_epochs > 2:
+                    print 'Early Stop'
+                    weights_n_biases = [best_weights, best_biases, best_acc]
+                    pickle.dump(weights_n_biases, open( "saved/w_n_b.p", "wb" ) )
+                    break
+
+
+        print 'Saving'
+        weights_n_biases = [best_weights, best_biases, best_acc]
+        pickle.dump(weights_n_biases, open( "saved/w_n_b.p", "wb" ) )
+        print 'Training Complete'
 
         return evaluation_cost, evaluation_accuracy, training_cost, training_accuracy
 

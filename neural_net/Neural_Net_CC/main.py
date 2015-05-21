@@ -3,6 +3,7 @@
 import numpy as np
 import csv
 import random
+import pickle
 
 from NN_cc import Network
 from costs import *
@@ -62,16 +63,22 @@ if __name__ == "__main__":
 	#Train Model
 	####################################
 
+	#load pickled model
+	weights_n_biases = pickle.load( open( "saved/w_n_b.p", "rb" ) )
+	#weights_n_biases = None
+
 	#dimension of input, hidden layer, dimension of output
-	net = Network(layers=[len(X[0]), 3, len(y[0])], 
-					activations=[Sigmoid_Activation, Linear_Activation],
-					cost=QuadraticCost,
-					regularization='l1')
+	net = Network(layer_sizes=[len(X[0]), 3, len(y[0])], 
+					activations=[Sigmoid_Activation, Sigmoid_Activation],
+					cost=CrossEntropyCost,
+					regularization='l1',
+					weights_n_biases=weights_n_biases)
+
 	evaluation_cost, evaluation_accuracy, training_cost, training_accuracy = net.SGD(training_data=training_data, 
-																						epochs=1000,
+																						epochs=200,
 																						mini_batch_size=2,
-																						learn_rate=0.01,
-																						lmbda=0.1,
+																						learn_rate=0.001,
+																						lmbda=0.001,
 																						monitor_training_cost=True,
 																						monitor_training_accuracy=True,
 																						evaluation_data=evaluation_data,
