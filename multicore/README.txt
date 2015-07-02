@@ -1,0 +1,1 @@
+Example how to use Python multiprocessing
