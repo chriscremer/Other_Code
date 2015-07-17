@@ -49,7 +49,7 @@ def plot_run_times(argo1_times, argo3_times, mongo_times, argo1_stds, argo3_stds
 	# 	height = rect.get_height()
 	# 	ax.text(rect.get_x()+rect.get_width()/2., 1.05*height, '%f'%float(height), ha='center', va='bottom')
 
-	plt.savefig('bar_plot_run_times_regular.pdf')
+	plt.savefig('bar_plot_run_times3.pdf')
 	print 'Saved plot'
 
 
@@ -135,49 +135,49 @@ def run_mongo_query(query, numb):
 	for iter1 in range(10):
 		start = time.time()
 		if numb == 1:
-			query_output = db.million.find({}, ["str1", "num"])
+			query_output = db.nested.find({}, ["str1", "num"])
 			for outp in query_output:
 				continue
 		elif numb == 2:
-			query_output = db.million.find({}, ["nested_obj.str", "nested_obj.num"])
+			query_output = db.nested.find({}, ["nested_obj.str", "nested_obj.num"])
 			for outp in query_output:
 				continue
 		elif numb == 3:
-			query_output = db.million.find(
+			query_output = db.nested.find(
 						{ "$or" : [ { "sparse_110" : {"$exists" : True} },
 						{ "sparse_119" : {"$exists" : True} } ] },
 						["sparse_110", "sparse_119"])
 			for outp in query_output:
 				continue
 		elif numb == 4:
-			query_output = db.million.find(
+			query_output = db.nested.find(
 						{ "$or" : [ { "sparse_110" : {"$exists" : True} },
 						{ "sparse_220" : {"$exists" : True} } ] },
 						["sparse_110", "sparse_220"])
 			for outp in query_output:
 				continue
 		elif numb == 5:
-			query_output = db.million.find({ "str1" : 'join' })
+			query_output = db.nested.find({ "str1" : 'join' })
 			for outp in query_output:
 				continue
 		elif numb == 6:
-			query_output = db.million.find({ "$and": [{ "num" : {"$gte" : 1234 } }, { "num" : {"$lt"  : 5678 } }]})
+			query_output = db.nested.find({ "$and": [{ "num" : {"$gte" : 1234 } }, { "num" : {"$lt"  : 5678 } }]})
 			for outp in query_output:
 				continue
 		elif numb == 7:
-			query_output = db.million.find({ "$and": [{ "dyn1" : {"$gte" : 1234 } }, { "dyn1" : {"$lt"  : 5678 } }]})
+			query_output = db.nested.find({ "$and": [{ "dyn1" : {"$gte" : 1234 } }, { "dyn1" : {"$lt"  : 5678 } }]})
 			for outp in query_output:
 				continue
 		elif numb == 8:
-			query_output = db.million.find({ "nested_arr" : 'join' })
+			query_output = db.nested.find({ "nested_arr" : 'join' })
 			for outp in query_output:
 				continue
 		elif numb == 9:
-			query_output = db.million.find({ "sparse_123" : 'join' })
+			query_output = db.nested.find({ "sparse_123" : 'join' })
 			for outp in query_output:
 				continue
 		elif numb == 10:
-			query_output = db.million.group(
+			query_output = db.nested.group(
 						{"thousandth" : True},
 						{"$and": [{"num" : { "$gte" : 1234 } },
 						          {"num" : { "$lt"  : 5678 } }]},
@@ -208,16 +208,16 @@ def run_mongo_query(query, numb):
 
 
 argo1_queries = [
-				"SELECT * FROM (SELECT valstr, objid FROM argo_a1_data WHERE keystr = 'str1') a INNER JOIN (SELECT valnum, objid FROM argo_a1_data WHERE keystr = 'num') b ON (a.objid = b.objid)",
-				"SELECT * FROM (SELECT valstr, objid FROM argo_a1_data WHERE keystr = 'nested_obj.str') a INNER JOIN (SELECT valnum, objid FROM argo_a1_data WHERE keystr = 'nested_obj.num') b ON (a.objid = b.objid)",
-				"SELECT valstr, objid FROM argo_a1_data WHERE keystr = 'sparse_110' or keystr = 'sparse_119'",
-				"SELECT valstr, objid FROM argo_a1_data WHERE keystr = 'sparse_110' or keystr = 'sparse_220'",
-				"SELECT * FROM argo_a1_data WHERE keystr = 'str1' and valstr = 'join'",
-				"SELECT * FROM argo_a1_data WHERE keystr = 'num' and valnum > 1234 AND valnum < 5678",
-				"SELECT * FROM argo_a1_data WHERE keystr = 'dyn1' and valnum > 1234 AND valnum < 5678",
-				"SELECT objid FROM argo_a1_data WHERE keystr SIMILAR TO 'nested_arr\[[0123456789]+\]' AND valstr = 'join'",
-				"SELECT * FROM argo_a1_data WHERE keystr = 'sparse_111' and valstr = 'join'",
-				"DROP TABLE IF EXISTS temp_argo; CREATE TEMP TABLE temp_argo AS SELECT objid FROM argo_a1_data WHERE keystr = 'num' and valnum > 1234 AND valnum < 5678; SELECT count(*) FROM argo_a1_data WHERE objid in (SELECT objid FROM temp_argo) AND keystr = 'thousandth' GROUP BY valnum"
+				"SELECT * FROM (SELECT valstr, objid FROM argo_nesteda1_data WHERE keystr = 'str1') a INNER JOIN (SELECT valnum, objid FROM argo_nesteda1_data WHERE keystr = 'num') b ON (a.objid = b.objid)",
+				"SELECT * FROM (SELECT valstr, objid FROM argo_nesteda1_data WHERE keystr = 'nested_obj.str') a INNER JOIN (SELECT valnum, objid FROM argo_nesteda1_data WHERE keystr = 'nested_obj.num') b ON (a.objid = b.objid)",
+				"SELECT valstr, objid FROM argo_nesteda1_data WHERE keystr = 'sparse_110' or keystr = 'sparse_119'",
+				"SELECT valstr, objid FROM argo_nesteda1_data WHERE keystr = 'sparse_110' or keystr = 'sparse_220'",
+				"SELECT * FROM argo_nesteda1_data WHERE keystr = 'str1' and valstr = 'join'",
+				"SELECT * FROM argo_nesteda1_data WHERE keystr = 'num' and valnum > 1234 AND valnum < 5678",
+				"SELECT * FROM argo_nesteda1_data WHERE keystr = 'dyn1' and valnum > 1234 AND valnum < 5678",
+				"SELECT objid FROM argo_nesteda1_data WHERE keystr SIMILAR TO 'nested_arr\[[0123456789]+\]' AND valstr = 'join'",
+				"SELECT * FROM argo_nesteda1_data WHERE keystr = 'sparse_111' and valstr = 'join'",
+				"DROP TABLE IF EXISTS temp_argo; CREATE TEMP TABLE temp_argo AS SELECT objid FROM argo_nesteda1_data WHERE keystr = 'num' and valnum > 1234 AND valnum < 5678; SELECT count(*) FROM argo_nesteda1_data WHERE objid in (SELECT objid FROM temp_argo) AND keystr = 'thousandth' GROUP BY valnum"
 				]
 
 
@@ -234,16 +234,16 @@ argo1_queries = [
 # "SELECT count(*) FROM test WHERE keystr = \"num\" and valnum > 1234 AND valnum < 5678 GROUP BY thousandth"
 
 argo3_queries = [
-					"SELECT * FROM (SELECT valstr, objid FROM argo_nota3_str WHERE keystr = 'str1') a INNER JOIN (SELECT valnum, objid FROM argo_nota3_num WHERE keystr = 'num') b ON (a.objid = b.objid)",
-					"SELECT * FROM (SELECT valstr, objid FROM argo_nota3_str WHERE keystr = 'nested_obj.str') a INNER JOIN (SELECT valnum, objid FROM argo_nota3_num WHERE keystr = 'nested_obj.num') b ON (a.objid = b.objid)",
-					"SELECT valstr, objid FROM argo_nota3_str WHERE keystr = 'sparse_110' or keystr = 'sparse_119'",
-					"SELECT valstr, objid FROM argo_nota3_str WHERE keystr = 'sparse_110' or keystr = 'sparse_220'",
-					"SELECT * FROM argo_nota3_str WHERE keystr = 'str1' and valstr = 'join'",
-					"SELECT * FROM argo_nota3_num WHERE keystr = 'num' and valnum > 1234 AND valnum < 5678",
-					"SELECT * FROM argo_nota3_num WHERE keystr = 'dyn1' and valnum > 1234 AND valnum < 5678",
-					"SELECT objid FROM argo_nota3_str WHERE keystr SIMILAR TO 'nested_arr\[[0123456789]+\]' AND valstr = 'join'",
-					"SELECT * FROM argo_nota3_str WHERE keystr = 'sparse_111' and valstr = 'join'",
-					"DROP TABLE IF EXISTS temp_argo; CREATE TEMP TABLE temp_argo AS SELECT objid FROM argo_nota3_num WHERE keystr = 'num' and valnum > 1234 AND valnum < 5678; SELECT count(*) FROM argo_nota3_num WHERE objid in (SELECT objid FROM temp_argo) AND keystr = 'thousandth' GROUP BY valnum"
+					"SELECT * FROM (SELECT valstr, objid FROM argo_a3nest_str WHERE keystr = 'str1') a INNER JOIN (SELECT valnum, objid FROM argo_a3nest_num WHERE keystr = 'num') b ON (a.objid = b.objid)",
+					"SELECT * FROM (SELECT valstr, objid FROM argo_a3nest_str WHERE keystr = 'nested_obj.str') a INNER JOIN (SELECT valnum, objid FROM argo_a3nest_num WHERE keystr = 'nested_obj.num') b ON (a.objid = b.objid)",
+					"SELECT valstr, objid FROM argo_a3nest_str WHERE keystr = 'sparse_110' or keystr = 'sparse_119'",
+					"SELECT valstr, objid FROM argo_a3nest_str WHERE keystr = 'sparse_110' or keystr = 'sparse_220'",
+					"SELECT * FROM argo_a3nest_str WHERE keystr = 'str1' and valstr = 'join'",
+					"SELECT * FROM argo_a3nest_num WHERE keystr = 'num' and valnum > 1234 AND valnum < 5678",
+					"SELECT * FROM argo_a3nest_num WHERE keystr = 'dyn1' and valnum > 1234 AND valnum < 5678",
+					"SELECT objid FROM argo_a3nest_str WHERE keystr SIMILAR TO 'nested_arr\[[0123456789]+\]' AND valstr = 'join'",
+					"SELECT * FROM argo_a3nest_str WHERE keystr = 'sparse_111' and valstr = 'join'",
+					"DROP TABLE IF EXISTS temp_argo; CREATE TEMP TABLE temp_argo AS SELECT objid FROM argo_a3nest_num WHERE keystr = 'num' and valnum > 1234 AND valnum < 5678; SELECT count(*) FROM argo_a3nest_num WHERE objid in (SELECT objid FROM temp_argo) AND keystr = 'thousandth' GROUP BY valnum"
 
 				]
 
@@ -333,7 +333,7 @@ if __name__ == "__main__":
 
 
 
-	f = open('runtimes_nobench.txt', 'w')
+	f = open('runtimes_nobench_nested.txt', 'w')
 
 	print '---------------------------------'
 	print 'Starting Queries'
