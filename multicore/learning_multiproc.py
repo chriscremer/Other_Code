@@ -647,28 +647,149 @@ updates to mutable values in the namespace are not propagated.
 pool
 '''
 
+# import multiprocessing
+# import time
+
+# def do_calculation(data):
+# 	time.sleep(2)
+# 	return data * 2
+
+# if __name__ == '__main__':
+# 	pool_size = multiprocessing.cpu_count() * 2
+# 	pool = multiprocessing.Pool(processes=pool_size)
+	
+# 	inputs = list(range(3))
+# 	print 'Input   :', inputs
+	
+# 	start = time.time()
+# 	builtin_outputs = map(do_calculation, inputs)
+# 	print 'Built-in:', builtin_outputs
+# 	end = time.time()
+# 	print end - start
+	
+# 	start = time.time()
+# 	#pool_outputs = pool.map(do_calculation, inputs)
+
+# 	#this get will allow for ^C to terminate the processes!!
+# 	pool_outputs = pool.map_async(do_calculation, inputs).get(9999)
+# 	print 'Pool    :', pool_outputs
+# 	end = time.time()
+# 	print end - start
+
+
+'''
+another way at termining the pool
+
+both ways work
+'''
+# from multiprocessing import Pool
+# import time
+
+# class KeyboardInterruptError(Exception): pass
+
+# def f(x):
+#     try:
+#         time.sleep(x)
+#         return x
+#     except KeyboardInterrupt:
+#         raise KeyboardInterruptError()
+
+# def main():
+#     p = Pool(processes=4)
+#     try:
+#         print 'starting the pool map'
+#         print p.map(f, range(3))
+#         print 'checkpoint'
+#         p.close()
+#         print 'pool map complete'
+#     except KeyboardInterrupt:
+#         print 'got ^C while pool mapping, terminating the pool'
+#         p.terminate()
+#         print 'pool is terminated'
+#     except Exception, e:
+#         print 'got exception: %r, terminating the pool' % (e,)
+#         p.terminate()
+#         print 'pool is terminated'
+#     finally:
+#         print 'joining pool processes'
+#         p.join()
+#         print 'join complete'
+#     print 'the end'
+
+# if __name__ == '__main__':
+#     main()
+
+
+
+'''
+so the situation Im trying to solve is:
+I have a huge dataset, I want multiple processes to read parts of it,
+then output something about it. I dont want them to copy the data. I 
+want to run as many processes as possible
+'''
+
+
+
 import multiprocessing
 import time
+import numpy as np
 
-def do_calculation(data):
-	time.sleep(1)
-	return data * 2
+def do_calculation(input1):
+
+	# active_procs = multiprocessing.active_children()
+	# print active_procs
+
+	#naame = multiprocessing.current_process().name
+	#time.sleep(1)
+
+	#print naame
+	#print X[input]
+	#print X
+
+	#X[input][1] = 1.0
+
+	print input1
+	return sum(X[input1%10])
+
+
 
 if __name__ == '__main__':
-	pool_size = multiprocessing.cpu_count() * 2
+
+	X = np.random.rand(10, 3)
+
+	print X
+
+
+	pool_size = multiprocessing.cpu_count()
+	# active_procs = multiprocessing.active_children()
+	# print active_procs
+
 	pool = multiprocessing.Pool(processes=pool_size)
+
+	print 'READY?'
 	
-	inputs = list(range(10))
-	print 'Input   :', inputs
+	inputs = list(range(1000))
+	#print 'Input   :', inputs
 	
-	start = time.time()
-	builtin_outputs = map(do_calculation, inputs)
-	print 'Built-in:', builtin_outputs
-	end = time.time()
-	print end - start
+	# start = time.time()
+	# builtin_outputs = map(do_calculation, inputs)
+	# print 'Built-in:', builtin_outputs
+	# end = time.time()
+	# print end - start
 	
-	start = time.time()
-	pool_outputs = pool.map(do_calculation, inputs)
-	print 'Pool    :', pool_outputs
-	end = time.time()
-	print end - start
+	# start = time.time()
+	#pool_outputs = pool.map(do_calculation, inputs)
+
+	# active_procs = multiprocessing.active_children()
+	# print active_procs
+
+	#this get will allow for ^C to terminate the processes!!
+	pool_outputs = pool.map_async(do_calculation, inputs).get(9999)
+
+	# active_procs = multiprocessing.active_children()
+	# print active_procs
+
+	#print 'Pool    :', pool_outputs
+	print 'DONE'
+	# end = time.time()
+	# print end - start
