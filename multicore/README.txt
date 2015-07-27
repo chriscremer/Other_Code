@@ -1,1 +1,1 @@
-Example how to use Python multiprocessing
+Examples on how to use the Python multiprocessing packages
