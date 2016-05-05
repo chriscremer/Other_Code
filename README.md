@@ -1,7 +1,7 @@
 
 # Other Code
 
-This repo for storing miscellaneous code that I've written.
+This repo is for storing miscellaneous code that I've written.
 
 ###CSC2508 
 
