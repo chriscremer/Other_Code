@@ -10,12 +10,11 @@ Code_for_plotting
 Code I used to make plots in Python using Matplotlib. 
 
 
-HGvLG
-Bladder cancer are graded based on how differentiated the cells are. Here is the code I wrote to predict grade from 
-gene expressions. I also cluster the samples and analyze the results. 
+##HGvLG
+Bladder cancer are graded based on how differentiated the cells are. Here is the code I wrote to predict grade from gene expressions. I also cluster the samples and analyze the results. 
 
 
-Python_Packets
+##Python_Packets
 Python code to send and receive messages (packets)
 Used during the summer of 2014 to test packet throughput
 
