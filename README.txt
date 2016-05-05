@@ -10,7 +10,7 @@ Code_for_plotting
 Code I used to make plots in Python using Matplotlib. 
 
 
-## HGvLG
+** HGvLG **
 Bladder cancer are graded based on how differentiated the cells are. Here is the code I wrote to predict grade from gene expressions. I also cluster the samples and analyze the results. 
 
 
