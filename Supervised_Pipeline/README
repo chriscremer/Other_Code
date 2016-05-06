@@ -1,0 +1,19 @@
+
+
+
+PIPELINE PLAN
+
+Classification:
+
+	- Input: Dataset, Labels, OPTIONAL (sample names, feature names)
+	- Run many iterations (parallel, multiprocessor) of cross-validation to determine best method
+	- 
+
+	Maybe get input of train vs test
+
+	- Output: Performance of different methods (ordered) then predictions for test data if exists
+		- Make different kinds of plots. 
+
+IDEA: make it easy + fast to test a bunch of methods simultaneously (example Kaggle challenge or my data)
+
+DO the same for regression
