@@ -1,0 +1,7 @@
+
+
+To use this run: 
+cd to this direcory , 
+run python2 -m SimpleHTTPServer, 
+use browser to http://localhost:8000/protein_visualizer3.html
+to change which protein we see, go to code.js and at the bottom put in a new file
