@@ -106,7 +106,7 @@ class NQAE():
         # Generate probabilistic encoder (recognition network), which
         # maps inputs onto a normal distribution in latent space.
 
-        concatenate_x_and_state = tf.concat(1, [tf.concat(1, [x_t, rnn_state]), prev_z])
+        concatenate_x_and_state = tf.concat(1, [tf.concat(1, [x_t, rnn_state]), prev_z ])
 
         layer_1 = self.transfer_fct(tf.add(tf.matmul(concatenate_x_and_state, weights['h1']), biases['b1'])) 
         layer_2 = self.transfer_fct(tf.add(tf.matmul(layer_1, weights['h2']), biases['b2'])) 
