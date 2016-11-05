@@ -29,22 +29,40 @@ This is trying to reproduce the results of the IWAE paper
 
 # import gzip
 # with gzip.open('mnist.pkl.gz', 'rb') as f:
-with open(home+ '/Documents/MNIST_data/mnist.pkl', 'rb') as f:
+# with open(home+ '/Documents/MNIST_data/mnist.pkl', 'rb') as f:
+with open(home+ '/data/binarized_mnist.pkl', 'rb') as f:
+
 	train_set, valid_set, test_set = pickle.load(f)
 
-train_x, train_y = train_set
-valid_x, valid_y = valid_set
-test_x, test_y = test_set
+# train_x, train_y = train_set
+# valid_x, valid_y = valid_set
+# test_x, test_y = test_set
+
+# print 'Train'
+# print train_x.shape
+# print train_y.shape
+# print "Valid"
+# print valid_x.shape
+# print valid_y.shape
+# print 'Test'
+# print test_x.shape
+# print test_y.shape
+train_x = train_set
+valid_x = valid_set
+test_x = test_set
+train_y = []
+valid_y = []
+test_y = []
 
 print 'Train'
 print train_x.shape
-print train_y.shape
+# print train_y.shape
 print "Valid"
 print valid_x.shape
-print valid_y.shape
+# print valid_y.shape
 print 'Test'
 print test_x.shape
-print test_y.shape
+# print test_y.shape
 
 #########################################
 #Train VAE and IWAE
@@ -74,17 +92,32 @@ network_architecture_for_NQAE = \
          n_z=50,
          rnn_state_size=10)  # dimensionality of latent space
 
+# print 'Training NQAE'
+# nqae = NQAE(network_architecture_for_NQAE, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+# nqae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables=home+ '/Documents/tmp/quae3.ckpt', path_to_save_variables='')
+
+# print 'Training VAE'
+# vae = VAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+# vae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables=home+ '/Documents/tmp/vae3.ckpt', path_to_save_variables='')
+
+# print 'Training IWAE'
+# iwae = IWAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+# iwae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables=home+ '/Documents/tmp/iwae3.ckpt', path_to_save_variables='')
+
+#boltzmann
 print 'Training NQAE'
 nqae = NQAE(network_architecture_for_NQAE, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
-nqae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables=home+ '/Documents/tmp/quae.ckpt', path_to_save_variables='')
+nqae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables=home+ '/data/quae3.ckpt', path_to_save_variables='')
 
-print 'Training VAE'
-vae = VAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
-vae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables=home+ '/Documents/tmp/vae.ckpt', path_to_save_variables='')
+# print 'Training VAE'
+# vae = VAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+# vae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables=home+ '/data/vae3.ckpt', path_to_save_variables='')
 
-print 'Training IWAE'
-iwae = IWAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
-iwae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables=home+ '/Documents/tmp/iwae.ckpt', path_to_save_variables='')
+# print 'Training IWAE'
+# iwae = IWAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+# iwae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables=home+ '/data/iwae3.ckpt', path_to_save_variables='')
+
+
 
 
 
@@ -142,18 +175,22 @@ iwae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=9999
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-generation = iwae.generate()[0]
-plt.imshow(generation.reshape((28, 28)), cmap=cm.Greys_r)
-plt.show()
+
+# plt.imshow(generation.reshape((28, 28)), cmap=cm.Greys_r)
+# plt.show()
 # plt.savefig()
-mpimg.imsave(home+'/Downloads/sampled_image_iwae.png', generation.reshape((28, 28)))
 
-generation = vae.generate()[0]
-mpimg.imsave(home+'/Downloads/sampled_image_vae.png', generation.reshape((28, 28)))
+for i in range(10):
+    # generation = iwae.generate()[0]
+    # mpimg.imsave(home+'/data/sampled_image_iwae_' + str(i) + '.png', generation.reshape((28, 28)))
 
-generation = nqae.generate()[0]
-mpimg.imsave(home+'/Downloads/sampled_image_nqae.png', generation.reshape((28, 28)))
+    # generation = vae.generate()[0]
+    # mpimg.imsave(home+'/data/sampled_image_vae_' + str(i) + '.png', generation.reshape((28, 28)))
+
+    generation = nqae.generate()[0]
+    mpimg.imsave(home+'/data/sampled_image_nqae__' + str(i) + '.png', generation.reshape((28, 28)))
 
 
+print 'saved pics'
 
 
