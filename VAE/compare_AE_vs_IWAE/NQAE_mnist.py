@@ -6,11 +6,6 @@
 
 
 
-
-
-
-
-
 import numpy as np
 import tensorflow as tf
 import random
@@ -58,6 +53,8 @@ class NQAE():
         # Define loss function based variational upper-bound and corresponding optimizer
         self._create_loss_optimizer()
         
+        # self._negative_weighted_log_likelihood_lower_bound()
+
         # Initializing the tensor flow variables
         init = tf.initialize_all_variables()
 
@@ -194,12 +191,14 @@ class NQAE():
     def _create_loss_optimizer(self):
 
         rnn_state = tf.zeros([self.batch_size, self.rnn_state_size], dtype=tf.float32)
+        prev_z = tf.zeros([self.batch_size, self.network_architecture["n_z"]], dtype=tf.float32)
+
         reconstr_loss_list = []
         prior_loss_list = []
         recognition_loss_list = []
         for particle in range(self.n_particles):
 
-            recog_mean, recog_log_sigma_sq, rnn_state = self._recognition_network(self.x, rnn_state, self.network_weights["weights_recog"], self.network_weights["biases_recog"])
+            recog_mean, recog_log_sigma_sq, rnn_state = self._recognition_network(self.x, rnn_state, prev_z, self.network_weights["weights_recog"], self.network_weights["biases_recog"])
 
             eps = tf.random_normal((self.batch_size, self.network_architecture["n_z"]), 0, 1, dtype=tf.float32)
             z = tf.add(recog_mean, tf.mul(tf.sqrt(tf.exp(recog_log_sigma_sq)), eps))
@@ -220,6 +219,8 @@ class NQAE():
             prior_loss_list.append(prior_loss)
             recognition_loss_list.append(recognition_loss)
             reconstr_loss_list.append(reconstr_loss)
+
+            prev_z = z
 
 
 
@@ -300,6 +301,136 @@ class NQAE():
     #     """ Use VAE to reconstruct given data. """
     #     return self.sess.run(self.x_reconstr_mean, 
     #                          feed_dict={self.x: X})
+
+
+    def evaluate(self, datapoints, n_samples):
+
+        self.n_particles = n_samples
+        sum_ = 0
+        datapoint_index = 0
+        for i in range(len(datapoints)/self.batch_size):
+
+            #Make batch
+            batch = []
+            while len(batch) != self.batch_size:
+                datapoint = datapoints[datapoint_index]
+                batch.append(datapoint)
+                datapoint_index +=1
+
+            nll = self.sess.run((self.negative_weighted_log_likelihood_lower_bound()), feed_dict={self.x: batch})
+            sum_ += nll
+
+        avg = sum_ / (len(datapoints)/self.batch_size)
+
+        return avg
+
+
+    def negative_weighted_log_likelihood_lower_bound(self):
+
+        rnn_state = tf.zeros([self.batch_size, self.rnn_state_size], dtype=tf.float32)
+        prev_z = tf.zeros([self.batch_size, self.network_architecture["n_z"]], dtype=tf.float32)
+
+        reconstr_loss_list = []
+        prior_loss_list = []
+        recognition_loss_list = []
+        for particle in range(self.n_particles):
+
+            recog_mean, recog_log_sigma_sq, rnn_state = self._recognition_network(self.x, rnn_state, prev_z, self.network_weights["weights_recog"], self.network_weights["biases_recog"])
+
+            eps = tf.random_normal((self.batch_size, self.network_architecture["n_z"]), 0, 1, dtype=tf.float32)
+            z = tf.add(recog_mean, tf.mul(tf.sqrt(tf.exp(recog_log_sigma_sq)), eps))
+
+            prior_loss = self._log_p_z(z)
+
+            recognition_loss = self._log_q_z_given_x(z, recog_mean, recog_log_sigma_sq)
+
+            #Generate frame x_t and Calc reconstruction error
+            reconstructed_mean = self._generator_network_no_sigmoid(z, self.network_weights["weights_gener"], self.network_weights["biases_gener"])
+            #this sum is over the dimensions 
+            reconstr_loss = \
+                    tf.reduce_sum(tf.maximum(reconstructed_mean, 0) 
+                                - reconstructed_mean * self.x
+                                + tf.log(1 + tf.exp(-abs(reconstructed_mean))),
+                                 1)
+
+            prior_loss_list.append(prior_loss)
+            recognition_loss_list.append(recognition_loss)
+            reconstr_loss_list.append(reconstr_loss)
+
+            prev_z = z
+
+        prior_loss_tensor = tf.pack(prior_loss_list, axis=1)
+        recognition_loss_tensor = tf.pack(recognition_loss_list, axis=1)
+        reconstr_loss_tensor = tf.pack(reconstr_loss_list, axis=1)
+
+        log_w = tf.sub(tf.add(reconstr_loss_tensor, recognition_loss_tensor),prior_loss_tensor) 
+        # log_w = log_w * tf.nn.softmax(log_w)
+
+        mean_log_w = tf.reduce_mean(log_w, 1) #averave over particles
+        cost = tf.reduce_mean(mean_log_w) #average over batch
+
+        return cost
+
+
+
+
+
+    # def negative_weighted_log_likelihood_lower_bound(self, datapoints, n_samples):
+
+    #     sum_ = 0
+    #     datapoint_index = 0
+    #     for i in range(len(5000/self.batch_size)):
+
+    #         #Make batch
+    #         batch = []
+    #         while len(batch) != self.batch_size:
+    #             datapoint = datapoints[datapoint_index]
+    #             batch.append(datapoint)
+    #             datapoint_index +=1
+
+    #         opt, cost = self.sess.run((self.optimizer, self.cost), feed_dict={self.x: batch})
+
+
+    # def _negative_weighted_log_likelihood_lower_bound(self, datapoints, n_samples):
+
+
+
+    #         batch_sum = 0
+
+    #         rnn_state = tf.zeros([self.batch_size, self.rnn_state_size], dtype=tf.float32)
+    #         prev_z = tf.zeros([self.batch_size, self.network_architecture["n_z"]], dtype=tf.float32)
+    #         for j in range(n_samples):
+
+    #             #sample from posterior
+    #             recog_mean, recog_log_sigma_sq, rnn_state = self._recognition_network(batch, rnn_state, prev_z, self.network_weights["weights_recog"], self.network_weights["biases_recog"])
+
+    #             eps = tf.random_normal((self.batch_size, self.network_architecture["n_z"]), 0, 1, dtype=tf.float32)
+    #             z = tf.add(recog_mean, tf.mul(tf.sqrt(tf.exp(recog_log_sigma_sq)), eps))
+
+    #             log_p_z = self._log_p_z(z)
+
+    #             log_q_z_given_x = self._log_q_z_given_x(z, recog_mean, recog_log_sigma_sq)
+
+    #             #Generate frame x_t and Calc reconstruction error
+    #             reconstructed_mean = self._generator_network_no_sigmoid(z, self.network_weights["weights_gener"], self.network_weights["biases_gener"])
+    #             #this sum is over the dimensions 
+    #             negative_log_p_x_given_z = \
+    #                     tf.reduce_sum(tf.maximum(reconstructed_mean, 0) 
+    #                                 - reconstructed_mean * self.x
+    #                                 + tf.log(1 + tf.exp(-abs(reconstructed_mean))),
+    #                                  1)
+
+    #             log_p_x_given_z = -negative_log_p_x_given_z
+
+    #             sample_propability = log_p_x_given_z + log_p_z - log_q_z_given_x
+
+    #             batch_sum += sample_propability
+
+
+    #     return sum_
+
+
+
 
 
     def train(self, train_x, train_y, timelimit=60, max_steps=999, display_step=5, path_to_load_variables='', path_to_save_variables=''):

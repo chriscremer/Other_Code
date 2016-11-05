@@ -270,7 +270,88 @@ class VAE():
     #                          feed_dict={self.x: X})
 
 
-    def train(self, train_x, train_y, timelimit=60, max_steps=999, display_step=5, path_to_load_variables='', path_to_save_variables=''):
+    def evaluate(self, datapoints, n_samples, n_datapoints=None):
+
+        normal_n_particles = self.n_particles
+        self.n_particles = n_samples
+        sum_ = 0
+        datapoint_index = 0
+        use_all = False
+        if n_datapoints == None:
+            use_all = True
+            n_datapoints=len(datapoints)
+        for i in range(n_datapoints/self.batch_size):
+
+            #Make batch
+            batch = []
+            while len(batch) != self.batch_size:
+                if use_all:
+                    datapoint = datapoints[datapoint_index]
+                else:
+                    datapoint = datapoints[random.randint(0,n_datapoints-1)]
+
+                batch.append(datapoint)
+                datapoint_index +=1
+
+            nll = self.sess.run((self.negative_weighted_log_likelihood_lower_bound()), feed_dict={self.x: batch})
+            sum_ += nll
+
+        avg = sum_ / (n_datapoints/self.batch_size)
+
+        self.n_particles = normal_n_particles
+
+        return avg
+
+
+    def negative_weighted_log_likelihood_lower_bound(self):
+
+        # rnn_state = tf.zeros([self.batch_size, self.rnn_state_size], dtype=tf.float32)
+        # prev_z = tf.zeros([self.batch_size, self.network_architecture["n_z"]], dtype=tf.float32)
+
+        reconstr_loss_list = []
+        prior_loss_list = []
+        recognition_loss_list = []
+        for particle in range(self.n_particles):
+
+            recog_mean, recog_log_sigma_sq = self._recognition_network(self.x, self.network_weights["weights_recog"], self.network_weights["biases_recog"])
+
+            eps = tf.random_normal((self.batch_size, self.network_architecture["n_z"]), 0, 1, dtype=tf.float32)
+            z = tf.add(recog_mean, tf.mul(tf.sqrt(tf.exp(recog_log_sigma_sq)), eps))
+
+            prior_loss = self._log_p_z(z)
+
+            recognition_loss = self._log_p_z_given_x(z, recog_mean, recog_log_sigma_sq)
+
+            #Generate frame x_t and Calc reconstruction error
+            reconstructed_mean = self._generator_network_no_sigmoid(z, self.network_weights["weights_gener"], self.network_weights["biases_gener"])
+            #this sum is over the dimensions 
+            reconstr_loss = \
+                    tf.reduce_sum(tf.maximum(reconstructed_mean, 0) 
+                                - reconstructed_mean * self.x
+                                + tf.log(1 + tf.exp(-abs(reconstructed_mean))),
+                                 1)
+
+            prior_loss_list.append(prior_loss)
+            recognition_loss_list.append(recognition_loss)
+            reconstr_loss_list.append(reconstr_loss)
+
+            # prev_z = z
+
+        prior_loss_tensor = tf.pack(prior_loss_list, axis=1)
+        recognition_loss_tensor = tf.pack(recognition_loss_list, axis=1)
+        reconstr_loss_tensor = tf.pack(reconstr_loss_list, axis=1)
+
+        log_w = tf.sub(tf.add(reconstr_loss_tensor, recognition_loss_tensor),prior_loss_tensor) 
+        # log_w = log_w * tf.nn.softmax(log_w)
+
+        mean_log_w = tf.reduce_mean(log_w, 1) #averave over particles
+        cost = tf.reduce_mean(mean_log_w) #average over batch
+
+        return cost
+
+
+
+    def train(self, train_x, valid_x, timelimit=60, max_steps=999, display_step=5, valid_step=10000, path_to_load_variables='', path_to_save_variables=''):
 
         n_datapoints = len(train_x)
 
@@ -295,8 +376,11 @@ class VAE():
             
             # Display logs per epoch step
             if step % display_step == 0:
-                print "Step:", '%04d' % (step+1), \
-                      "cost=", "{:.9f}".format(cost)
+                print "Step:", '%04d' % (step+1), "t{:.1f},".format(time.time() - start), "cost=", "{:.9f}".format(cost)
+
+            # Get validation NLL
+            if step % valid_step == 0:
+                print "Step:", '%04d' % (step+1), "validation NLL=", "{:.9f}".format(self.evaluate(valid_x, 20, 100)), 'timelimit', str(timelimit)
 
             #Check if time is up
             if time.time() - start > timelimit:
@@ -304,6 +388,7 @@ class VAE():
                 break
 
         if path_to_save_variables != '':
+            print 'saving variables to ' + path_to_save_variables
             saver.save(self.sess, path_to_save_variables)
             print 'Saved variables to ' + path_to_save_variables
 

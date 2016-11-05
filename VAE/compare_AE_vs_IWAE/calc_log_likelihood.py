@@ -27,27 +27,40 @@ This is trying to reproduce the results of the IWAE paper
 
 # import gzip
 # with gzip.open('mnist.pkl.gz', 'rb') as f:
-with open(home+ '/Documents/MNIST_data/mnist.pkl', 'rb') as f:
+
+#Mac
+# with open(home+ '/Documents/MNIST_data/mnist.pkl', 'rb') as f:
+
+#Boltzmann
+# with open(home+ '/data/mnist.pkl', 'rb') as f:
+with open(home+ '/data/binarized_mnist.pkl', 'rb') as f:
 	train_set, valid_set, test_set = pickle.load(f)
 
-train_x, train_y = train_set
-valid_x, valid_y = valid_set
-test_x, test_y = test_set
+#No labels for the binarized mnist
+# train_x, train_y = train_set
+# valid_x, valid_y = valid_set
+# test_x, test_y = test_set
+train_x = train_set
+valid_x = valid_set
+test_x = test_set
+# train_y = []
+# valid_y = []
+# test_y = []
 
 print 'Train'
 print train_x.shape
-print train_y.shape
+# print train_y.shape
 print "Valid"
 print valid_x.shape
-print valid_y.shape
+# print valid_y.shape
 print 'Test'
 print test_x.shape
-print test_y.shape
+# print test_y.shape
 
 #########################################
 #Train VAE and IWAE
 #########################################
-timelimit = 300
+timelimit = 5000
 f_height=28
 f_width=28
 batch_size = 20
@@ -72,77 +85,115 @@ network_architecture_for_NQAE = \
          n_z=50,
          rnn_state_size=10)  # dimensionality of latent space
 
-print 'Training NQAE'
-nqae = NQAE(network_architecture_for_NQAE, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
-nqae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables='', path_to_save_variables=home+ '/Documents/tmp/quae.ckpt')
+# #mac
+# print 'Training NQAE'
+# nqae = NQAE(network_architecture_for_NQAE, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+# nqae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables='', path_to_save_variables=home+ '/Documents/tmp/quae.ckpt')
+
+# print 'Training VAE'
+# vae = VAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+# vae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables='', path_to_save_variables=home+ '/Documents/tmp/vae.ckpt')
+
+# print 'Training IWAE'
+# iwae = IWAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+# iwae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables='', path_to_save_variables=home+ '/Documents/tmp/iwae.ckpt')
+
+#boltzmann
+# print 'Training NQAE'
+# nqae = NQAE(network_architecture_for_NQAE, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+# nqae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables='', path_to_save_variables=home+ '/data/quae3.ckpt')
 
 print 'Training VAE'
-vae = VAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
-vae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables='', path_to_save_variables=home+ '/Documents/tmp/vae.ckpt')
+vae = VAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.0001, batch_size=batch_size, n_particles=n_particles)
+vae.train(train_x=train_x, valid_x=valid_x, timelimit=timelimit, max_steps=99999, display_step=100, valid_step=500, path_to_load_variables=home+ '/data/vae5.ckpt', path_to_save_variables=home+ '/data/vae3.ckpt')
 
-print 'Training IWAE'
-iwae = IWAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
-iwae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables='', path_to_save_variables=home+ '/Documents/tmp/iwae.ckpt')
-
-
-
-#########################################
-#Sample 5000 times from them
-#Get log likelihood of the test set
-#########################################
-print 'Negative Log Likelihood'
-
-print 'vae means'
-x_means_VAE = []
-for i in range(5000/batch_size):
-	generation = vae.generate()
-	for j in range(len(generation)):
-		x_means_VAE.append(generation[j])
-
-print 'iwae means'
-x_means_IWAE = []
-for i in range(5000/batch_size):
-	generation = iwae.generate()
-	for j in range(len(generation)):
-		x_means_IWAE.append(generation[j])
-
-print 'nqae means'
-x_means_NQAE = []
-for i in range(5000/batch_size):
-	generation = nqae.generate()
-	for j in range(len(generation)):
-		x_means_NQAE.append(generation[j])
-
-def neg_log_likelihood(test_data, means):
-
-	neg_log_like = 0
-	for i in range(len(test_data)):
-		if i % 50 == 0:
-			print i
-		for j in range(len(means)):
-
-			a = test_data[i] * np.log(means[j])
-			b = (1-test_data[i]) * np.log(1- means[j])
-			c = a + b
-			d = np.sum(c)
-			neg_log_like += d
-
-	return (-neg_log_like / len(test_data)) / len(means)
+# print 'Training IWAE'
+# iwae = IWAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+# iwae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables=home+ '/data/iwae3.ckpt', path_to_save_variables='')
 
 
-print 'VAE', neg_log_likelihood(test_x, x_means_VAE)
-print 'IWAE', neg_log_likelihood(test_x, x_means_IWAE)
-print 'NQAE', neg_log_likelihood(test_x, x_means_NQAE)
 
-#########################################
-#Visualize generated data
-#########################################
-import matplotlib.cm as cm
-import matplotlib.pyplot as plt
-generation = iwae.generate()[0]
-plt.imshow(generation.reshape((28, 28)), cmap=cm.Greys_r)
-plt.show()
-plt.savefig(home+'/Downloads/sampled_image.png')
+# #########################################
+# #Sample 5000 times from them
+# #Get log likelihood of the test set
+# #########################################
+# print 'Negative Log Likelihood'
+
+# print 'vae means'
+# x_means_VAE = []
+# for i in range(5000/batch_size):
+# 	generation = vae.generate()
+# 	for j in range(len(generation)):
+# 		x_means_VAE.append(generation[j])
+
+# print 'iwae means'
+# x_means_IWAE = []
+# for i in range(5000/batch_size):
+# 	generation = iwae.generate()
+# 	for j in range(len(generation)):
+# 		x_means_IWAE.append(generation[j])
+
+# print 'nqae means'
+# x_means_NQAE = []
+# for i in range(5000/batch_size):
+# 	generation = nqae.generate()
+# 	for j in range(len(generation)):
+# 		x_means_NQAE.append(generation[j])
+
+# def neg_log_likelihood(test_data, means):
+
+# 	neg_log_like = 0
+# 	for i in range(len(test_data)):
+# 		if i % 50 == 0:
+# 			print i
+# 		for j in range(len(means)):
+
+# 			a = test_data[i] * np.log(means[j])
+# 			b = (1-test_data[i]) * np.log(1- means[j])
+# 			c = a + b
+# 			d = np.sum(c) #over dimensions
+# 			neg_log_like += d
+
+# 	return (-neg_log_like / len(test_data)) / len(means)
+
+
+# print 'VAE', neg_log_likelihood(test_x, x_means_VAE)
+# print 'IWAE', neg_log_likelihood(test_x, x_means_IWAE)
+# print 'NQAE', neg_log_likelihood(test_x, x_means_NQAE)
+
+
+# #########################################
+# #Visualize generated data
+# #########################################
+# import matplotlib.cm as cm
+# import matplotlib.pyplot as plt
+# generation = iwae.generate()[0]
+# plt.imshow(generation.reshape((28, 28)), cmap=cm.Greys_r)
+# plt.show()
+# plt.savefig(home+'/Downloads/sampled_image.png')
+
+
+
+# #########################################
+# New log marginal likelihood lower bound
+# #########################################
+print 'evaluating'
+nll = vae.evaluate(datapoints=test_x, n_samples=300, n_datapoints=100)
+print nll
+
+
+
+print 'Done'
+
+
+
+
+
+
+
+
+
+
 
 
 
