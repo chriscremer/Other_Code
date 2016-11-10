@@ -351,7 +351,7 @@ class VAE():
 
 
 
-    def train(self, train_x, valid_x, timelimit=60, max_steps=999, display_step=5, valid_step=10000, path_to_load_variables='', path_to_save_variables=''):
+    def train(self, train_x, valid_x=None, timelimit=60, max_steps=999, display_step=5, valid_step=10000, path_to_load_variables='', path_to_save_variables=''):
 
         n_datapoints = len(train_x)
 
@@ -379,7 +379,7 @@ class VAE():
                 print "Step:", '%04d' % (step+1), "t{:.1f},".format(time.time() - start), "cost=", "{:.9f}".format(cost)
 
             # Get validation NLL
-            if step % valid_step == 0:
+            if step % valid_step == 0 and valid_x!=None:
                 print "Step:", '%04d' % (step+1), "validation NLL=", "{:.9f}".format(self.evaluate(valid_x, 20, 100)), 'timelimit', str(timelimit)
 
             #Check if time is up

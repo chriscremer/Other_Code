@@ -105,13 +105,13 @@ network_architecture_for_NQAE = \
 # iwae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables=home+ '/Documents/tmp/iwae3.ckpt', path_to_save_variables='')
 
 #boltzmann
-print 'Training NQAE'
-nqae = NQAE(network_architecture_for_NQAE, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
-nqae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables=home+ '/data/quae3.ckpt', path_to_save_variables='')
+# print 'Training NQAE'
+# nqae = NQAE(network_architecture_for_NQAE, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+# nqae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables=home+ '/data/quae3.ckpt', path_to_save_variables='')
 
-# print 'Training VAE'
-# vae = VAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
-# vae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables=home+ '/data/vae3.ckpt', path_to_save_variables='')
+print 'Training VAE'
+vae = VAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+vae.train(train_x=train_x, valid_x=None, timelimit=timelimit, max_steps=99999, display_step=50, valid_step=999, path_to_load_variables=home+ '/data/vae3.ckpt', path_to_save_variables='')
 
 # print 'Training IWAE'
 # iwae = IWAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
@@ -187,7 +187,7 @@ for i in range(10):
     # generation = vae.generate()[0]
     # mpimg.imsave(home+'/data/sampled_image_vae_' + str(i) + '.png', generation.reshape((28, 28)))
 
-    generation = nqae.generate()[0]
+    generation = vae.generate()[0]
     mpimg.imsave(home+'/data/sampled_image_nqae__' + str(i) + '.png', generation.reshape((28, 28)))
 
 

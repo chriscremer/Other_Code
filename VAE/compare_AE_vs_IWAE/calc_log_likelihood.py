@@ -8,12 +8,17 @@ import math
 from os.path import expanduser
 home = expanduser("~")
 
-# from VAE_mnist import VAE
-from VAE_mnist2 import VAE
-# from IWAE_mnist import IWAE
-from IWAE_mnist2 import IWAE
+# # from VAE_mnist import VAE
+# from VAE_mnist2 import VAE
+# # from IWAE_mnist import IWAE
+# from IWAE_mnist2 import IWAE
 
-from NQAE_mnist import NQAE
+# from NQAE_mnist import NQAE
+
+
+from autoencoders import VAE as VAE1
+from autoencoders import IWAE as IWAE1
+from autoencoders import VAE_MoG as VAE_MoG
 
 '''
 This is trying to reproduce the results of the IWAE paper 
@@ -60,11 +65,11 @@ print test_x.shape
 #########################################
 #Train VAE and IWAE
 #########################################
-timelimit = 5000
+timelimit = 500
 f_height=28
 f_width=28
 batch_size = 20
-n_particles = 10
+n_particles = 3
 
 network_architecture = \
     dict(n_hidden_recog_1=200, # 1st layer encoder neurons
@@ -103,14 +108,28 @@ network_architecture_for_NQAE = \
 # nqae = NQAE(network_architecture_for_NQAE, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
 # nqae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables='', path_to_save_variables=home+ '/data/quae3.ckpt')
 
-print 'Training VAE'
-vae = VAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.0001, batch_size=batch_size, n_particles=n_particles)
-vae.train(train_x=train_x, valid_x=valid_x, timelimit=timelimit, max_steps=99999, display_step=100, valid_step=500, path_to_load_variables=home+ '/data/vae5.ckpt', path_to_save_variables=home+ '/data/vae3.ckpt')
+# print 'Training VAE'
+# vae = VAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.0001, batch_size=batch_size, n_particles=n_particles)
+# vae.train(train_x=train_x, valid_x=valid_x, timelimit=timelimit, max_steps=99999, display_step=100, valid_step=500, path_to_load_variables=home+ '/data/vae5.ckpt', path_to_save_variables=home+ '/data/vae3.ckpt')
 
 # print 'Training IWAE'
 # iwae = IWAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
 # iwae.train(train_x=train_x, train_y=train_y, timelimit=timelimit, max_steps=99999, display_step=50, path_to_load_variables=home+ '/data/iwae3.ckpt', path_to_save_variables='')
 
+
+
+
+# print 'Training VAE'
+# vae = VAE1(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+# vae.train(train_x=train_x, valid_x=valid_x, timelimit=timelimit, max_steps=99999, display_step=100, valid_step=500, path_to_load_variables=home+ '/data/iwae3.ckpt', path_to_save_variables=home+ '/data/iwae4.ckpt')
+
+# print 'Training IWAE'
+# iwae = IWAE1(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+# iwae.train(train_x=train_x, valid_x=None, timelimit=timelimit, max_steps=99999, display_step=100, valid_step=500, path_to_load_variables='', path_to_save_variables='')
+
+print 'Training VAE_MoG'
+vae = VAE_MoG(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+vae.train(train_x=train_x, valid_x=valid_x, timelimit=timelimit, max_steps=99999, display_step=100, valid_step=500, path_to_load_variables='', path_to_save_variables='')
 
 
 # #########################################
@@ -177,9 +196,9 @@ vae.train(train_x=train_x, valid_x=valid_x, timelimit=timelimit, max_steps=99999
 # #########################################
 # New log marginal likelihood lower bound
 # #########################################
-print 'evaluating'
-nll = vae.evaluate(datapoints=test_x, n_samples=300, n_datapoints=100)
-print nll
+# print 'evaluating'
+# nll = vae.evaluate(datapoints=test_x, n_samples=300, n_datapoints=100)
+# print nll
 
 
 
