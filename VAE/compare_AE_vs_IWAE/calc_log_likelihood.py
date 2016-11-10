@@ -69,7 +69,7 @@ timelimit = 500
 f_height=28
 f_width=28
 batch_size = 20
-n_particles = 3
+n_particles = 1
 
 network_architecture = \
     dict(n_hidden_recog_1=200, # 1st layer encoder neurons
@@ -118,18 +118,19 @@ network_architecture_for_NQAE = \
 
 
 
+print 'Training VAE'
+vae = VAE1(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+# vae.train(train_x=train_x, valid_x=valid_x, timelimit=timelimit, max_steps=99999, display_step=100, valid_step=1000, path_to_load_variables='', path_to_save_variables=home+ '/data/vae1.ckpt')
+vae.train2(train_x=train_x, valid_x=valid_x, display_step=10, path_to_load_variables='', path_to_save_variables=home+ '/data/vae1.ckpt', starting_stage=0)
 
-# print 'Training VAE'
-# vae = VAE1(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
-# vae.train(train_x=train_x, valid_x=valid_x, timelimit=timelimit, max_steps=99999, display_step=100, valid_step=500, path_to_load_variables=home+ '/data/iwae3.ckpt', path_to_save_variables=home+ '/data/iwae4.ckpt')
 
 # print 'Training IWAE'
 # iwae = IWAE1(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
 # iwae.train(train_x=train_x, valid_x=None, timelimit=timelimit, max_steps=99999, display_step=100, valid_step=500, path_to_load_variables='', path_to_save_variables='')
 
-print 'Training VAE_MoG'
-vae = VAE_MoG(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
-vae.train(train_x=train_x, valid_x=valid_x, timelimit=timelimit, max_steps=99999, display_step=100, valid_step=500, path_to_load_variables='', path_to_save_variables='')
+# print 'Training VAE_MoG'
+# vae = VAE_MoG(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
+# vae.train(train_x=train_x, valid_x=valid_x, timelimit=timelimit, max_steps=99999, display_step=100, valid_step=500, path_to_load_variables='', path_to_save_variables='')
 
 
 # #########################################

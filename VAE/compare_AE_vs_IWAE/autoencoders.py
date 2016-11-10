@@ -153,7 +153,7 @@ class VAE():
 
     def loss(self):
         '''
-        Negative Log Likelihood Lower Bound
+        Negative Log Likelihood Lower Bound : -ELBO
         '''
 
         recog_mean, recog_log_sigma_sq = self._recognition_network(self.x, self.network_weights["weights_recog"], self.network_weights["biases_recog"])
@@ -197,7 +197,7 @@ class VAE():
 
     def loss2(self):
         '''
-        Negative Log Likelihood Lower Bound
+        IWAE -ELBO
         '''
 
         recog_mean, recog_log_sigma_sq = self._recognition_network(self.x, self.network_weights["weights_recog"], self.network_weights["biases_recog"])
@@ -240,8 +240,8 @@ class VAE():
         # print max_
         # max_ = tf.tile(log_w, multiples=tf.constant([self.n_particles]))
 
-        mean_log_w = tf.log(tf.reduce_mean(tf.exp(log_w-max_), 1)) + max_#average over particles
-        cost = tf.reduce_mean(mean_log_w) #average over batch
+        log_mean_w = tf.log(tf.reduce_mean(tf.exp(log_w-max_), 1)) + max_#average over particles
+        cost = tf.reduce_mean(log_mean_w) #average over batch
 
         return cost
 
@@ -295,7 +295,7 @@ class VAE():
                 batch.append(datapoint)
                 datapoint_index +=1
 
-            nll = self.sess.run((self.loss()), feed_dict={self.x: batch})
+            nll = self.sess.run((self.loss2()), feed_dict={self.x: batch})
             sum_ += nll
 
         avg = sum_ / (n_datapoints/self.batch_size)
@@ -350,6 +350,66 @@ class VAE():
             print 'Saved variables to ' + path_to_save_variables
 
 
+    def train2(self, train_x, valid_x=[], display_step=5, path_to_load_variables='', path_to_save_variables='', starting_stage=0):
+        '''
+        This training method is the IWAE one where they do many passes over the data with decreasing LR
+        One difference is that I look at the validation NLL after each stage and save the variables
+        '''
+
+        n_datapoints = len(train_x)
+
+        #Load variables
+        saver = tf.train.Saver()
+        if path_to_load_variables != '':
+            saver.restore(self.sess, path_to_load_variables)
+            print 'loaded variables ' + path_to_load_variables
+
+        total_stages= 7
+        start = time.time()
+        for stage in range(starting_stage,total_stages+1):
+
+            self.learning_rate = .001 * 10.**(-stage/float(total_stages))
+            print 'learning rate', self.learning_rate
+
+            passes_over_data = 3**stage
+
+            for pass_ in range(passes_over_data):
+
+                #I should shuffle the data
+
+                data_index = 0
+                for step in range(n_datapoints/self.batch_size):
+
+                    #Make batch
+                    batch = []
+                    while len(batch) != self.batch_size:
+                        datapoint = train_x[data_index]
+                        batch.append(datapoint)
+
+                    # Fit training using batch data
+                    cost = self.partial_fit(batch)
+                    
+                    # Display logs per epoch step
+                    if step % display_step == 0:
+                        # print "Step:", '%04d' % (step+1), "t{:.1f},".format(time.time() - start), "cost=", "{:.9f}".format(cost)
+                        print "Stage:", str(stage)+'/7', "Pass", str(pass_)+'/'+str(passes_over_data-1), "Step:%04d' % (step+1) + str(n_datapoints/self.batch_size), "cost=", "{:.9f}".format(cost)
+
+
+                    # #Check if time is up
+                    # if time.time() - start > timelimit:
+                    #     print 'times up', timelimit
+                    #     break
+
+
+            # Get validation NLL
+            if step % valid_step == 0 and len(valid_x)!= 0:
+                print 'Calculating validation NLL'
+                print "Validation NLL=", "{:.9f}".format(self.evaluate(valid_x, 100, 300))
+
+            if path_to_save_variables != '':
+                print 'saving variables to ' + path_to_save_variables
+                saver.save(self.sess, path_to_save_variables)
+                print 'Saved variables to ' + path_to_save_variables
 
 
 
@@ -394,14 +454,16 @@ class IWAE(VAE):
         recognition_loss_tensor = tf.pack(recognition_loss_list, axis=1)
         reconstr_loss_tensor = tf.pack(reconstr_loss_list, axis=1)
 
-        log_w = tf.sub(tf.add(reconstr_loss_tensor, recognition_loss_tensor),prior_loss_tensor) 
+        log_w = tf.sub(tf.add(reconstr_loss_tensor, recognition_loss_tensor),prior_loss_tensor)
 
         #THIS IS THE ONLY DIFFERENCE FROM VAE
-        log_w = log_w * tf.nn.softmax(log_w)
-        mean_log_w = tf.reduce_sum(log_w, 1) #sum over particles
+        max_ = tf.reduce_max(log_w, reduction_indices=1, keep_dims=True)
+        log_mean_w = tf.log(tf.reduce_mean(tf.exp(log_w-max_), 1)) + max_#average over particles
+        cost = tf.reduce_mean(log_mean_w) #average over batch
 
-
-        cost = tf.reduce_mean(mean_log_w)  #average over batch
+        # log_w = log_w * tf.nn.softmax(log_w)
+        # mean_log_w = tf.reduce_sum(log_w, 1) #sum over particles
+        # cost = tf.reduce_mean(mean_log_w)  #average over batch
 
         return cost
 
