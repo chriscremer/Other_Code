@@ -16,9 +16,9 @@ home = expanduser("~")
 # from NQAE_mnist import NQAE
 
 
-from autoencoders import VAE as VAE1
-from autoencoders import IWAE as IWAE1
-from autoencoders import VAE_MoG as VAE_MoG
+from autoencoders2 import VAE as VAE1
+# from autoencoders import IWAE as IWAE1
+# from autoencoders import VAE_MoG as VAE_MoG
 
 '''
 This is trying to reproduce the results of the IWAE paper 
@@ -121,7 +121,7 @@ network_architecture_for_NQAE = \
 print 'Training VAE'
 vae = VAE1(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
 # vae.train(train_x=train_x, valid_x=valid_x, timelimit=timelimit, max_steps=99999, display_step=100, valid_step=1000, path_to_load_variables='', path_to_save_variables=home+ '/data/vae1.ckpt')
-vae.train2(train_x=train_x, valid_x=valid_x, display_step=10, path_to_load_variables='', path_to_save_variables=home+ '/data/vae1.ckpt', starting_stage=0)
+vae.train2(train_x=train_x, valid_x=valid_x, display_step=500, path_to_load_variables=home+ '/data/vae1.ckpt', path_to_save_variables=home+ '/data/vae_2.ckpt', starting_stage=6)
 
 
 # print 'Training IWAE'

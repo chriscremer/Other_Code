@@ -25,21 +25,12 @@ class VAE():
         
         # tf Graph input
         self.x = tf.placeholder(tf.float32, [None, network_architecture["n_input"]])
+
         
-        # Create autoencoder network
-        # self._create_network()
         self.network_weights = self._initialize_weights(**self.network_architecture)
 
         # Use ADAM optimizer
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.loss())
-       
-        # Initializing the tensor flow variables
-        init = tf.initialize_all_variables()
-
-        # Launch the session
-        self.sess = tf.InteractiveSession()
-        self.sess.run(init)
-
 
 
     def _initialize_weights(self, n_hidden_recog_1, n_hidden_recog_2, 
@@ -77,7 +68,6 @@ class VAE():
             'out_log_sigma': tf.Variable(tf.zeros([n_input], dtype=tf.float32))}
         return all_weights
             
-
 
     def _recognition_network(self, x_t, weights, biases):
         # Generate probabilistic encoder (recognition network), which
@@ -357,10 +347,14 @@ class VAE():
         '''
 
         n_datapoints = len(train_x)
-
-        #Load variables
+        
         saver = tf.train.Saver()
-        if path_to_load_variables != '':
+        self.sess = tf.Session()
+
+        if path_to_load_variables == '':
+            self.sess.run(tf.initialize_all_variables())
+        else:
+            #Load variables
             saver.restore(self.sess, path_to_load_variables)
             print 'loaded variables ' + path_to_load_variables
 
@@ -392,8 +386,8 @@ class VAE():
                     # Display logs per epoch step
                     if step % display_step == 0:
                         # print "Step:", '%04d' % (step+1), "t{:.1f},".format(time.time() - start), "cost=", "{:.9f}".format(cost)
-                        print "Stage:", str(stage)+'/7', "Pass", str(pass_)+'/'+str(passes_over_data-1), "Step:%04d' % (step+1) + str(n_datapoints/self.batch_size), "cost=", "{:.9f}".format(cost)
-
+                        print "Stage:", str(stage)+'/7', "Pass", str(pass_)+'/'+str(passes_over_data-1), 'Step:%04d' % (step+1) +'/'+ str(n_datapoints/self.batch_size), "cost=", "{:.9f}".format(cost), 'time', time.time() - start
+                        start = time.time()
 
                     # #Check if time is up
                     # if time.time() - start > timelimit:
@@ -402,9 +396,9 @@ class VAE():
 
 
             # Get validation NLL
-            if step % valid_step == 0 and len(valid_x)!= 0:
-                print 'Calculating validation NLL'
-                print "Validation NLL=", "{:.9f}".format(self.evaluate(valid_x, 100, 300))
+            # if step % valid_step == 0 and len(valid_x)!= 0:
+            print 'Calculating validation NLL'
+            print "Validation NLL=", "{:.9f}".format(self.evaluate(valid_x, 100, 300))
 
             if path_to_save_variables != '':
                 print 'saving variables to ' + path_to_save_variables
