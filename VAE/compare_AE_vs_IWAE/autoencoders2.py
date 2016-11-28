@@ -11,6 +11,7 @@ from os.path import expanduser
 home = expanduser("~")
 import time
 # import imageio
+import pickle
 
 
 
@@ -28,18 +29,43 @@ class VAE():
         #Placeholders - Inputs
         self.x = tf.placeholder(tf.float32, [None, self.n_input])
         #Variables
-        network_weights = self._initialize_weights(**self.network_architecture)
+        self.network_weights = self._initialize_weights(**self.network_architecture)
         #Encoder - Recognition model - p(z|x): recog_mean,z_log_std_sq=[batch_size, n_z]
-        self.recog_mean, self.recog_log_std_sq = self._recognition_network(network_weights["weights_recog"], network_weights["biases_recog"])
+        self.recog_mean, self.recog_log_std_sq = self._recognition_network(self.network_weights["weights_recog"], self.network_weights["biases_recog"])
         #Sample
         eps = tf.random_normal((self.n_particles, self.batch_size, self.n_z), 0, 1, dtype=tf.float32)
         self.z = tf.add(self.recog_mean, tf.mul(tf.sqrt(tf.exp(self.recog_log_std_sq)), eps)) #uses broadcasting, z=[n_parts, n_batches, n_z]
         #Decoder - Generative model - p(x|z)
-        self.x_reconstr_mean_no_sigmoid = self._generator_network(network_weights["weights_gener"], network_weights["biases_gener"]) #no sigmoid
+        self.x_reconstr_mean_no_sigmoid = self._generator_network(self.network_weights["weights_gener"], self.network_weights["biases_gener"]) #no sigmoid
         # self.x_reconstr_mean = tf.nn.sigmoid(self.x_reconstr_mean_no_sigmoid) #shape=[n_particles, n_batch, n_input]
 
         #Objective
         self.elbo = self.log_likelihood() + self._log_p_z() - self._log_p_z_given_x()
+
+        self.iwae_elbo = self.iwae_elbo_calc()
+
+
+        # self.w = tf.exp(self.i_log_likelihood() + self.i_log_p_z() - self.i_log_p_z_given_x())
+        self.w = self.i_log_likelihood() + self.i_log_p_z() - self.i_log_p_z_given_x()
+
+        # print self.w
+        # fsafa
+
+        # self.p_z = self._log_p_z_(self.z)
+        # self.p_z_x = self._log_p_z_given_x_(self.z, tf.zeros([batch_size, self.n_z]), tf.log(tf.ones([batch_size, self.n_z])))
+
+        # means_123 = tf.random_uniform([n_particles, batch_size, 784])
+
+        # self.ll1 = self.log_likelihood_1(self.x, self.x_reconstr_mean_no_sigmoid)
+        # self.ll2 = self.log_likelihood_2(self.x, self.x_reconstr_mean_no_sigmoid)
+        # self.ll3 = self.log_likelihood_3(self.x, self.x_reconstr_mean_no_sigmoid)
+
+        # self.ll1 = self.log_likelihood_1(self.x, means_123)
+        # self.ll2 = self.log_likelihood_2(self.x, means_123)
+        # self.ll3 = self.log_likelihood_3(self.x, means_123)
+
+        # self.iwae_elbo = self.iwae_elbo_calc()
+
 
         # Use ADAM optimizer
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=1e-04).minimize(-self.elbo)
@@ -133,11 +159,11 @@ class VAE():
         #Get log(p(z))
         #This is just exp of standard normal
 
-        term1 = 0
+        # term1 = 0
         term2 = self.n_z * tf.log(2*math.pi)
         term3 = tf.reduce_sum(tf.square(self.z), 2) #sum over dimensions n_z so now its [particles, batch]
 
-        all_ = term1 + term2 + term3
+        all_ = term2 + term3
         log_p_z = -.5 * all_
 
         log_p_z = tf.reduce_mean(log_p_z, 1) #average over batch
@@ -166,6 +192,69 @@ class VAE():
 
         return log_p_z_given_x
 
+
+
+    def _log_p_z_(self, z):
+        #Get log(p(z))
+        #This is just exp of standard normal
+
+        # term1 = 0
+        term2 = self.n_z * tf.log(2*math.pi)
+        term3 = tf.reduce_sum(tf.square(z), 2) #sum over dimensions n_z so now its [particles, batch]
+
+        all_ = term2 + term3
+        log_p_z = -.5 * all_
+
+        log_p_z = tf.reduce_mean(log_p_z, 1) #average over batch
+        log_p_z = tf.reduce_mean(log_p_z) #average over particles
+
+        return log_p_z
+
+
+    def _log_p_z_given_x_(self, z, mean, log_var):
+        #Get log(p(z|x))
+        #This is just exp of a normal with some mean and var
+
+        # term1 = tf.log(tf.reduce_prod(tf.exp(log_var_sq), reduction_indices=1))
+        term1 = tf.reduce_sum(log_var, reduction_indices=1) #sum over dimensions n_z so now its [batch]
+
+        term2 = self.n_z * tf.log(2*math.pi)
+        dif = tf.square(z - mean)
+        dif_cov = dif / tf.exp(log_var)
+        # term3 = tf.reduce_sum(dif_cov * dif, 1) 
+        term3 = tf.reduce_sum(dif_cov, 2) #sum over dimensions n_z so now its [particles, batch]
+
+        all_ = term1 + term2 + term3
+        log_p_z_given_x = -.5 * all_
+
+        log_p_z_given_x = tf.reduce_mean(log_p_z_given_x, 1) #average over batch
+        log_p_z_given_x = tf.reduce_mean(log_p_z_given_x) #average over particles
+
+        return log_p_z_given_x
+
+
+    # def _log_p_z_given_x2(self):
+    #     #Get log(p(z|x))
+    #     #This is just exp of a normal with some mean and var
+
+    #     # term1 = tf.log(tf.reduce_prod(tf.exp(log_var_sq), reduction_indices=1))
+    #     term1 = tf.reduce_sum(self.recog_log_std_sq, reduction_indices=1) #sum over dimensions n_z so now its [batch]
+
+    #     term2 = self.n_z * tf.log(2*math.pi)
+    #     dif = tf.square(self.z - self.recog_mean)
+    #     dif_cov = dif / tf.exp(self.recog_log_std_sq)
+    #     # term3 = tf.reduce_sum(dif_cov * dif, 1) 
+    #     term3 = tf.reduce_sum(dif_cov, 2) #sum over dimensions n_z so now its [particles, batch]
+
+    #     all_ = (2*term1) + term2 + term3
+    #     log_p_z_given_x = -.5 * all_
+
+    #     log_p_z_given_x = tf.reduce_mean(log_p_z_given_x, 1) #average over batch
+    #     log_p_z_given_x = tf.reduce_mean(log_p_z_given_x) #average over particles
+
+    #     return log_p_z_given_x
+
+
     def log_likelihood(self):
         # log p(x|z) for bernoulli distribution
         # recontruction mean has shape=[n_particles, n_batch, n_input]
@@ -176,14 +265,210 @@ class VAE():
         reconstr_loss = \
                 tf.reduce_sum(tf.maximum(self.x_reconstr_mean_no_sigmoid, 0) 
                             - self.x_reconstr_mean_no_sigmoid * self.x
-                            + tf.log(1 + tf.exp(-abs(self.x_reconstr_mean_no_sigmoid))),
+                            + tf.log(1 + tf.exp(-tf.abs(self.x_reconstr_mean_no_sigmoid))),
                              2) #sum over dimensions
+
+
+
 
         reconstr_loss = tf.reduce_mean(reconstr_loss, 1) #average over batch
         reconstr_loss = tf.reduce_mean(reconstr_loss) #average over particles
 
         #negative because the above calculated the NLL, so this is returning the LL
         return -reconstr_loss
+
+
+
+
+
+
+
+    # def log_likelihood_1(self, x, x_reconstr_mean_no_sigmoid):
+    #     # log p(x|z) for bernoulli distribution
+    #     # recontruction mean has shape=[n_particles, n_batch, n_input]
+    #     # x has shape [batch, n_input] 
+    #     # option 1: tile the x to the same size as reconstruciton.. but thats a waste of space
+    #     # I could probably do some broadcasting 
+
+    #     reconstr_loss = \
+    #             tf.reduce_sum(tf.maximum(x_reconstr_mean_no_sigmoid, 0) 
+    #                         - x_reconstr_mean_no_sigmoid * self.x
+    #                         + tf.log(1 + tf.exp(-tf.abs(x_reconstr_mean_no_sigmoid))),
+    #                          2) #sum over dimensions
+
+    #     # reconstr_loss = tf.reduce_mean(reconstr_loss, 1) #average over batch
+    #     # reconstr_loss = tf.reduce_mean(reconstr_loss) #average over particles
+
+    #     #negative because the above calculated the NLL, so this is returning the LL
+    #     return -reconstr_loss
+
+
+
+
+    # def log_likelihood_2(self, x, x_reconstr_mean_no_sigmoid):
+    #     # log p(x|z) for bernoulli distribution
+    #     # recontruction mean has shape=[n_particles, n_batch, n_input]
+    #     # x has shape [batch, n_input] 
+    #     # option 1: tile the x to the same size as reconstruciton.. but thats a waste of space
+    #     # I could probably do some broadcasting 
+
+    #     # reconstr_loss = \
+    #     #         tf.reduce_sum(tf.maximum(self.x_reconstr_mean_no_sigmoid, 0) 
+    #     #                     - self.x_reconstr_mean_no_sigmoid * self.x
+    #     #                     + tf.log(1 + tf.exp(-tf.abs(self.x_reconstr_mean_no_sigmoid))),
+    #     #                      2) #sum over dimensions
+
+    #     # max_ = tf.reduce_max(x_reconstr_mean_no_sigmoid, 2, keep_dims=True)
+    #     # x_reconstr_mean_no_sigmoid = x_reconstr_mean_no_sigmoid + max_
+        
+    #     log_prob = tf.reduce_sum(x*tf.log(tf.nn.sigmoid(x_reconstr_mean_no_sigmoid)) + (1.-x)*tf.log(1.-tf.nn.sigmoid(x_reconstr_mean_no_sigmoid)), 2) #sum over dimensions
+
+    #     # reconstr_loss = tf.reduce_mean(reconstr_loss, 1) #average over batch
+    #     # reconstr_loss = tf.reduce_mean(reconstr_loss) #average over particles
+
+    #     #negative because the above calculated the NLL, so this is returning the LL
+    #     return log_prob
+
+
+
+    # def log_likelihood_3(self, x, x_mean_no_sig):
+    #     # log p(x|z) for bernoulli distribution
+    #     # recontruction mean has shape=[n_particles, n_batch, n_input]
+    #     # x has shape [batch, n_input] 
+    #     # option 1: tile the x to the same size as reconstruciton.. but thats a waste of space
+    #     # I could probably do some broadcasting 
+
+    #     # reconstr_loss = \
+    #     #         tf.reduce_sum(tf.maximum(self.x_reconstr_mean_no_sigmoid, 0) 
+    #     #                     - self.x_reconstr_mean_no_sigmoid * self.x
+    #     #                     + tf.log(1 + tf.exp(-tf.abs(self.x_reconstr_mean_no_sigmoid))),
+    #     #                      2) #sum over dimensions
+
+    #     # max_ = tf.reduce_max(x_reconstr_mean_no_sigmoid, 2, keep_dims=True)
+    #     # x_reconstr_mean_no_sigmoid = x_reconstr_mean_no_sigmoid + max_
+        
+    #     # log_prob = tf.reduce_sum(x*tf.log(tf.nn.sigmoid(x_reconstr_mean_no_sigmoid)) + (1.-x)*tf.log(1.-tf.nn.sigmoid(x_reconstr_mean_no_sigmoid)), 2) #sum over dimensions
+
+
+    #     log_prob = tf.reduce_sum((2*x-1)*tf.log(1+tf.exp(-x_mean_no_sig)) + (x*x_mean_no_sig) - x_mean_no_sig, 2)
+
+    #     # reconstr_loss = tf.reduce_mean(reconstr_loss, 1) #average over batch
+    #     # reconstr_loss = tf.reduce_mean(reconstr_loss) #average over particles
+
+    #     #negative because the above calculated the NLL, so this is returning the LL
+    #     return log_prob
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # def log_likelihood2(self):
+    #     # log p(x|z) for bernoulli distribution
+    #     # recontruction mean has shape=[n_particles, n_batch, n_input]
+    #     # x has shape [batch, n_input] 
+    #     # option 1: tile the x to the same size as reconstruciton.. but thats a waste of space
+    #     # I could probably do some broadcasting 
+
+    #     max_ = tf.reduce_max(self.x_reconstr_mean_no_sigmoid, reduction_indices=2, keep_dims=True) 
+    #     # max_ = tf.reduce_max(self.x_reconstr_mean_no_sigmoid, reduction_indices=2) 
+    #     max_ = tf.tile(max_, [1,1,self.n_input])
+
+    #     print max_
+    #     print self.x_reconstr_mean_no_sigmoid
+
+    #     # reconstr_loss = \
+    #     #         tf.reduce_sum
+    #     #         (
+    #     #             tf.add
+    #     #             (  
+    #     #                 tf.sub
+    #     #                 (  
+    #     #                     max_
+    #     #                     ,  
+    #     #                     tf.mul
+    #     #                     (   
+    #     #                         self.x_reconstr_mean_no_sigmoid
+    #     #                         , 
+    #     #                         self.x
+    #     #                     )  
+    #     #                 )
+    #     #                 ,
+    #     #                 tf.log
+    #     #                 (
+    #     #                     tf.add
+    #     #                     (
+    #     #                         tf.exp
+    #     #                         (
+    #     #                             tf.sub
+    #     #                             (
+    #     #                                 self.x_reconstr_mean_no_sigmoid
+    #     #                                 , 
+    #     #                                 max_
+    #     #                             )
+    #     #                         )
+    #     #                         ,
+    #     #                         1
+    #     #                     )
+    #     #                 )
+    #     #             )
+    #     #             ,
+    #     #             2
+    #     #         ) #sum over dimensions
+
+
+    #     term1 = tf.mul(-self.x_reconstr_mean_no_sigmoid, self.x)  
+    #     term2 = tf.log(tf.add(tf.exp(tf.add(self.x_reconstr_mean_no_sigmoid, -max_)),1))
+    #     term3 = max_
+
+    #     reconstr_loss = term1 + term2 + term3
+
+
+
+    #     # tf.add(
+    #     #                     tf.add(
+    #     #                         max_
+    #     #                         ,
+    #     #                         tf.mul(   
+    #     #                             -self.x_reconstr_mean_no_sigmoid
+    #     #                             , 
+    #     #                             self.x
+    #     #                         )  
+    #     #                     )
+    #     #                     ,
+    #     #                     tf.log(
+    #     #                         tf.add(
+    #     #                             tf.exp(
+    #     #                                 tf.add(
+    #     #                                     self.x_reconstr_mean_no_sigmoid
+    #     #                                     , 
+    #     #                                     -max_
+    #     #                                 )
+    #     #                             )
+    #     #                             ,
+    #     #                             1
+    #     #                         )
+    #     #                     )
+    #     #                 )
+
+
+
+    #     reconstr_loss = tf.reduce_sum(reconstr_loss, 2) #sum over dimensions
+    #     reconstr_loss = tf.reduce_mean(reconstr_loss, 1) #average over batch
+    #     reconstr_loss = tf.reduce_mean(reconstr_loss) #average over particles
+
+    #     #negative because the above calculated the NLL, so this is returning the LL
+    #     return -reconstr_loss
+
+
 
     # def loss(self):
     #     '''
@@ -280,73 +565,330 @@ class VAE():
     #     return cost
 
 
-    def partial_fit(self, X):
-        """Train model based on mini-batch of input data.
+    # def partial_fit(self, X):
+    #     """Train model based on mini-batch of input data.
         
-        Return cost of mini-batch.
-        """
-        # opt, cost = self.sess.run((self.optimizer, self.elbo), feed_dict={self.x: X})
-        _ = self.sess.run((self.optimizer), feed_dict={self.x: X})
+    #     Return cost of mini-batch.
+    #     """
+    #     # opt, cost = self.sess.run((self.optimizer, self.elbo), feed_dict={self.x: X})
+    #     _ = self.sess.run((self.optimizer), feed_dict={self.x: X})
 
-        return 0
+    #     return 0
     
 
-    # def generate(self):
-    #     """ 
-    #     Generate data by sampling from the latent space.       
-    #     """
 
-    #     z = tf.random_normal((self.batch_size, self.network_architecture["n_z"]), 0, 1, dtype=tf.float32)
-    #     reconstructed_mean = self._generator_network(z, self.network_weights["weights_gener"], self.network_weights["biases_gener"], sigmoid=True)
+    def generate(self, path_to_load_variables):
+        """ 
+        Generate data by sampling from the latent space.       
+        """
 
-    #     reconstructed_mean1 = self.sess.run(reconstructed_mean)
+        saver = tf.train.Saver()
+        self.sess = tf.Session()
 
-    #     return reconstructed_mean1
+        if path_to_load_variables == '':
+            self.sess.run(tf.initialize_all_variables())
+        else:
+            #Load variables
+            saver.restore(self.sess, path_to_load_variables)
+            print 'loaded variables ' + path_to_load_variables
 
 
-    def evaluate(self, datapoints, n_samples, n_datapoints=None):
+        x_mean = self.sess.run(self._generator_network(self.network_weights["weights_gener"], self.network_weights["biases_gener"]),
+                                                        feed_dict={self.recog_mean: np.zeros([self.batch_size, self.n_z]), self.recog_log_std_sq: np.log(np.ones([self.batch_size, self.n_z]))})
+
+
+        # frame2_predictions = []
+        # for i in range(n_samples):
+        #     x_mean = self.sess.run(tf.nn.sigmoid(self._generator_network2(self.network_weights["weights_gener2"], self.network_weights["biases_gener2"])),
+        #                             feed_dict={self.x1: batch1, self.recog_mean: z_generative_mean, self.recog_log_std_sq: z_generative_log_std_sq})
+        #     frame2_predictions.append(x_mean)
+
+
+        return x_mean
+
+
+    def reconstruct(self, path_to_load_variables, train_x):
+
+        saver = tf.train.Saver()
+        self.sess = tf.Session()
+
+        if path_to_load_variables == '':
+            self.sess.run(tf.initialize_all_variables())
+        else:
+            #Load variables
+            saver.restore(self.sess, path_to_load_variables)
+            print 'loaded variables ' + path_to_load_variables
+
+        batch = []
+        data_index = 0
+        while len(batch) != self.batch_size:
+            datapoint = train_x[data_index]
+            batch.append(datapoint)
+            data_index +=1
+
+        # z = tf.random_normal((self.batch_size, self.network_architecture["n_z"]), 0, 1, dtype=tf.float32)
+        # reconstructed_mean = self._generator_network(z, self.network_weights["weights_gener"], self.network_weights["biases_gener"], sigmoid=True)
+
+        # reconstructed_mean1 = self.sess.run(reconstructed_mean)
+
+        x_mean = self.sess.run(self.x_reconstr_mean_no_sigmoid, feed_dict={self.x: batch})
+
+        return batch, x_mean
+
+
+
+    def i_log_p_z(self):
+        #Get log(p(z))
+        #This is just exp of standard normal
+
+        term1 = 0
+        term2 = self.n_z * tf.log(2*math.pi)
+        term3 = tf.reduce_sum(tf.square(self.z), 2) #sum over dimensions n_z so now its [particles, batch]
+
+        all_ = term1 + term2 + term3
+        log_p_z = -.5 * all_
+
+        # log_p_z = tf.reduce_mean(log_p_z, 1) #average over batch
+        # log_p_z = tf.reduce_mean(log_p_z) #average over particles
+
+        return log_p_z #this is [particles]
+
+    def i_log_p_z_given_x(self):
+        #Get log(p(z|x))
+        #This is just exp of a normal with some mean and var
+
+        # term1 = tf.log(tf.reduce_prod(tf.exp(log_var_sq), reduction_indices=1))
+        term1 = tf.reduce_sum(self.recog_log_std_sq, reduction_indices=1) #sum over dimensions n_z so now its [batch]
+
+        term2 = self.n_z * tf.log(2*math.pi)
+        dif = tf.square(self.z - self.recog_mean)
+        dif_cov = dif / tf.exp(self.recog_log_std_sq)
+        # term3 = tf.reduce_sum(dif_cov * dif, 1) 
+        term3 = tf.reduce_sum(dif_cov, 2) #sum over dimensions n_z so now its [particles, batch]
+
+        all_ = term1 + term2 + term3
+        log_p_z_given_x = -.5 * all_
+
+        # log_p_z_given_x = tf.reduce_mean(log_p_z_given_x, 1) #average over batch
+        # log_p_z_given_x = tf.reduce_mean(log_p_z_given_x) #average over particles
+
+        return log_p_z_given_x #this is [particles]
+
+    def i_log_likelihood(self):
+        # log p(x|z) for bernoulli distribution
+        # recontruction mean has shape=[n_particles, n_batch, n_input]
+        # x has shape [batch, n_input] 
+        # option 1: tile the x to the same size as reconstruciton.. but thats a waste of space
+        # I could probably do some broadcasting 
+
+        reconstr_loss = \
+                tf.reduce_sum(tf.maximum(self.x_reconstr_mean_no_sigmoid, 0) 
+                            - self.x_reconstr_mean_no_sigmoid * self.x
+                            + tf.log(1 + tf.exp(-tf.abs(self.x_reconstr_mean_no_sigmoid))),
+                             2) #sum over dimensions
+
+
+
+
+        # reconstr_loss = tf.reduce_mean(reconstr_loss, 1) #average over batch
+        # reconstr_loss = tf.reduce_mean(reconstr_loss) #average over particles
+
+        #negative because the above calculated the NLL, so this is returning the LL
+
+        # print reconstr_loss
+
+        return -reconstr_loss #this is [particles]
+
+
+
+    def iwae_elbo_calc(self):
+
+        aaaa = self.i_log_likelihood() + self.i_log_p_z() - self.i_log_p_z_given_x()
+
+        max_ = tf.reduce_max(aaaa, reduction_indices=0)
+
+        elbo = tf.log(tf.reduce_mean(tf.exp(aaaa-max_))) + max_
+
+        return elbo
+
+
+
+    # def evaluate(self, datapoints, n_samples, n_datapoints=None, path_to_load_variables='', load_vars=False):
+    #     '''
+    #     Negative Log Likelihood Lower Bound
+    #     '''
+
+    #     # normal_n_particles = self.n_particles
+    #     # self.n_particles = n_samples
+
+    #     if load_vars:
+    #         saver = tf.train.Saver()
+    #         self.sess = tf.Session()
+
+    #         # if path_to_load_variables == '':
+    #         #     self.sess.run(tf.initialize_all_variables())
+    #         # else:
+    #         #Load variables
+    #         saver.restore(self.sess, path_to_load_variables)
+    #         print 'loaded variables ' + path_to_load_variables
+
+
+    #     sum_ = 0
+    #     datapoint_index = 0
+    #     use_all = False
+    #     if n_datapoints == None:
+    #         use_all = True
+    #         n_datapoints=len(datapoints)
+
+    #     n_iters = n_datapoints/self.batch_size
+    #     for i in range(n_iters):
+
+    #         print i, '/', n_iters
+
+    #         #Make batch
+    #         batch = []
+    #         while len(batch) != self.batch_size:
+    #             if use_all:
+    #                 datapoint = datapoints[datapoint_index]
+    #             else:
+    #                 datapoint = datapoints[random.randint(0,n_datapoints-1)]
+
+    #             batch.append(datapoint)
+    #             datapoint_index +=1
+
+    #         # print np.array(batch).shape
+
+    #         negative_elbo = -self.sess.run((self.elbo), feed_dict={self.x: batch})
+
+    #         # print -self.sess.run((self.elbo), feed_dict={self.x: batch})
+    #         # print -self.sess.run((self.log_likelihood()), feed_dict={self.x: batch})
+    #         # print -self.sess.run((self._log_p_z()), feed_dict={self.x: batch})
+    #         # print self.sess.run((self._log_p_z_given_x()), feed_dict={self.x: batch})
+
+    #         # afsdf
+
+    #         sum_ += negative_elbo
+
+    #     avg = sum_ / (n_datapoints/float(self.batch_size))
+
+    #     # self.n_particles = normal_n_particles
+
+    #     return avg
+
+
+
+    def evaluate2(self, datapoints, n_samples, path_to_load_variables=''):
         '''
-        Negative Log Likelihood Lower Bound
+        Evaluate like the IWAE paper
+
+        For each test datapoint, sample 5000 times, which will give me 5000 weights. 
+        Get the average of the weights and log it. This is the NLL of that datapoint.
+        Repeat for each datapoint, and average them.
         '''
-        # normal_n_particles = self.n_particles
-        # self.n_particles = n_samples
-        sum_ = 0
+
+
+        saver = tf.train.Saver()
+        self.sess = tf.Session()
+
+        saver.restore(self.sess, path_to_load_variables)
+        print 'loaded variables ' + path_to_load_variables
+
+        datapoint_log_avg_w = []
         datapoint_index = 0
-        use_all = False
-        if n_datapoints == None:
-            use_all = True
-            n_datapoints=len(datapoints)
-        for i in range(n_datapoints/self.batch_size):
+
+        n_iters = len(datapoints)/self.batch_size
+        for i in range(n_iters):
+
+            print i, '/', n_iters
 
             #Make batch
             batch = []
             while len(batch) != self.batch_size:
-                if use_all:
-                    datapoint = datapoints[datapoint_index]
-                else:
-                    datapoint = datapoints[random.randint(0,n_datapoints-1)]
 
+                datapoint = datapoints[datapoint_index]
                 batch.append(datapoint)
                 datapoint_index +=1
 
-            # print np.array(batch).shape
+            #for this batch, get n_samples ws. average the ws, and log them.
+            log_ws =[]
+            n_iters2 = n_samples/self.n_particles
+            for j in range(n_iters2):
 
-            negative_elbo = -self.sess.run((self.elbo), feed_dict={self.x: batch})
+                #this is for making sure the error is correct
+                ll1, ll2 = self.sess.run([self.p_z, self.p_z_x], feed_dict={self.x: batch})
+                # ll2 = self.sess.run((), feed_dict={self.x: batch})
 
-            # print -self.sess.run((self.elbo), feed_dict={self.x: batch})
-            # print -self.sess.run((self.log_likelihood()), feed_dict={self.x: batch})
-            # print -self.sess.run((self._log_p_z()), feed_dict={self.x: batch})
-            # print self.sess.run((self._log_p_z_given_x()), feed_dict={self.x: batch})
+                print ll1
+                print ll2
 
-            # afsdf
 
-            sum_ += negative_elbo
+                fsdfa
 
-        avg = sum_ / (n_datapoints/float(self.batch_size))
+
+
+                log_w = self.sess.run((self.w), feed_dict={self.x: batch}) #[n_particles, batch]
+                log_ws.append(log_w)
+
+            log_ws = np.array(log_ws) # [iters, n_particles, batch]
+            # print ws.shape
+            # fasdf
+
+            # for each datapoint, average over the iterations and particles
+            for j in range(self.batch_size):
+
+                # for j in range(len(ws)):
+
+                #     for 
+
+                #logmeanexp
+                datapoint_ws = log_ws[:,:,j]
+
+                max_ = np.max(datapoint_ws)
+
+                datapoint_ws = np.exp(datapoint_ws - max_)
+                mean_datapoint_ws = np.mean(datapoint_ws)
+                log_mean_datapoint_ws = np.log(mean_datapoint_ws) + max_
+
+                # print log_mean_datapoint_ws
+
+
+
+                # print np.mean(ws[:,:,j])
+                # w_i = np.log(np.mean(ws[:,:,j]))
+
+                # print w_i.shape
+                datapoint_log_avg_w.append(log_mean_datapoint_ws)
+
+
+
+
+
+                # negative_elbo = -self.sess.run((self.elbo), feed_dict={self.x: batch})
+                
+
+                # print -self.sess.run((self.elbo), feed_dict={self.x: batch})
+                # print -self.sess.run((self.log_likelihood()), feed_dict={self.x: batch})
+                # print -self.sess.run((self._log_p_z()), feed_dict={self.x: batch})
+                # print self.sess.run((self._log_p_z_given_x()), feed_dict={self.x: batch})
+
+                # afsdf
+
+            #     sum_ += negative_elbo
+
+            # avg = sum_ / (n_datapoints/float(self.batch_size))
+
+
+        print len(datapoint_log_avg_w)
+        avg = np.mean(datapoint_log_avg_w)
+        print avg
+
+        fasfd
 
         # self.n_particles = normal_n_particles
 
         return avg
+
+
 
 
 
@@ -400,6 +942,8 @@ class VAE():
         One difference is that I look at the validation NLL after each stage and save the variables
         '''
 
+        data_to_save = []
+
         n_datapoints = len(train_x)
         
         saver = tf.train.Saver()
@@ -412,7 +956,7 @@ class VAE():
             saver.restore(self.sess, path_to_load_variables)
             print 'loaded variables ' + path_to_load_variables
 
-        total_stages= 7
+        total_stages= 6
         #start = time.time()
         for stage in range(starting_stage,total_stages+1):
 
@@ -423,7 +967,14 @@ class VAE():
 
             for pass_ in range(passes_over_data):
 
-                #TODO:I should shuffle the data
+                #shuffle the data
+                arr = np.arange(len(train_x))
+                np.random.shuffle(arr)
+                # print arr.shape
+                # print train_x.shape
+                # train_x = np.reshape(train_x[arr], [50000,784])
+
+                # print train_x.shape
 
                 data_index = 0
                 for step in range(n_datapoints/self.batch_size):
@@ -436,12 +987,23 @@ class VAE():
                         data_index +=1
 
                     # Fit training using batch data
-                    nothing = self.partial_fit(batch)
+                    # nothing = self.partial_fit(batch)
+                    _ = self.sess.run((self.optimizer), feed_dict={self.x: batch})
                     
                     # Display logs per epoch step
                     if step % display_step == 0:
                         # print np.array(batch).shape
+
+
+                        # cost1, cost2, aa, aa2 = self.sess.run((self._log_p_z_given_x(), self._log_p_z_given_x2(), self.elbo, self.elbo2), feed_dict={self.x: batch})
+
+                        # print cost1
+                        # print cost2
+                        # print aa
+                        # print aa2
+                        # fsfa
                         cost = self.sess.run((self.elbo), feed_dict={self.x: batch})
+                        cost = -cost #because I want to see the NLL
 
                         # print 
                         # print -self.sess.run((self.elbo), feed_dict={self.x: batch})
@@ -463,11 +1025,75 @@ class VAE():
 
             # Get validation NLL
             # if step % valid_step == 0 and len(valid_x)!= 0:
-            print 'Calculating validation NLL'
-            # print self.evaluate(train_x, 1, 300)
-            print "Validation NLL=", "{:.9f}".format(self.evaluate(train_x, 1, 300))
+            # print 'Calculating validation NLL'
+            # # print self.evaluate(train_x, 1, 300)
+            # print "Validation NLL=", "{:.9f}".format(self.evaluate(valid_x, 1, 300))
+
+
+                print 'calculating elbos'
+                #Select 1000 training and validation datapoints
+                arr = np.arange(1000)
+                np.random.shuffle(arr)
+                # print train_x.shape
+                # print train_x[arr].shape
+                # # print np.random.shuffle(arr)[:10]
+                # print arr.shape
+                # print arr[:10]
+
+               
+                train_x_check = train_x[arr]
+                valid_x_check = valid_x[arr]
+
+                # fasdfa
+
+                #Calculate the elbos for all the data and average them
+                data_index_11 = 0
+                elbos = []
+                elbos_iwae = []
+                data_index11 = 0
+                for step in range(1000/self.batch_size):
+
+                    #Make batch
+                    batch = []
+                    while len(batch) != self.batch_size:
+                        datapoint = train_x_check[data_index11]
+                        batch.append(datapoint)
+                        data_index11 +=1
+                    train_elbo, train_iwae_elbo = self.sess.run((self.elbo, self.iwae_elbo), feed_dict={self.x: batch})
+                    elbos.append(train_elbo)
+                    elbos_iwae.append(train_iwae_elbo)
+
+                train_elbo_ = np.mean(elbos)
+                train_elbo_iwae_ = np.mean(elbos_iwae)
+
+                data_index11 = 0
+                for step in range(1000/self.batch_size):
+
+                    #Make batch
+                    batch = []
+                    while len(batch) != self.batch_size:
+                        datapoint = valid_x_check[data_index11]
+                        batch.append(datapoint)
+                        data_index11 +=1
+                    valid_elbo, valid_iwae_elbo = self.sess.run((self.elbo, self.iwae_elbo), feed_dict={self.x: batch})
+                    elbos.append(valid_elbo)
+                    elbos_iwae.append(valid_iwae_elbo)
+                    
+                valid_elbo_ = np.mean(elbos)
+                valid_elbo_iwae_ = np.mean(elbos_iwae)
+
+                data_to_save.append([train_elbo_, train_elbo_iwae_, valid_elbo_, valid_elbo_iwae_])
+
+            #Save data
+            with open(home+ '/data/training_data/elbos_stage'+ str(stage)+'.pkl', 'wb') as f:
+                pickle.dump(data_to_save, f)
+
+
 
             #TODO: save what stage the variables are
+            path_to_save_variables = path_to_save_variables.split('.')[0]
+            path_to_save_variables = path_to_save_variables + '_stage' + str(stage) + '.ckpt'
+
             if path_to_save_variables != '':
                 print 'saving variables to ' + path_to_save_variables
                 saver.save(self.sess, path_to_save_variables)

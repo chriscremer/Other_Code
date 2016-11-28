@@ -65,7 +65,7 @@ print test_x.shape
 #########################################
 #Train VAE and IWAE
 #########################################
-timelimit = 500
+# timelimit = 500
 f_height=28
 f_width=28
 batch_size = 20
@@ -80,15 +80,15 @@ network_architecture = \
          n_z=50)  # dimensionality of latent space
 
 
-network_architecture_for_NQAE = \
-    dict(n_hidden_recog_1=200, # 1st layer encoder neurons
-         n_hidden_recog_2=200, # 2nd layer encoder neurons
-         n_hidden_recog_3=200,
-         n_hidden_gener_1=200, # 1st layer decoder neurons
-         n_hidden_gener_2=200, # 2nd layer decoder neurons
-         n_input=f_height*f_width, # 784 image
-         n_z=50,
-         rnn_state_size=10)  # dimensionality of latent space
+# network_architecture_for_NQAE = \
+#     dict(n_hidden_recog_1=200, # 1st layer encoder neurons
+#          n_hidden_recog_2=200, # 2nd layer encoder neurons
+#          n_hidden_recog_3=200,
+#          n_hidden_gener_1=200, # 1st layer decoder neurons
+#          n_hidden_gener_2=200, # 2nd layer decoder neurons
+#          n_input=f_height*f_width, # 784 image
+#          n_z=50,
+#          rnn_state_size=10)  # dimensionality of latent space
 
 # #mac
 # print 'Training NQAE'
@@ -121,7 +121,29 @@ network_architecture_for_NQAE = \
 print 'Training VAE'
 vae = VAE1(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
 # vae.train(train_x=train_x, valid_x=valid_x, timelimit=timelimit, max_steps=99999, display_step=100, valid_step=1000, path_to_load_variables='', path_to_save_variables=home+ '/data/vae1.ckpt')
-vae.train2(train_x=train_x, valid_x=valid_x, display_step=500, path_to_load_variables=home+ '/data/vae1.ckpt', path_to_save_variables=home+ '/data/vae_2.ckpt', starting_stage=6)
+
+
+#USE THIS TO TRAIN LIKE IWAE PAPER
+# vae.train2(train_x=train_x, valid_x=valid_x, display_step=1000, path_to_load_variables='', path_to_save_variables=home+ '/data/vae_stage_7_5.ckpt', starting_stage=0)
+
+
+# generation = vae.generate(path_to_load_variables=home+'/data/vae_stage_7_2.ckpt')
+# print generation.shape
+# with open(home+ '/data/generated_image.pkl', 'wb') as f:
+#     pickle.dump([generation], f)
+
+x, x_mean = vae.reconstruct(path_to_load_variables=home+'/data/vae_stage_7_2.ckpt', train_x=train_x)
+print x_mean.shape
+with open(home+ '/data/reconstructed_image.pkl', 'wb') as f:
+    pickle.dump([x, x_mean], f)
+print 'saved reconstruction'
+
+
+# iwae_elbo = vae.evaluate2(datapoints=test_x[:1000], n_samples=5000, path_to_load_variables=home+ '/data/vae_stage_7_2.ckpt')
+# print 'iwae elbo of validation', iwae_elbo
+
+# iwae_elbo = vae.evaluate(datapoints=test_x, n_samples=n_particles, n_datapoints=None, path_to_load_variables=home+ '/data/vae_stage_7_2.ckpt', load_vars=True)
+# print 'iwae elbo of validation', iwae_elbo
 
 
 # print 'Training IWAE'
