@@ -47,7 +47,7 @@ class VAE():
 
         #For evaluation
         self.log_w = self._log_likelihood(self.x, self.x_reconstr_mean_no_sigmoid) + self._log_p_z(self.z) - self._log_q_z_given_x(self.z, self.recog_mean, self.recog_log_std_sq)
-        self.x_reconstr_mean = tf.nn.sigmoid(self.x_reconstr_mean_no_sigmoid)
+        
 
     def _initialize_weights(self, n_hidden_recog_1, n_hidden_recog_2, 
                             n_hidden_gener_1,  n_hidden_gener_2, 
@@ -233,6 +233,9 @@ class VAE():
 
                     # Fit training using batch data
                     _ = self.sess.run((self.optimizer), feed_dict={self.x: batch})
+
+                    # print self.sess.run((self.asdf), feed_dict={self.x: batch})
+                    # fasdfa
                     
                     # Display logs per epoch step
                     if step % display_step == 0:
@@ -431,19 +434,23 @@ class MoG_VAE(VAE):
             high = constant*np.sqrt(6.0/(fan_in + fan_out))
             return tf.random_uniform((fan_in, fan_out), minval=low, maxval=high, dtype=tf.float32)
 
-        #Recognition model output changed to n_z*n_clusters
+        #Recognition model output changed to n_z*n_clusters and added the log weights
 
         all_weights = dict()
         all_weights['weights_recog'] = {
             'h1': tf.Variable(xavier_init(n_input, n_hidden_recog_1)),
             'h2': tf.Variable(xavier_init(n_hidden_recog_1, n_hidden_recog_2)),
             'out_mean': tf.Variable(xavier_init(n_hidden_recog_2, n_z*self.n_clusters)),
-            'out_log_sigma': tf.Variable(xavier_init(n_hidden_recog_2, n_z*self.n_clusters))}
+            'out_log_sigma': tf.Variable(xavier_init(n_hidden_recog_2, n_z*self.n_clusters)),
+            'out_log_weights': tf.Variable(xavier_init(n_hidden_recog_2, self.n_clusters))}
+
         all_weights['biases_recog'] = {
             'b1': tf.Variable(tf.zeros([n_hidden_recog_1], dtype=tf.float32)),
             'b2': tf.Variable(tf.zeros([n_hidden_recog_2], dtype=tf.float32)),
             'out_mean': tf.Variable(tf.zeros([n_z*self.n_clusters], dtype=tf.float32)),
-            'out_log_sigma': tf.Variable(tf.zeros([n_z*self.n_clusters], dtype=tf.float32))}
+            'out_log_sigma': tf.Variable(tf.zeros([n_z*self.n_clusters], dtype=tf.float32)),
+            'out_log_weights': tf.Variable(tf.zeros([self.n_clusters], dtype=tf.float32))}
+
         all_weights['weights_gener'] = {
             'h1': tf.Variable(xavier_init(n_z, n_hidden_gener_1)),
             'h2': tf.Variable(xavier_init(n_hidden_gener_1, n_hidden_gener_2)),
@@ -622,12 +629,17 @@ class MoG_VAE2(VAE):
         
         #Variables
         self.network_weights = self._initialize_weights(**self.network_architecture)
-        self.log_weights_unormalized = tf.Variable(tf.ones([n_clusters]))
-        self.log_weights = self.log_weights_unormalized - tf.reduce_logsumexp(self.log_weights_unormalized, reduction_indices=0, keep_dims=True)
+
+        # self.log_weights_unormalized = tf.Variable(tf.ones([n_clusters]))
         
         #Encoder - Recognition model - p(z|x): recog_mean,z_log_std_sq=[batch_size, n_z]
-        self.recog_means, self.recog_log_vars = self._recognition_network(self.network_weights["weights_recog"], self.network_weights["biases_recog"])
+        self.recog_means, self.recog_log_vars, self.weights = self._recognition_network(self.network_weights["weights_recog"], self.network_weights["biases_recog"])
         
+        # self.log_weights = tf.log(self.weights)
+        # print self.log_weights
+        # fasd
+
+
         #Sample - the particles are divided amond the clusters evenly
         eps = tf.random_normal((self.n_particles, self.batch_size, self.n_z), 0, 1, dtype=tf.float32)
         # self.z = tf.add(self.recog_mean, tf.mul(tf.sqrt(tf.exp(self.recog_log_std_sq)), eps)) #uses broadcasting, z=[n_parts, n_batches, n_z]
@@ -638,17 +650,19 @@ class MoG_VAE2(VAE):
         self.x_reconstr_mean_no_sigmoid = self._generator_network(self.network_weights["weights_gener"], self.network_weights["biases_gener"]) #no sigmoid
 
         #Objective
-        self.log_q = self._log_q_z_given_x(self.z, self.recog_means, self.recog_log_vars, self.log_weights)
+        self.log_q = self._log_q_z_given_x(self.z, self.recog_means, self.recog_log_vars, self.weights)
         self.log_p = self._log_likelihood(self.x, self.x_reconstr_mean_no_sigmoid) + self._log_p_z(self.z)
         self.log_w_ = self.log_p - self.log_q #[P,B]
-        # [P,B]
-        self.log_w = self.weight_by_cluster(self.log_w_, self.log_weights)
+        # [B,C]
+        self.log_w = self.weight_by_cluster(self.log_w_, self.weights)
 
-        self.log_w_batch = tf.reduce_mean(self.log_w, reduction_indices=0) #over particles, so its [B]
+        self.log_w_batch = tf.reduce_mean(self.log_w, reduction_indices=1) #over clusters, so its [B]
+
+        # self.log_w_batch = tf.reduce_mean(self.log_w, reduction_indices=0) #over particles, so its [B]
         # log_weights_reshaped = tf.reshape(self.log_weights, [self.n_clusters, 1]) #[C,1]
 
         # temp = tf.reduce_mean(self.weighted_log_w, reduction_indices=0) #over clusters, so its [B]
-        self.elbo = tf.reduce_mean(self.log_w_batch, reduction_indices=0) #over batch, so its a scalar
+        self.elbo = tf.reduce_mean(self.log_w_batch, reduction_indices=0) # + tf.reduce_sum(tf.square(self.weights-.5)) #over batch, so its a scalar
 
         # self.elbo = self.elbo(self.x, self.x_reconstr_mean_no_sigmoid, self.z, self.recog_mean, self.recog_log_var)
 
@@ -657,7 +671,7 @@ class MoG_VAE2(VAE):
 
         #For evaluation
         # self.log_w = self._log_likelihood(self.x, self.x_reconstr_mean_no_sigmoid) + self._log_p_z(self.z) - self._log_q_z_given_x(self.z, self.recog_mean, self.recog_log_std_sq)
-
+        self.x_reconstr_mean = tf.nn.sigmoid(self.x_reconstr_mean_no_sigmoid)
 
 
     def _initialize_weights(self, n_hidden_recog_1, n_hidden_recog_2, 
@@ -678,12 +692,16 @@ class MoG_VAE2(VAE):
             'h1': tf.Variable(xavier_init(n_input, n_hidden_recog_1)),
             'h2': tf.Variable(xavier_init(n_hidden_recog_1, n_hidden_recog_2)),
             'out_mean': tf.Variable(xavier_init(n_hidden_recog_2, n_z*self.n_clusters)),
-            'out_log_sigma': tf.Variable(xavier_init(n_hidden_recog_2, n_z*self.n_clusters))}
+            'out_log_sigma': tf.Variable(xavier_init(n_hidden_recog_2, n_z*self.n_clusters)),
+            'out_log_weights': tf.Variable(xavier_init(n_hidden_recog_2, self.n_clusters))}
+
         all_weights['biases_recog'] = {
             'b1': tf.Variable(tf.zeros([n_hidden_recog_1], dtype=tf.float32)),
             'b2': tf.Variable(tf.zeros([n_hidden_recog_2], dtype=tf.float32)),
             'out_mean': tf.Variable(tf.zeros([n_z*self.n_clusters], dtype=tf.float32)),
-            'out_log_sigma': tf.Variable(tf.zeros([n_z*self.n_clusters], dtype=tf.float32))}
+            'out_log_sigma': tf.Variable(tf.zeros([n_z*self.n_clusters], dtype=tf.float32)),
+            'out_log_weights': tf.Variable(tf.zeros([self.n_clusters], dtype=tf.float32))}
+
         all_weights['weights_gener'] = {
             'h1': tf.Variable(xavier_init(n_z, n_hidden_gener_1)),
             'h2': tf.Variable(xavier_init(n_hidden_gener_1, n_hidden_gener_2)),
@@ -695,6 +713,18 @@ class MoG_VAE2(VAE):
             'out_mean': tf.Variable(tf.zeros([n_input], dtype=tf.float32)),
             'out_log_sigma': tf.Variable(tf.zeros([n_input], dtype=tf.float32))}
         return all_weights
+
+
+    def _recognition_network(self, weights, biases):
+
+        layer_1 = self.transfer_fct(tf.add(tf.matmul(self.x, weights['h1']), biases['b1'])) 
+        layer_2 = self.transfer_fct(tf.add(tf.matmul(layer_1, weights['h2']), biases['b2'])) 
+
+        z_mean_t = tf.add(tf.matmul(layer_2, weights['out_mean']), biases['out_mean'])
+        z_log_sigma_sq_t = tf.add(tf.matmul(layer_2, weights['out_log_sigma']), biases['out_log_sigma'])
+        z_weights= tf.nn.softmax(tf.add(tf.matmul(layer_2, weights['out_log_weights']), biases['out_log_weights']))
+
+        return (z_mean_t, z_log_sigma_sq_t, z_weights)
 
 
 
@@ -713,7 +743,7 @@ class MoG_VAE2(VAE):
         # split, slice,
         # or I could reshape it to [B,C,Z]
 
-        samps_per_cluster = self.n_particles / self.n_clusters
+        samps_per_cluster = int(np.ceil(self.n_particles / float(self.n_clusters)))
 
         zs = []
         for cluster in range(self.n_clusters):
@@ -756,13 +786,14 @@ class MoG_VAE2(VAE):
 
 
 
-    def _log_q_z_given_x(self, z, means, log_vars, log_mixture_weights):
+    def _log_q_z_given_x(self, z, means, log_vars, mixture_weights):
         '''
         Log of normal distribution
 
         z is [n_particles, batch_size, n_z]
         mean is [batch_size, n_z]
         log_var is [batch_size, n_z]
+        log_mixture_weights is [B,C]
         output is [n_particles, batch_size]
         '''
 
@@ -773,12 +804,12 @@ class MoG_VAE2(VAE):
         log_q_z__ = []
         for cluster in range(self.n_clusters):
 
-            # this_weight = tf.slice(mixture_weights, [cluster,0], [1, self.batch_size])
+            this_weight = tf.transpose(tf.slice(mixture_weights, [0,cluster], [self.batch_size, 1])) #[1,B]
             this_mean = tf.slice(means, [0,cluster*self.n_z], [self.batch_size, self.n_z])
             this_log_var = tf.slice(log_vars, [0,cluster*self.n_z], [self.batch_size, self.n_z])
 
             #[P,B]
-            log_q_z = self._log_normal(z, this_mean, this_log_var)
+            log_q_z = self._log_normal(z, this_mean, this_log_var) + tf.log(this_weight)
 
             # max_1 = tf.reduce_max(log_q_z, 0) #over particles
             # q_z = tf.exp(log_q_z - max_1)
@@ -789,56 +820,114 @@ class MoG_VAE2(VAE):
         log_q_z__ = tf.pack(log_q_z__)
         # prob_sum = tf.reduce_sum(prob_sum, 0) #over clusters so it should be [P,B]
 
-        log_cluster_ws = tf.reshape(log_mixture_weights, [self.n_clusters, 1, 1])
+        # log_cluster_ws = tf.reshape(log_mixture_weights, [self.n_clusters, self.batch_size, 1])
 
-        log_weighted_q = log_q_z__ + log_cluster_ws
-
-        log_weighted_q = tf.reduce_logsumexp(log_weighted_q, reduction_indices=0, keep_dims=True) #over clusters, so its [P,B]
-        log_weighted_q = tf.reshape(log_weighted_q, [self.n_particles, self.batch_size])
-
-        return log_weighted_q
+        # log_mixture_weights = tf.transpose(log_mixture_weights, [1,0])
+        # log_mixture_weights = tf.reshape(log_mixture_weights, [self.n_clusters,1,self.batch_size])
 
 
+        # log_weighted_q = log_q_z__ + log_mixture_weights
+
+        log_q = tf.reduce_logsumexp(log_q_z__, reduction_indices=0, keep_dims=True) #over clusters, so its [P,B]
+        log_q = tf.reshape(log_q, [self.n_particles, self.batch_size])
+
+        return log_q
 
 
-    def weight_by_cluster(self, log_w, log_weights):
+
+
+    # def weight_by_cluster(self, log_w, normalized_weights):
+
+    #     samps_per_cluster = self.n_particles / self.n_clusters
+
+    #     weights= []
+    #     for cluster in range(self.n_clusters):
+
+    #         # samples_from_this_cluster = tf.slice(log_w, [cluster*samps_per_cluster, 0], [samps_per_cluster, self.batch_size])
+    #         # avg = tf.reduce_mean(samples_from_this_cluster, reduction_indices=0) #over particles, so its [B]
+
+    #         # [B,1]
+    #         this_weight = tf.slice(normalized_weights, [0, cluster], [self.batch_size, 1])
+    #         # [B, sampspercluster]
+    #         tiled = tf.tile(this_weight, [1, samps_per_cluster])
+
+    #         #add weight, which is weighting these samples, so if it have low weight, the samples shouldnt matter much
+    #         # this_weighted_samps = avg + this_weight
+
+    #         weights.append(tiled)
+            
+    #     # [C,B,samps_per_cluster]
+    #     weights = tf.pack(weights)
+    #     # [C,spc,B]
+    #     weights = tf.transpose(weights, [0,2,1])
+    #     # [P,B]
+    #     weights = tf.reshape(weights, [self.n_particles,self.batch_size]) * self.n_clusters
+
+    #     # self.asdf = weights
+
+    #     # log_w = tf.reshape(log_w, [self.n_particles, self.batch_size, 1])
+
+    #     # [P,B]
+    #     log_w = weights * log_w
+    #     # log_w = tf.reshape(log_w, [self.n_particles, self.batch_size])
+
+    #     return log_w
+
+
+    def weight_by_cluster(self, log_w, normalized_weights):
 
         samps_per_cluster = self.n_particles / self.n_clusters
 
         weights= []
         for cluster in range(self.n_clusters):
 
-            # samples_from_this_cluster = tf.slice(log_w, [cluster*samps_per_cluster, 0], [samps_per_cluster, self.batch_size])
+            # [spc, B]
+            samples_from_this_cluster = tf.slice(log_w, [cluster*samps_per_cluster, 0], [samps_per_cluster, self.batch_size])
             # avg = tf.reduce_mean(samples_from_this_cluster, reduction_indices=0) #over particles, so its [B]
 
-            this_weight = tf.exp(tf.slice(log_weights, [cluster], [1]))
+            avg_of_clust = tf.reduce_mean(samples_from_this_cluster, reduction_indices=0) #over smaples so its [B]
 
-            tiled = tf.tile(this_weight, [samps_per_cluster])
+            # [B,1]
+            # this_weight = tf.slice(normalized_weights, [0, cluster], [self.batch_size, 1])
+            # # [B, sampspercluster]
+            # tiled = tf.tile(this_weight, [1, samps_per_cluster])
 
             #add weight, which is weighting these samples, so if it have low weight, the samples shouldnt matter much
             # this_weighted_samps = avg + this_weight
 
-            weights.append(tiled)
+            weights.append(avg_of_clust)
             
-        # [C,samps_per_cluster]
+        # [C,B]
         weights = tf.pack(weights)
-        weights = tf.reshape(weights, [self.n_particles,1]) * self.n_clusters
+        # print weights
+        # print normalized_weights
+        
+        # [B,C]
+        weights = tf.transpose(weights, [1,0])
+        # print weights
+        # fasdf
+        # [P,B]
+        # weights = tf.reshape(weights, [self.n_particles,self.batch_size]) * self.n_clusters
 
+        # self.asdf = weights
 
-        log_w = weights * log_w
+        # log_w = tf.reshape(log_w, [self.n_particles, self.batch_size, 1])
+
+        # [B,C]
+        log_w = weights + tf.log(normalized_weights)
+        # log_w = tf.reshape(log_w, [self.n_particles, self.batch_size])
 
         return log_w
 
 
-
     def encode(self, data):
 
-        return self.sess.run([self.recog_mean, self.recog_log_std_sq], feed_dict={self.x=data})
+        return self.sess.run([self.recog_means, self.recog_log_vars, self.weights], feed_dict={self.x:data})
 
 
     def decode(self, sample):
 
-        return self.sess.run(self.x_reconstr_mean, feed_dict={self.z=samples})
+        return self.sess.run(self.x_reconstr_mean, feed_dict={self.z:sample})
 
 
 
