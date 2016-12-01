@@ -8,6 +8,8 @@
 
 
 
+
+
 import numpy as np
 import tensorflow as tf
 import random
@@ -30,23 +32,11 @@ class Univariate_Gaussian_SVI():
         self.D = 1
 
         #Recogntiion model
-        self.mean1 = tf.Variable([-1.])
+        self.mean1 = tf.Variable([-5.])
         self.log_var1 = tf.Variable([1.])
-        self.pi1_unnormal = tf.Variable([.5])
 
         self.mean2 = tf.Variable([-1.])
         self.log_var2 = tf.Variable([1.])
-        self.pi2_unnormal = tf.Variable([.5])
-
-        self.pi1 = tf.exp(self.pi1_unnormal) / (tf.exp(self.pi1_unnormal) + tf.exp(self.pi2_unnormal))
-        self.pi2 = tf.exp(self.pi2_unnormal) / (tf.exp(self.pi1_unnormal) + tf.exp(self.pi2_unnormal))
-
-        self.log_pi1 = tf.log(self.pi1)
-        self.log_pi2 = tf.log(self.pi2)
-
-
-
-
 
         #Sample
         self.eps1 = tf.random_normal((self.n_particles, self.D), 0, 1, dtype=tf.float32)
@@ -54,34 +44,29 @@ class Univariate_Gaussian_SVI():
 
         self.z1 = tf.add(self.mean1, tf.mul(tf.sqrt(tf.exp(self.log_var1)), self.eps1)) 
         self.z2 = tf.add(self.mean2, tf.mul(tf.sqrt(tf.exp(self.log_var2)), self.eps2))
-        self.z_all = tf.concat(0, [self.z1, self.z2])
 
-        self.log_p_z = self.log_p_z(self.z_all)
-        self.log_q_z1 = tf.log(self.pi1 * tf.exp(self.log_q_z(self.z1, self.mean1, self.log_var1)))# + self.pi2 * tf.exp(self.log_q_z(self.z2, self.mean2, self.log_var2)))
-        self.log_q_z2 = tf.log(self.pi2 * tf.exp(self.log_q_z(self.z2, self.mean2, self.log_var2)))
-        self.log_q_z = tf.concat(0, [self.log_q_z1,self.log_q_z2])
-
-        # self.log_q1 = self.log_q_z(self.z1, self.mean1, self.log_var1)
-        # self.log_q2 = self.log_q_z(self.z2, self.mean2, self.log_var2)
+        self.log_q1 = self.log_q_z(self.z1, self.mean1, self.log_var1)
+        self.log_q2 = self.log_q_z(self.z2, self.mean2, self.log_var2)
 
         # self.log_p_z = self.log_p_z()
-        # self.p_z1 = self.p_z(self.z1)
-        # self.p_z2 = self.p_z(self.z2)
+        self.p_z1 = self.p_z(self.z1)
+        self.p_z2 = self.p_z(self.z2)
 
-        # self.w1 = self.p_z1 / tf.exp(self.log_q1)
-        # self.w2 = self.p_z2 / tf.exp(self.log_q2)
+        self.w1 = self.p_z1 / tf.exp(self.log_q1)
+        self.w2 = self.p_z2 / tf.exp(self.log_q2)
 
-        # self.w_total = tf.reduce_sum(self.w1) + tf.reduce_sum(self.w2) 
+        self.w_total = tf.reduce_sum(self.w1) + tf.reduce_sum(self.w2) 
 
-        # self.pi1 = tf.reduce_sum(self.w1) / self.w_total
-        # self.pi2 = tf.reduce_sum(self.w2) / self.w_total
+        self.pi1 = tf.reduce_sum(self.w1) / self.w_total
+        self.pi2 = tf.reduce_sum(self.w2) / self.w_total
 
-        # self.q_all = self.pi1 * tf.exp(self.log_q_z(self.z_all, self.mean1, self.log_var1)) + self.pi2 * tf.exp(self.log_q_z(self.z_all, self.mean2, self.log_var2))
-        # self.p_all = tf.concat(0, [self.p_z1, self.p_z2])
+        self.z_all = tf.concat(0, [self.z1, self.z2])
+        self.q_all = self.pi1 * tf.exp(self.log_q_z(self.z_all, self.mean1, self.log_var1)) + self.pi2 * tf.exp(self.log_q_z(self.z_all, self.mean2, self.log_var2))
+        self.p_all = tf.concat(0, [self.p_z1, self.p_z2])
 
-        self.log_w = self.log_p_z - self.log_q_z
+        self.w_all = self.p_all / self.q_all
 
-        self.elbo = tf.reduce_mean(self.log_w)
+        self.elbo = tf.log(tf.reduce_mean(self.w_all))
 
 
 
@@ -157,24 +142,35 @@ class Univariate_Gaussian_SVI():
 
         return log_normal
 
+
     def log_p_z(self, z):
 
         #Mixture of Gaussians
+        # log_p_z = tf.log(
+        #     (.3*tf.exp(self.log_normal(self.z, -2., tf.log(.5)))) 
+        #   + (.3*tf.exp(self.log_normal(self.z, 0., tf.log(1.)))) 
+        #   + (.4*tf.exp(self.log_normal(self.z, 4., tf.log(.5)))))
+
         log_p_z = tf.log(
-            (.3*tf.exp(self.log_normal(z, -2., tf.log(.5)))) 
-          + (.3*tf.exp(self.log_normal(z, 0., tf.log(1.)))) 
-          + (.4*tf.exp(self.log_normal(z, 6., tf.log(.5)))))
+            (.33*tf.exp(self.log_normal(z, -9., tf.log(.5)))) 
+          # + (.25*tf.exp(self.log_normal(self.z, -3., tf.log(.5)))) 
+          + (.33*tf.exp(self.log_normal(z, 3., tf.log(.5))))
+          + (.33*tf.exp(self.log_normal(z, 9., tf.log(.5)))))
 
         return log_p_z
+
 
     def p_z(self, z):
         #Mixture of Gaussians
         p_z = (
-            (.3*tf.exp(self.log_normal(z, -2., tf.log(.5)))) 
-          + (.3*tf.exp(self.log_normal(z, 0., tf.log(1.)))) 
-          + (.4*tf.exp(self.log_normal(z, 6., tf.log(.5)))))
+            (.33*tf.exp(self.log_normal(z, -9., tf.log(.5)))) 
+          # + (.25*tf.exp(self.log_normal(z, -3., tf.log(.5)))) 
+          + (.33*tf.exp(self.log_normal(z, 3., tf.log(.5))))
+          + (.33*tf.exp(self.log_normal(z, 9., tf.log(.5)))))
 
         return p_z
+
+
 
     # def log_p_z(self):
 
@@ -217,13 +213,15 @@ class Univariate_Gaussian_SVI():
     #     return stuff
 
 
-
 def p_x(x):
 
     # x = np.linspace(-4, 4, 100)
 
-    #square root scale to make var
-    y = (.3*norm.pdf(x, loc=-2, scale=.5**(.5)) + (.3*norm.pdf(x, loc=0, scale=1**(.5))) + (.4*norm.pdf(x, loc=6, scale=.5**(.5))))
+    #square root scale to make var into std
+    y = (.33*norm.pdf(x, loc=-9, scale=.5**(.5)) + 
+        # (.25*norm.pdf(x, loc=-3, scale=.5**(.5))) + 
+        (.33*norm.pdf(x, loc=3, scale=.5**(.5))) +
+        (.33*norm.pdf(x, loc=9, scale=.5**(.5))) )
 
     # y = np.array(y)
     # y = y / np.sum(y)
@@ -234,7 +232,7 @@ def p_x(x):
 
 def p_x_distribution():
 
-    x = np.linspace(-9, 9, 100)
+    x = np.linspace(-15, 15, 200)
     # y = [norm.pdf(x_i, loc=0, scale=1)+norm.pdf(x_i, loc=1, scale=.5)+norm.pdf(x_i, loc=-2, scale=.5) for x_i in x]
 
     y = [p_x(x_i) for x_i in x]
@@ -253,7 +251,7 @@ def recognition_distribution(mean, var):
         return norm.pdf(x, loc=mean, scale=var**(.5))
 
 
-    x = np.linspace(-9, 9, 100)
+    x = np.linspace(-15, 15, 200)
 
     y = [rec(x_i,mean,var) for x_i in x]
 
@@ -340,7 +338,7 @@ if __name__ == "__main__":
     # sess.run(SVI.optimizer)
     # print sess.run(SVI.elbo)
 
-    for i in range(50000):
+    for i in range(40000):
 
         # _, elbo = sess.run([SVI.optimizer, SVI.elbo])
 
@@ -395,17 +393,25 @@ if __name__ == "__main__":
     x, y = p_x_distribution()
     ax.plot(x, y, linewidth=2, label="True Distribution")
 
-    # m, v = sess.run([SVI.mean, SVI.log_var])
-    # mean = m[0]
-    # var = np.exp(v[0])
-    # x, y = recognition_distribution(mean, var)
-    # ax.plot(x, y, linewidth=2, label="Recognition Distribution")
+    m, v = sess.run([SVI.mean1, SVI.log_var1])
+    mean = m[0]
+    var = np.exp(v[0])
+    x, y = recognition_distribution(mean, var)
+    ax.plot(x, y, linewidth=2, label="Recognition Distribution 1")
 
-    ax.hist(samps, bins=100, normed=True, range=[-9,9], alpha=.6, label='Approx. Distribution, k='+str(n_particles))
+    ax.hist(samps, bins=200, normed=True, range=[-15,15], alpha=.6, label='Approx. Distribution, k='+str(n_particles))
 
+    m, v = sess.run([SVI.mean2, SVI.log_var2])
+    mean = m[0]
+    var = np.exp(v[0])
+    x, y = recognition_distribution(mean, var)
+    ax.plot(x, y, linewidth=2, label="Recognition Distribution 2")
+
+    plt.ylim([0,.6])
+    plt.xlim([-15,15])
     plt.legend(fontsize=6)
     plt.show()
-    print 'DOne'
+    fasdf
 
 
 
