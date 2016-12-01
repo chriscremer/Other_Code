@@ -288,6 +288,8 @@ class MoG_VAE():
 
     #     return log_q
 
+
+
     def _log_q_z_given_x(self, z, means, log_vars, mixture_weights):
         '''
         Log of normal distribution
@@ -323,7 +325,7 @@ class MoG_VAE():
 
         # log_q_z = log_q_z_per_cluster * weights_reshaped
         log_q_z = log_q_z_per_cluster + tf.log(weights_reshaped)
-        
+
 
         qz_reshaped = tf.reshape(log_q_z, [self.n_particles, self.batch_size])
 

@@ -58,6 +58,88 @@ def prob_under_MoG(sample, means, log_vars, weights):
     return sum_
 
 
+# def evaluate(model, data, n_samples):
+
+#     iwae_elbos = []
+
+#     # For each datapoint
+#     for i in range(len(data)):
+
+#         if i %2 ==0:
+#             print i, '/', len(data)
+
+#         # Encode data
+#         input_ = np.reshape(data[i], [1,784])
+#         recog_means, recog_log_vars, weights = model.encode(input_)
+
+#         if i %50 ==0:
+#             print weights
+
+#         #Get rid of the batch dimension
+#         recog_means = np.reshape(recog_means, [-1])
+#         recog_log_vars = np.reshape(recog_log_vars, [-1])
+#         weights = np.reshape(weights, [-1])
+
+#         n_clusters = len(weights)
+#         n_z = len(recog_means) / n_clusters
+
+#         # log_weights = np.log(weights)
+        
+#         ws = []
+#         # For number of samples
+#         for j in range(n_samples):
+
+#             # Sample the latent space: first select which component
+#             component = np.random.choice(n_clusters, size=1, p=weights)[0]
+
+#             # Sample that component, which is a diagonal Gaussian
+#             sample = (np.random.randn(n_z) * 
+#                 np.sqrt(np.exp(recog_log_vars[component*n_z:component*n_z+n_z:1])) 
+#                 + recog_means[component*n_z:component*n_z+n_z:1]) 
+
+#             # Get probability of sample under recognition model and prior
+#             p_z = norm.pdf(sample, mean=np.zeros([n_z]), cov=np.diag(np.ones([n_z])))
+#             q_z_given_x = prob_under_MoG(sample, recog_means, recog_log_vars, weights)
+
+#             # Reconstruct sample
+#             x_mean = model.decode([[sample],[sample],[sample],[sample],[sample],[sample]])[0]
+#             x_mean = np.reshape(x_mean, [784])
+
+#             # Get probability of reconstruction
+#             # p_x_given_z = bernoulli.pmf(x=data[i], p=x_mean)
+#             log_p_x_given_z = np.sum(data[i]*np.log(x_mean) + (1-data[i])*np.log(1-x_mean))
+
+#             log_p_z = np.log(p_z)
+#             log_q_z_given_x = np.log(q_z_given_x)
+
+#             # Compute w
+#             # w = p_x_given_z * p_z / q_z_given_x
+#             log_w = log_p_x_given_z + log_p_z - log_q_z_given_x
+
+#             if np.isnan(log_w):
+#                 print log_p_x_given_z
+#                 print log_p_z
+#                 print log_q_z_given_x
+#                 fsafd
+#             # w = np.exp(log_w)
+
+#             ws.append(log_w)
+
+#         # Calc IWAE ELBO over all samples
+
+#         # iwae_elbo = np.log(np.mean(ws))
+#         ws = np.array(ws)
+#         max_ = np.max(ws)
+#         iwae_elbo = np.log(np.mean(np.exp(ws-max_))) + max_
+#         iwae_elbos.append(iwae_elbo)
+
+#     # Average IWAE ELBOs over all datapoints
+#     L = np.mean(iwae_elbos)
+
+#     return L
+
+
+
 def evaluate(model, data, n_samples):
 
     iwae_elbos = []
@@ -90,10 +172,32 @@ def evaluate(model, data, n_samples):
         for j in range(n_samples):
 
             # Sample the latent space: first select which component
-            component = np.random.choice(n_clusters, size=1, p=weights)[0]
+            # [P]
+            component = np.random.choice(n_clusters, size=[n_samples], p=weights)
+            #Convert to one hot
+            conponent_one_hot = np.zeros((n_samples, n_clusters))
+            # [P,C]
+            conponent_one_hot[np.arange(n_samples), component] = 1
+
+            # I need to get a [P,Z] of means and vars, right theyre [B,C*Z]
+            # reshape to [B,C,Z]
+            # reshape compoent to [1,P,C]
+            # dot so it becomes [B,P,Z]
+
+
+            # [P,Z]
+            sample_from_N0I = np.random.randn(n_samples,n_z)
+            
+
+
+
+
+
+
+
 
             # Sample that component, which is a diagonal Gaussian
-            sample = (np.random.randn(n_z) * 
+            sample = 
                 np.sqrt(np.exp(recog_log_vars[component*n_z:component*n_z+n_z:1])) 
                 + recog_means[component*n_z:component*n_z+n_z:1]) 
 
@@ -102,7 +206,7 @@ def evaluate(model, data, n_samples):
             q_z_given_x = prob_under_MoG(sample, recog_means, recog_log_vars, weights)
 
             # Reconstruct sample
-            x_mean = model.decode([[sample],[sample]])[0]
+            x_mean = model.decode([[sample],[sample],[sample],[sample],[sample],[sample]])[0]
             x_mean = np.reshape(x_mean, [784])
 
             # Get probability of reconstruction
@@ -137,8 +241,6 @@ def evaluate(model, data, n_samples):
     L = np.mean(iwae_elbos)
 
     return L
-
-
 
 
 
@@ -211,14 +313,14 @@ if __name__ == '__main__':
 
         #Initialize model
         if args.model == 'vae':
-            model = VAE(network_architecture, batch_size=1, n_particles=2)
+            model = VAE(network_architecture, batch_size=1, n_particles=6)
         elif args.model == 'iwae':
-            model = IWAE(network_architecture, batch_size=1, n_particles=2)
+            model = IWAE(network_architecture, batch_size=1, n_particles=6)
         elif args.model == 'mog_vae':
-            model = MoG_VAE(network_architecture, batch_size=1, n_particles=2, 
+            model = MoG_VAE(network_architecture, batch_size=1, n_particles=6, 
                 n_clusters=args.n_clusters)
         elif args.model == 'mog_iwae':
-            model = MoG_IWAE(network_architecture, batch_size=1, n_particles=2, 
+            model = MoG_IWAE(network_architecture, batch_size=1, n_particles=6, 
                 n_clusters=args.n_clusters)
 
         #Load parameters
