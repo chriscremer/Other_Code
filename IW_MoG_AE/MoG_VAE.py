@@ -33,7 +33,7 @@ class MoG_VAE():
         #Variables
         self.network_weights = self._initialize_weights(**self.network_architecture)
         
-        #Encoder - Recognition model - p(z|x): recog_mean,z_log_std_sq=[batch_size, n_z]
+        #Encoder - Recognition model - p(z|x): recog_mean,z_log_std_sq=[batch_size, n_z*C]
         self.recog_means, self.recog_log_vars, self.weights = self._recognition_network(self.network_weights["weights_recog"], self.network_weights["biases_recog"])
 
         #Sample - the particles are divided amond the clusters evenly
@@ -132,6 +132,44 @@ class MoG_VAE():
 
 
 
+    # def transform_eps(self, eps, means, log_vars):
+    #     '''
+    #     Divides the samples among the mixture of Gaussians
+
+    #     eps are samples from N(0,I)  [P, B, Z]
+    #     means are [B,Z*C]
+    #     log_vars are [B,Z*C]
+    #     output are [P,B,Z]
+
+    #     So need to split P by C 
+    #     '''
+
+    #     # split, slice,
+    #     # or I could reshape it to [B,C,Z]
+
+    #     samps_per_cluster = int(np.ceil(self.n_particles / float(self.n_clusters)))
+
+    #     zs = []
+    #     for cluster in range(self.n_clusters):
+
+    #         # [P/C,B,Z]
+    #         this_cluster_samps = tf.slice(eps, [samps_per_cluster*cluster,0,0], [samps_per_cluster, self.batch_size, self.n_z])
+    #         # [B,Z]
+    #         this_mean = tf.slice(means, [0,cluster*self.n_z], [self.batch_size, self.n_z])
+    #         this_log_var = tf.slice(log_vars, [0,cluster*self.n_z], [self.batch_size, self.n_z])
+    #         # [P/C,B,Z]
+    #         this_z = tf.add(this_mean, tf.mul(tf.sqrt(tf.exp(this_log_var)), this_cluster_samps)) #uses broadcasting, z=[n_parts, n_batches, n_z]
+
+    #         zs.append(this_z)
+
+    #     # [n_clusters, samps_per_cluster, batch, n_z]
+    #     zs = tf.pack(zs)
+    #     # [n_clusters*samps_per_cluster, batch, n_z] = [P,B,Z]
+    #     zs = tf.reshape(zs, [self.n_clusters*samps_per_cluster, self.batch_size, self.n_z])
+
+    #     return zs
+
+
     def transform_eps(self, eps, means, log_vars):
         '''
         Divides the samples among the mixture of Gaussians
@@ -144,47 +182,74 @@ class MoG_VAE():
         So need to split P by C 
         '''
 
-        # split, slice,
-        # or I could reshape it to [B,C,Z]
-
         samps_per_cluster = int(np.ceil(self.n_particles / float(self.n_clusters)))
 
-        zs = []
-        for cluster in range(self.n_clusters):
+        # [P/C,C,B,Z] 
+        eps_reshaped = tf.reshape(eps, [samps_per_cluster, self.n_clusters, self.batch_size, self.n_z])
 
-            # [P/C,B,Z]
-            this_cluster_samps = tf.slice(eps, [samps_per_cluster*cluster,0,0], [samps_per_cluster, self.batch_size, self.n_z])
-            # [B,Z]
-            this_mean = tf.slice(means, [0,cluster*self.n_z], [self.batch_size, self.n_z])
-            this_log_var = tf.slice(log_vars, [0,cluster*self.n_z], [self.batch_size, self.n_z])
-            # [P/C,B,Z]
-            this_z = tf.add(this_mean, tf.mul(tf.sqrt(tf.exp(this_log_var)), this_cluster_samps)) #uses broadcasting, z=[n_parts, n_batches, n_z]
+        # # [1,C,B,Z]
+        # means_reshaped = tf.reshape(means, [1, self.n_clusters, self.batch_size, self.n_z])
+        # # [1,C,B,Z]
+        # log_vars_reshaped = tf.reshape(log_vars, [1, self.n_clusters, self.batch_size, self.n_z])
 
-            zs.append(this_z)
+        # [1,B,C,Z]
+        means_reshaped = tf.reshape(means, [1, self.batch_size, self.n_clusters, self.n_z])
+        # [1,B,C,Z]
+        log_vars_reshaped = tf.reshape(log_vars, [1, self.batch_size, self.n_clusters, self.n_z])
 
-        # [n_clusters, samps_per_cluster, batch, n_z]
-        zs = tf.pack(zs)
-        # [n_clusters*samps_per_cluster, batch, n_z] = [P,B,Z]
+        # [1,C,B,Z]
+        means_reshaped = tf.transpose(means_reshaped, [0, 2, 1, 3])
+        # [1,C,B,Z]
+        log_vars_reshaped = tf.transpose(log_vars_reshaped, [0, 2, 1, 3])
+
+        # [P/C,C,B,Z] 
+        zs = tf.add(means_reshaped, tf.mul(tf.sqrt(tf.exp(log_vars_reshaped)), eps_reshaped))
+        # [P,B,Z] 
         zs = tf.reshape(zs, [self.n_clusters*samps_per_cluster, self.batch_size, self.n_z])
 
         return zs
 
+
+    # def _log_normal(self, x, mean, log_var):
+    #     '''
+    #     x is [P, B, D]
+    #     mean is [B,D]
+    #     log_var is [B,D]
+    #     '''
+
+    #     term1 = self.n_z * tf.log(2*math.pi)
+    #     term2 = tf.reduce_sum(log_var, reduction_indices=1) #sum over dimensions, now its [B]
+
+    #     term3 = tf.square(x - mean) / tf.exp(log_var)
+    #     term3 = tf.reduce_sum(term3, 2) #sum over dimensions so now its [particles, batch]
+
+    #     all_ = term1 + term2 + term3
+    #     log_normal = -.5 * all_  
+
+    #     return log_normal
 
 
 
 
     def _log_normal(self, x, mean, log_var):
         '''
-        x is [P, B, D]
-        mean is [B,D]
-        log_var is [B,D]
+        x is [P/C, C, B, Z]
+        mean is [1,C,B,Z]
+        log_var is [1,C,B,Z]
+        return [P/C,C,B]
         '''
 
+        # [1] scalar
         term1 = self.n_z * tf.log(2*math.pi)
-        term2 = tf.reduce_sum(log_var, reduction_indices=1) #sum over dimensions, now its [B]
-
+        # [1,C,B,Z]
+        # mean_reshape = tf.reshape(mean, [1,self.n_clusters, self.batch_size, self.n_z])
+        # log_var_reshape = tf.reshape(log_var, [1,self.n_clusters, self.batch_size, self.n_z])
+        # [1,C,B]
+        term2 = tf.reduce_sum(log_var, reduction_indices=3) #sum over dimensions
+        # [P/C, C, B, Z]
         term3 = tf.square(x - mean) / tf.exp(log_var)
-        term3 = tf.reduce_sum(term3, 2) #sum over dimensions so now its [particles, batch]
+        # [P/C, C, B]
+        term3 = tf.reduce_sum(term3, 3)
 
         all_ = term1 + term2 + term3
         log_normal = -.5 * all_  
@@ -193,34 +258,77 @@ class MoG_VAE():
 
 
 
+
+    # def _log_q_z_given_x(self, z, means, log_vars, mixture_weights):
+    #     '''
+    #     Log of normal distribution
+
+    #     z is [n_particles, batch_size, n_z]
+    #     mean is [batch_size, n_z*C]
+    #     log_var is [batch_size, n_z*C]
+    #     mixture_weights is [B,C]
+    #     output is [n_particles, batch_size]
+    #     '''
+
+    #     log_q_z__ = []
+    #     for cluster in range(self.n_clusters):
+
+    #         this_weight = tf.transpose(tf.slice(mixture_weights, [0,cluster], [self.batch_size, 1])) #[1,B]
+    #         this_mean = tf.slice(means, [0,cluster*self.n_z], [self.batch_size, self.n_z])
+    #         this_log_var = tf.slice(log_vars, [0,cluster*self.n_z], [self.batch_size, self.n_z])
+    #         #[P,B]
+    #         log_q_z = self._log_normal(z, this_mean, this_log_var) + tf.log(this_weight)
+    #         log_q_z__.append(log_q_z)
+
+    #     # [C,P,B]
+    #     log_q_z__ = tf.pack(log_q_z__)
+
+    #     log_q = tf.reduce_logsumexp(log_q_z__, reduction_indices=0, keep_dims=True) #over clusters, so its [P,B]
+    #     log_q = tf.reshape(log_q, [self.n_particles, self.batch_size])
+
+    #     return log_q
+
     def _log_q_z_given_x(self, z, means, log_vars, mixture_weights):
         '''
         Log of normal distribution
 
         z is [n_particles, batch_size, n_z]
-        mean is [batch_size, n_z]
-        log_var is [batch_size, n_z]
-        log_mixture_weights is [B,C]
+        mean is [batch_size, n_z*C]
+        log_var is [batch_size, n_z*C]
+        mixture_weights is [B,C]
         output is [n_particles, batch_size]
         '''
 
-        log_q_z__ = []
-        for cluster in range(self.n_clusters):
+        samps_per_cluster = int(np.ceil(self.n_particles / float(self.n_clusters)))
 
-            this_weight = tf.transpose(tf.slice(mixture_weights, [0,cluster], [self.batch_size, 1])) #[1,B]
-            this_mean = tf.slice(means, [0,cluster*self.n_z], [self.batch_size, self.n_z])
-            this_log_var = tf.slice(log_vars, [0,cluster*self.n_z], [self.batch_size, self.n_z])
-            #[P,B]
-            log_q_z = self._log_normal(z, this_mean, this_log_var) + tf.log(this_weight)
-            log_q_z__.append(log_q_z)
 
-        # [C,P,B]
-        log_q_z__ = tf.pack(log_q_z__)
+        # [P/C,C,B,Z]
+        z_reshaped = tf.reshape(z, [samps_per_cluster, self.n_clusters, self.batch_size, self.n_z])
+        # [1,B,C,Z]
+        means_reshaped = tf.reshape(means, [1, self.batch_size, self.n_clusters, self.n_z])
+        # [1,B,C,Z]
+        log_vars_reshaped = tf.reshape(log_vars, [1, self.batch_size, self.n_clusters, self.n_z])
+        # [1,C,B,Z]
+        means_reshaped = tf.transpose(means_reshaped, [0, 2, 1, 3])
+        # [1,C,B,Z]
+        log_vars_reshaped = tf.transpose(log_vars_reshaped, [0, 2, 1, 3])
 
-        log_q = tf.reduce_logsumexp(log_q_z__, reduction_indices=0, keep_dims=True) #over clusters, so its [P,B]
-        log_q = tf.reshape(log_q, [self.n_particles, self.batch_size])
+        #[P/C,C,B]
+        log_q_z_per_cluster = self._log_normal(z_reshaped, means_reshaped, log_vars_reshaped)
 
-        return log_q
+        # [C,B]
+        weights_reshaped = tf.transpose(mixture_weights, [1,0])
+        # [1,C,B]
+        weights_reshaped = tf.reshape(mixture_weights, [1, self.n_clusters, self.batch_size])
+
+        # log_q_z = log_q_z_per_cluster * weights_reshaped
+        log_q_z = log_q_z_per_cluster + tf.log(weights_reshaped)
+        
+
+        qz_reshaped = tf.reshape(log_q_z, [self.n_particles, self.batch_size])
+
+        return qz_reshaped
+
 
 
     def _log_p_z(self, z):
@@ -260,27 +368,54 @@ class MoG_VAE():
         return -reconstr_loss
 
 
-    def weight_by_cluster(self, log_w, normalized_weights):
+    # def weight_by_cluster(self, log_w, normalized_weights):
+    # 	'''
+    # 	log_w: [P,B]
+    # 	normalized_weights: [C]
+    # 	log_w output: [B,C]
+    # 	'''
 
-        samps_per_cluster = self.n_particles / self.n_clusters
+    #     samps_per_cluster = int(np.ceil(self.n_particles / float(self.n_clusters)))
 
-        weights= []
-        for cluster in range(self.n_clusters):
+    #     weights= []
+    #     for cluster in range(self.n_clusters):
 
-            # [spc, B]
-            samples_from_this_cluster = tf.slice(log_w, [cluster*samps_per_cluster, 0], [samps_per_cluster, self.batch_size])
-            avg_of_clust = tf.reduce_mean(samples_from_this_cluster, reduction_indices=0) #over smaples so its [B]
-            weights.append(avg_of_clust)
+    #         # [spc, B]
+    #         samples_from_this_cluster = tf.slice(log_w, [cluster*samps_per_cluster, 0], [samps_per_cluster, self.batch_size])
+    #         avg_of_clust = tf.reduce_mean(samples_from_this_cluster, reduction_indices=0) #over smaples so its [B]
+    #         weights.append(avg_of_clust)
             
-        # [C,B]
-        weights = tf.pack(weights)
-        # [B,C]
-        weights = tf.transpose(weights, [1,0])
-        # [B,C]
-        log_w = weights + tf.log(normalized_weights)
+    #     # [C,B]
+    #     weights = tf.pack(weights)
+    #     # [B,C]
+    #     weights = tf.transpose(weights, [1,0])
+    #     # [B,C]
+    #     log_w = weights + tf.log(normalized_weights)
+
+    #     return log_w
+
+
+    def weight_by_cluster(self, log_w, normalized_weights):
+    	'''
+    	log_w: [P,B]
+    	normalized_weights: [B,C]
+    	log_w output: [B,C]
+    	'''
+
+        samps_per_cluster = int(np.ceil(self.n_particles / float(self.n_clusters)))
+
+        #[P/C,C,B]
+        log_w_reshaped = tf.reshape(log_w, [samps_per_cluster, self.n_clusters, self.batch_size])
+        #[C,B]
+        log_w_reshaped = tf.reduce_mean(log_w_reshaped, reduction_indices=0)
+        #[B,C]
+        log_w = tf.transpose(log_w_reshaped, [1,0])
+        #[B,C]
+        # weights_reshaped = tf.reshape(normalized_weights, [self.batch_size, self.n_clusters])
+        #[B,C]
+        log_w = log_w + tf.log(normalized_weights)
 
         return log_w
-
 
 
     def train(self, train_x, valid_x=[], display_step=5, path_to_load_variables='', path_to_save_variables='', starting_stage=0, ending_stage=5, path_to_save_training_info=''):
