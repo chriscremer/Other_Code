@@ -8,11 +8,12 @@ import pickle
 from scipy.stats import multivariate_normal as norm
 # from scipy.stats import bernoulli
 
-from autoencoders import VAE
-from autoencoders import IWAE
-from autoencoders import IW_MoG_AE
-from autoencoders import MoG_VAE
-from autoencoders import MoG_VAE2
+# from autoencoders import VAE
+# from autoencoders import IWAE
+# from autoencoders import IW_MoG_AE
+from MoG_VAE import MoG_VAE
+from MoG_IWAE import MoG_IWAE
+
 
 
 
@@ -64,13 +65,14 @@ def evaluate(model, data, n_samples):
     # For each datapoint
     for i in range(len(data)):
 
-        print i, '/', len(data)
+        if i %2 ==0:
+            print i, '/', len(data)
 
         # Encode data
         input_ = np.reshape(data[i], [1,784])
         recog_means, recog_log_vars, weights = model.encode(input_)
 
-        if i %10 ==0:
+        if i %50 ==0:
             print weights
 
         #Get rid of the batch dimension
@@ -146,7 +148,7 @@ if __name__ == '__main__':
     # python experiments.py -m vae -k 10 -a train -s vae_10_s6 -l vae_10 -ss 6 -es 6
     # python experiments.py -m vae -k 10 -a evaluate -l vae_10
     parser = argparse.ArgumentParser(description='Run experiments.')
-    parser.add_argument('--model', '-m', choices=['vae', 'iwae', 'mog_vae', 'iw_mog_ae', 'mog_vae2'], 
+    parser.add_argument('--model', '-m', choices=['vae', 'iwae', 'mog_vae', 'mog_iwae'], 
         default='vae')
     parser.add_argument('--k', '-k', type=int, default=1)
     parser.add_argument('--action', '-a', choices=['train', 'evaluate'], default='train')
@@ -188,15 +190,13 @@ if __name__ == '__main__':
             model = VAE(network_architecture, learning_rate=0.001, batch_size=n_batch, n_particles=k)
         elif args.model == 'iwae':
             model = IWAE(network_architecture, learning_rate=0.001, batch_size=n_batch, n_particles=k)
-        elif args.model == 'iw_mog_ae':
-            model = IW_MoG_AE(network_architecture, learning_rate=0.001, batch_size=n_batch, n_particles=k, 
-                n_clusters=args.n_clusters)
         elif args.model == 'mog_vae':
             model = MoG_VAE(network_architecture, learning_rate=0.001, batch_size=n_batch, n_particles=k, 
                 n_clusters=args.n_clusters)
-        elif args.model == 'mog_vae2':
-            model = MoG_VAE2(network_architecture, learning_rate=0.001, batch_size=n_batch, n_particles=k, 
+        elif args.model == 'mog_iwae':
+            model = MoG_IWAE(network_architecture, learning_rate=0.001, batch_size=n_batch, n_particles=k, 
                 n_clusters=args.n_clusters)
+
 
         #Train
         model.train(train_x=train_x, valid_x=valid_x, display_step=2000, 
@@ -214,14 +214,11 @@ if __name__ == '__main__':
             model = VAE(network_architecture, batch_size=1, n_particles=2)
         elif args.model == 'iwae':
             model = IWAE(network_architecture, batch_size=1, n_particles=2)
-        elif args.model == 'iw_mog_ae':
-            model = IW_MoG_AE(network_architecture, batch_size=1, n_particles=2, 
-                n_clusters=args.n_clusters)
         elif args.model == 'mog_vae':
             model = MoG_VAE(network_architecture, batch_size=1, n_particles=2, 
                 n_clusters=args.n_clusters)
-        elif args.model == 'mog_vae2':
-            model = MoG_VAE2(network_architecture, batch_size=1, n_particles=2, 
+        elif args.model == 'mog_iwae':
+            model = MoG_IWAE(network_architecture, batch_size=1, n_particles=2, 
                 n_clusters=args.n_clusters)
 
         #Load parameters
@@ -229,9 +226,8 @@ if __name__ == '__main__':
 
         #Log Likelihood Lower Bound
         LL_LB = evaluate(model, data=test_x, n_samples=1000)
-        # LL_LB = model.evaluate(datapoints=test_x, n_samples=5000, 
-            #path_to_load_variables=path_to_load_variables)
         print 'Model Log Likelihood is ' + str(LL_LB)
+
 
 
 
