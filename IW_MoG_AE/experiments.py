@@ -147,94 +147,81 @@ def evaluate(model, data, n_samples):
     # For each datapoint
     for i in range(len(data)):
 
-        if i %2 ==0:
+        if i %50 ==0:
             print i, '/', len(data)
 
         # Encode data
         input_ = np.reshape(data[i], [1,784])
         recog_means, recog_log_vars, weights = model.encode(input_)
 
-        if i %50 ==0:
+        if i %100 ==0:
             print weights
 
-        #Get rid of the batch dimension
+        #Recog_means [B,Z*C]
+        #Recog_log_vars [B,Z*C]
+        #weights [B,C]
+
+        n_batch = len(weights)
+        n_clusters = len(weights[0])
+        n_z = len(recog_means[0]) / n_clusters
+
+        # Get rid of the batch dimension
         recog_means = np.reshape(recog_means, [-1])
         recog_log_vars = np.reshape(recog_log_vars, [-1])
         weights = np.reshape(weights, [-1])
 
-        n_clusters = len(weights)
-        n_z = len(recog_means) / n_clusters
+        recog_vars = np.exp(recog_log_vars)
 
-        # log_weights = np.log(weights)
+        # [P]
+        component = np.random.choice(n_clusters, size=[n_samples], p=weights)
+        #Convert to one hot
+        component_one_hot = np.zeros((n_samples, n_clusters))
+        # [P,C]
+        component_one_hot[np.arange(n_samples), component] = 1
+
+        # [C,Z]
+        recog_means = np.reshape(recog_means, [n_clusters, n_z])
+        recog_vars = np.reshape(recog_vars, [n_clusters, n_z])
+        # [P,Z]
+        sample_means = np.dot(component_one_hot, recog_means)
+        sample_vars = np.dot(component_one_hot, recog_vars)
+        # [P,Z]
+        sample_from_N0I = np.random.randn(n_samples,n_z)
+        # [P,Z]
+        samples = sample_from_N0I * np.sqrt(sample_vars) + sample_means
         
-        ws = []
-        # For number of samples
-        for j in range(n_samples):
+        #Prob under prior
+        p_z_dist = norm(mean=np.zeros([n_z]))
+        # [P]
+        p_z = p_z_dist.pdf(samples)
 
-            # Sample the latent space: first select which component
-            # [P]
-            component = np.random.choice(n_clusters, size=[n_samples], p=weights)
-            #Convert to one hot
-            conponent_one_hot = np.zeros((n_samples, n_clusters))
-            # [P,C]
-            conponent_one_hot[np.arange(n_samples), component] = 1
+        q_z_given_x = np.zeros([n_samples])
+        for c in range(n_clusters):
+            # dists.append(norm(mean=recog_means[c], cov=recog_vars[c]))
+            q_i_dist = norm(mean=recog_means[c], cov=recog_vars[c])
+            q_i = q_i_dist.pdf(samples)
+            q_z_given_x += q_i * weights[c]
 
-            # I need to get a [P,Z] of means and vars, right theyre [B,C*Z]
-            # reshape to [B,C,Z]
-            # reshape compoent to [1,P,C]
-            # dot so it becomes [B,P,Z]
+        # Reconstruct sample
+        samples = np.reshape(samples, [n_samples, 1, n_z])
+        x_mean = model.decode(samples)
+        x_mean = np.reshape(x_mean, [n_samples, 784])
 
+        # [P] 
+        log_p_x_given_z = np.sum(data[i]*np.log(x_mean) + (1-data[i])*np.log(1-x_mean), axis=1)
 
-            # [P,Z]
-            sample_from_N0I = np.random.randn(n_samples,n_z)
-            
+        log_p_z = np.log(p_z)
+        log_q_z_given_x = np.log(q_z_given_x)
+        log_w = log_p_x_given_z + log_p_z - log_q_z_given_x
 
+        if np.isnan(log_w).any():
+            print log_p_x_given_z
+            print log_p_z
+            print log_q_z_given_x
+            fsafd
 
-
-
-
-
-
-
-            # Sample that component, which is a diagonal Gaussian
-            sample = 
-                np.sqrt(np.exp(recog_log_vars[component*n_z:component*n_z+n_z:1])) 
-                + recog_means[component*n_z:component*n_z+n_z:1]) 
-
-            # Get probability of sample under recognition model and prior
-            p_z = norm.pdf(sample, mean=np.zeros([n_z]), cov=np.diag(np.ones([n_z])))
-            q_z_given_x = prob_under_MoG(sample, recog_means, recog_log_vars, weights)
-
-            # Reconstruct sample
-            x_mean = model.decode([[sample],[sample],[sample],[sample],[sample],[sample]])[0]
-            x_mean = np.reshape(x_mean, [784])
-
-            # Get probability of reconstruction
-            # p_x_given_z = bernoulli.pmf(x=data[i], p=x_mean)
-            log_p_x_given_z = np.sum(data[i]*np.log(x_mean) + (1-data[i])*np.log(1-x_mean))
-
-            log_p_z = np.log(p_z)
-            log_q_z_given_x = np.log(q_z_given_x)
-
-            # Compute w
-            # w = p_x_given_z * p_z / q_z_given_x
-            log_w = log_p_x_given_z + log_p_z - log_q_z_given_x
-
-            if np.isnan(log_w):
-                print log_p_x_given_z
-                print log_p_z
-                print log_q_z_given_x
-                fsafd
-            # w = np.exp(log_w)
-
-            ws.append(log_w)
-
-        # Calc IWAE ELBO over all samples
-
-        # iwae_elbo = np.log(np.mean(ws))
-        ws = np.array(ws)
-        max_ = np.max(ws)
-        iwae_elbo = np.log(np.mean(np.exp(ws-max_))) + max_
+        max_ = np.max(log_w)
+        iwae_elbo = np.log(np.mean(np.exp(log_w-max_))) + max_
         iwae_elbos.append(iwae_elbo)
 
     # Average IWAE ELBOs over all datapoints
@@ -313,21 +300,21 @@ if __name__ == '__main__':
 
         #Initialize model
         if args.model == 'vae':
-            model = VAE(network_architecture, batch_size=1, n_particles=6)
+            model = VAE(network_architecture, batch_size=1, n_particles=k)
         elif args.model == 'iwae':
-            model = IWAE(network_architecture, batch_size=1, n_particles=6)
+            model = IWAE(network_architecture, batch_size=1, n_particles=k)
         elif args.model == 'mog_vae':
-            model = MoG_VAE(network_architecture, batch_size=1, n_particles=6, 
+            model = MoG_VAE(network_architecture, batch_size=1, n_particles=k, 
                 n_clusters=args.n_clusters)
         elif args.model == 'mog_iwae':
-            model = MoG_IWAE(network_architecture, batch_size=1, n_particles=6, 
+            model = MoG_IWAE(network_architecture, batch_size=1, n_particles=k, 
                 n_clusters=args.n_clusters)
 
         #Load parameters
         model.load_parameters(path_to_load_variables=path_to_load_variables)
 
         #Log Likelihood Lower Bound
-        LL_LB = evaluate(model, data=test_x, n_samples=1000)
+        LL_LB = evaluate(model, data=test_x, n_samples=k)
         print 'Model Log Likelihood is ' + str(LL_LB)
 
 
