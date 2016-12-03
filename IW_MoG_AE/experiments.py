@@ -207,21 +207,49 @@ def evaluate(model, data, n_samples):
         x_mean = model.decode(samples)
         x_mean = np.reshape(x_mean, [n_samples, 784])
 
+        x_mean = np.clip(x_mean, 10.**(-38), 1.)
+
+        # print np.min(x_mean)
+        # print np.max(x_mean)
+        # print np.log(np.min(x_mean))
+
+        # fsadf
+
+
+
+        # max_ = np.max(x_mean, axis=1)
         # [P] 
         log_p_x_given_z = np.sum(data[i]*np.log(x_mean) + (1-data[i])*np.log(1-x_mean), axis=1)
+        # p_x_given_z = np.prod(x_mean**data[i] * (1-x_mean)**(1-data[i]), axis=1)
+        # print p_x_given_z.shape
+        # fdsaf
+        # log_p_x_given_z = np.log(p_x_given_z)
+
 
         log_p_z = np.log(p_z)
         log_q_z_given_x = np.log(q_z_given_x)
         log_w = log_p_x_given_z + log_p_z - log_q_z_given_x
 
+        # w = p_x_given_z * p_z / q_z_given_x
+
         if np.isnan(log_w).any():
-            print log_p_x_given_z
+
             print log_p_z
             print log_q_z_given_x
+            print log_p_x_given_z
+            print x_mean.shape
+            print data[i].shape
+            print np.min(x_mean)
+            print np.max(x_mean)
+            print np.log(np.min(x_mean))
+            print np.sum(data[i]*np.log(x_mean))
+            print np.sum(1-data[i]*np.log(1-x_mean))
+
             fsafd
 
         max_ = np.max(log_w)
         iwae_elbo = np.log(np.mean(np.exp(log_w-max_))) + max_
+        # iwae_elbo = np.log(np.mean(w))
         iwae_elbos.append(iwae_elbo)
 
     # Average IWAE ELBOs over all datapoints
@@ -240,7 +268,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', '-m', choices=['vae', 'iwae', 'mog_vae', 'mog_iwae'], 
         default='vae')
     parser.add_argument('--k', '-k', type=int, default=1)
-    parser.add_argument('--action', '-a', choices=['train', 'evaluate'], default='train')
+    parser.add_argument('--action', '-a', choices=['train', 'evaluate', 'multiple'], default='train')
     parser.add_argument('--save_to', '-s', type=str, default='')
     parser.add_argument('--load_from', '-l', type=str, default='')
     parser.add_argument('--starting_stage', '-ss', type=int, default=0)
@@ -271,6 +299,15 @@ if __name__ == '__main__':
              n_z=50)  # dimensionality of latent space
 
     
+
+    if args.action == 'multiple':
+
+        list_of_models = [v,i] #vae vs iwae
+        list_of_n_clusters = [2,3,4]
+        list_of_n_samples = [3,60]
+        list_of_donts = [[]]  #[c,k]
+
+
     
     if args.action == 'train':
 
