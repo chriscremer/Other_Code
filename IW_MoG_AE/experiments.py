@@ -187,6 +187,9 @@ def evaluate(model, data, n_samples):
 
             # [P,Z]
             sample_from_N0I = np.random.randn(n_samples,n_z)
+
+
+            fasdf
             
 
 
@@ -196,10 +199,10 @@ def evaluate(model, data, n_samples):
 
 
 
-            # Sample that component, which is a diagonal Gaussian
-            sample = 
-                np.sqrt(np.exp(recog_log_vars[component*n_z:component*n_z+n_z:1])) 
-                + recog_means[component*n_z:component*n_z+n_z:1]) 
+            # # Sample that component, which is a diagonal Gaussian
+            # sample = 
+            #     np.sqrt(np.exp(recog_log_vars[component*n_z:component*n_z+n_z:1])) 
+            #     + recog_means[component*n_z:component*n_z+n_z:1]) 
 
             # Get probability of sample under recognition model and prior
             p_z = norm.pdf(sample, mean=np.zeros([n_z]), cov=np.diag(np.ones([n_z])))
