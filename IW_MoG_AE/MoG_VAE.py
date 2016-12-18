@@ -15,9 +15,14 @@ import pickle
 
 
 
+
 class MoG_VAE():
 
     def __init__(self, network_architecture, learning_rate=0.001, batch_size=5, n_particles=4, n_clusters=2):
+
+        tf.reset_default_graph()
+
+
         self.network_architecture = network_architecture
         self.transfer_fct = tf.tanh
         self.learning_rate = learning_rate
@@ -36,25 +41,34 @@ class MoG_VAE():
         #Encoder - Recognition model - p(z|x): recog_mean,z_log_std_sq=[batch_size, n_z*C]
         self.recog_means, self.recog_log_vars, self.weights = self._recognition_network(self.network_weights["weights_recog"], self.network_weights["biases_recog"])
 
-        #Sample - the particles are divided amond the clusters evenly
+        #Sample - the particles are divided among the clusters evenly [P,B,Z]
         eps = tf.random_normal((self.n_particles, self.batch_size, self.n_z), 0, 1, dtype=tf.float32)
         #Transform the N(0,I) samples with the cluster means and vars
         self.z = self.transform_eps(eps, self.recog_means, self.recog_log_vars) #[P,B,Z]
 
-        #Decoder - Generative model - p(x|z)
+        #Decoder - Generative model - p(x|z) [P,B,D]
         self.x_reconstr_mean_no_sigmoid = self._generator_network(self.network_weights["weights_gener"], self.network_weights["biases_gener"]) #no sigmoid
 
         #Objective
         self.log_q = self._log_q_z_given_x(self.z, self.recog_means, self.recog_log_vars, self.weights)
-        self.log_p = self._log_likelihood(self.x, self.x_reconstr_mean_no_sigmoid) + self._log_p_z(self.z)
-        self.log_w_ = self.log_p - self.log_q #[P,B]
+        self.log_p_z = self._log_p_z(self.z)
+        self.log_p = self._log_likelihood(self.x, self.x_reconstr_mean_no_sigmoid)
+        self.log_w_ = self.log_p  + self.log_p_z - self.log_q #[P,B]
         # [B,C]
         self.log_w = self.weight_by_cluster(self.log_w_, self.weights)
         self.log_w_batch = tf.reduce_mean(self.log_w, reduction_indices=1) #over clusters, so its [B]
-        self.elbo = tf.reduce_mean(self.log_w_batch, reduction_indices=0)  #over batch, so its a scalar
+        
+        # vars1   = tf.trainable_variables() 
+        # lossL2 = tf.add_n([tf.nn.l2_loss(v) for v in vars1])*0.1
+
+        self.elbo = tf.reduce_mean(self.log_w_batch, reduction_indices=0) #- lossL2 #+ (.1*(tf.reduce_sum(tf.log(self.weights))))  #over batch, so its a scalar
+
+
 
         # Optimization
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=1e-04).minimize(-self.elbo)
+        # self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=1e-04).minimize(-self.elbo)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=1e-02).minimize(-self.elbo)
+
 
         #For evaluation
         self.x_reconstr_mean = tf.nn.sigmoid(self.x_reconstr_mean_no_sigmoid)
@@ -132,43 +146,6 @@ class MoG_VAE():
 
 
 
-    # def transform_eps(self, eps, means, log_vars):
-    #     '''
-    #     Divides the samples among the mixture of Gaussians
-
-    #     eps are samples from N(0,I)  [P, B, Z]
-    #     means are [B,Z*C]
-    #     log_vars are [B,Z*C]
-    #     output are [P,B,Z]
-
-    #     So need to split P by C 
-    #     '''
-
-    #     # split, slice,
-    #     # or I could reshape it to [B,C,Z]
-
-    #     samps_per_cluster = int(np.ceil(self.n_particles / float(self.n_clusters)))
-
-    #     zs = []
-    #     for cluster in range(self.n_clusters):
-
-    #         # [P/C,B,Z]
-    #         this_cluster_samps = tf.slice(eps, [samps_per_cluster*cluster,0,0], [samps_per_cluster, self.batch_size, self.n_z])
-    #         # [B,Z]
-    #         this_mean = tf.slice(means, [0,cluster*self.n_z], [self.batch_size, self.n_z])
-    #         this_log_var = tf.slice(log_vars, [0,cluster*self.n_z], [self.batch_size, self.n_z])
-    #         # [P/C,B,Z]
-    #         this_z = tf.add(this_mean, tf.mul(tf.sqrt(tf.exp(this_log_var)), this_cluster_samps)) #uses broadcasting, z=[n_parts, n_batches, n_z]
-
-    #         zs.append(this_z)
-
-    #     # [n_clusters, samps_per_cluster, batch, n_z]
-    #     zs = tf.pack(zs)
-    #     # [n_clusters*samps_per_cluster, batch, n_z] = [P,B,Z]
-    #     zs = tf.reshape(zs, [self.n_clusters*samps_per_cluster, self.batch_size, self.n_z])
-
-    #     return zs
-
 
     def transform_eps(self, eps, means, log_vars):
         '''
@@ -192,13 +169,18 @@ class MoG_VAE():
         # # [1,C,B,Z]
         # log_vars_reshaped = tf.reshape(log_vars, [1, self.n_clusters, self.batch_size, self.n_z])
 
+        # [B,C,Z]
+        means_reshaped = tf.reshape(means, [self.batch_size, self.n_clusters, self.n_z])
         # [1,B,C,Z]
-        means_reshaped = tf.reshape(means, [1, self.batch_size, self.n_clusters, self.n_z])
-        # [1,B,C,Z]
-        log_vars_reshaped = tf.reshape(log_vars, [1, self.batch_size, self.n_clusters, self.n_z])
-
+        means_reshaped = tf.pack([means_reshaped])
         # [1,C,B,Z]
         means_reshaped = tf.transpose(means_reshaped, [0, 2, 1, 3])
+
+
+        # [B,C,Z]
+        log_vars_reshaped = tf.reshape(log_vars, [self.batch_size, self.n_clusters, self.n_z])
+        # [1,B,C,Z]
+        log_vars_reshaped = tf.pack([log_vars_reshaped])
         # [1,C,B,Z]
         log_vars_reshaped = tf.transpose(log_vars_reshaped, [0, 2, 1, 3])
 
@@ -212,16 +194,23 @@ class MoG_VAE():
 
     # def _log_normal(self, x, mean, log_var):
     #     '''
-    #     x is [P, B, D]
-    #     mean is [B,D]
-    #     log_var is [B,D]
+    #     x is [P/C, C, B, Z]
+    #     mean is [1,C,B,Z]
+    #     log_var is [1,C,B,Z]
+    #     return [P/C,C,B]
     #     '''
 
+    #     # [1] scalar
     #     term1 = self.n_z * tf.log(2*math.pi)
-    #     term2 = tf.reduce_sum(log_var, reduction_indices=1) #sum over dimensions, now its [B]
-
+    #     # [1,C,B,Z]
+    #     # mean_reshape = tf.reshape(mean, [1,self.n_clusters, self.batch_size, self.n_z])
+    #     # log_var_reshape = tf.reshape(log_var, [1,self.n_clusters, self.batch_size, self.n_z])
+    #     # [1,C,B]
+    #     term2 = tf.reduce_sum(log_var, reduction_indices=3) #sum over dimensions
+    #     # [P/C, C, B, Z]
     #     term3 = tf.square(x - mean) / tf.exp(log_var)
-    #     term3 = tf.reduce_sum(term3, 2) #sum over dimensions so now its [particles, batch]
+    #     # [P/C, C, B]
+    #     term3 = tf.reduce_sum(term3, 3)
 
     #     all_ = term1 + term2 + term3
     #     log_normal = -.5 * all_  
@@ -229,26 +218,40 @@ class MoG_VAE():
     #     return log_normal
 
 
-
-
-    def _log_normal(self, x, mean, log_var):
+    def _log_normal(self, x, means, log_vars):
         '''
-        x is [P/C, C, B, Z]
-        mean is [1,C,B,Z]
-        log_var is [1,C,B,Z]
-        return [P/C,C,B]
+        x is [P, B, Z]
+        mean, log_var is [batch_size, n_z*C]
+        return [P,C,B]
         '''
+
+        # [P*C,B,Z]
+        x = tf.tile(x, [self.n_clusters,1,1])
+        # [P,C,B,Z]
+        x = tf.reshape(x, [self.n_particles,self.n_clusters,self.batch_size, self.n_z])
+
+        # [B,C,Z]
+        means_reshaped = tf.reshape(means, [self.batch_size, self.n_clusters, self.n_z])
+        # [1,B,C,Z]
+        means_reshaped = tf.pack([means_reshaped])
+        # [1,C,B,Z]
+        means_reshaped = tf.transpose(means_reshaped, [0, 2, 1, 3])
+
+        # [B,C,Z]
+        log_vars_reshaped = tf.reshape(log_vars, [self.batch_size, self.n_clusters, self.n_z])
+        # [1,B,C,Z]
+        log_vars_reshaped = tf.pack([log_vars_reshaped])
+        # [1,C,B,Z]
+        log_vars_reshaped = tf.transpose(log_vars_reshaped, [0, 2, 1, 3])
+
 
         # [1] scalar
         term1 = self.n_z * tf.log(2*math.pi)
-        # [1,C,B,Z]
-        # mean_reshape = tf.reshape(mean, [1,self.n_clusters, self.batch_size, self.n_z])
-        # log_var_reshape = tf.reshape(log_var, [1,self.n_clusters, self.batch_size, self.n_z])
         # [1,C,B]
-        term2 = tf.reduce_sum(log_var, reduction_indices=3) #sum over dimensions
-        # [P/C, C, B, Z]
-        term3 = tf.square(x - mean) / tf.exp(log_var)
-        # [P/C, C, B]
+        term2 = tf.reduce_sum(log_vars_reshaped, reduction_indices=3) #sum over dimensions
+        # [P, C, B, Z]
+        term3 = tf.square(x - means_reshaped) / tf.exp(log_vars_reshaped)
+        # [P, C, B]
         term3 = tf.reduce_sum(term3, 3)
 
         all_ = term1 + term2 + term3
@@ -259,77 +262,51 @@ class MoG_VAE():
 
 
 
-    # def _log_q_z_given_x(self, z, means, log_vars, mixture_weights):
-    #     '''
-    #     Log of normal distribution
-
-    #     z is [n_particles, batch_size, n_z]
-    #     mean is [batch_size, n_z*C]
-    #     log_var is [batch_size, n_z*C]
-    #     mixture_weights is [B,C]
-    #     output is [n_particles, batch_size]
-    #     '''
-
-    #     log_q_z__ = []
-    #     for cluster in range(self.n_clusters):
-
-    #         this_weight = tf.transpose(tf.slice(mixture_weights, [0,cluster], [self.batch_size, 1])) #[1,B]
-    #         this_mean = tf.slice(means, [0,cluster*self.n_z], [self.batch_size, self.n_z])
-    #         this_log_var = tf.slice(log_vars, [0,cluster*self.n_z], [self.batch_size, self.n_z])
-    #         #[P,B]
-    #         log_q_z = self._log_normal(z, this_mean, this_log_var) + tf.log(this_weight)
-    #         log_q_z__.append(log_q_z)
-
-    #     # [C,P,B]
-    #     log_q_z__ = tf.pack(log_q_z__)
-
-    #     log_q = tf.reduce_logsumexp(log_q_z__, reduction_indices=0, keep_dims=True) #over clusters, so its [P,B]
-    #     log_q = tf.reshape(log_q, [self.n_particles, self.batch_size])
-
-    #     return log_q
-
-
-
     def _log_q_z_given_x(self, z, means, log_vars, mixture_weights):
         '''
         Log of normal distribution
 
         z is [n_particles, batch_size, n_z]
-        mean is [batch_size, n_z*C]
-        log_var is [batch_size, n_z*C]
+        means is [batch_size, n_z*C]
+        log_vars is [batch_size, n_z*C]
         mixture_weights is [B,C]
         output is [n_particles, batch_size]
         '''
 
-        samps_per_cluster = int(np.ceil(self.n_particles / float(self.n_clusters)))
-
-
-        # [P/C,C,B,Z]
-        z_reshaped = tf.reshape(z, [samps_per_cluster, self.n_clusters, self.batch_size, self.n_z])
-        # [1,B,C,Z]
-        means_reshaped = tf.reshape(means, [1, self.batch_size, self.n_clusters, self.n_z])
-        # [1,B,C,Z]
-        log_vars_reshaped = tf.reshape(log_vars, [1, self.batch_size, self.n_clusters, self.n_z])
-        # [1,C,B,Z]
-        means_reshaped = tf.transpose(means_reshaped, [0, 2, 1, 3])
-        # [1,C,B,Z]
-        log_vars_reshaped = tf.transpose(log_vars_reshaped, [0, 2, 1, 3])
-
-        #[P/C,C,B]
-        log_q_z_per_cluster = self._log_normal(z_reshaped, means_reshaped, log_vars_reshaped)
+        #[P,C,B]
+        log_q_z_per_cluster = self._log_normal(z, means, log_vars)
+        self.log_q_z_per_cluster = log_q_z_per_cluster
+        # print log_q_z_per_cluster
+        # fasdf
 
         # [C,B]
         weights_reshaped = tf.transpose(mixture_weights, [1,0])
+        # print weights_reshaped
+
+
+        #THIS WAS THE ERROR, the reshaping screwed it up
+        #Fix: pack instead of reshape to add a dimension
+
         # [1,C,B]
-        weights_reshaped = tf.reshape(mixture_weights, [1, self.n_clusters, self.batch_size])
+        # weights_reshaped = tf.reshape(mixture_weights, [1, self.n_clusters, self.batch_size])
+        # [1,C,B]
+        weights_reshaped = tf.pack([weights_reshaped])
+        # print weights_reshaped
+        self.weights_reshaped = weights_reshaped
+        # [P,C,B]
+        log_pi_qc_z = log_q_z_per_cluster + tf.log(weights_reshaped)
+        self.log_pi_qc_z = log_pi_qc_z
 
-        # log_q_z = log_q_z_per_cluster * weights_reshaped
-        log_q_z = log_q_z_per_cluster + tf.log(weights_reshaped)
+        # log_pi_qc_z = tf.log(tf.exp(log_q_z_per_cluster) * weights_reshaped)
 
 
-        qz_reshaped = tf.reshape(log_q_z, [self.n_particles, self.batch_size])
+        #logsumexp over clusters [P,B]
+        # log_q_z = tf.reduce_logsumexp(log_pi_qc_z, reduction_indices=1)
+        max_ = tf.reduce_max(log_pi_qc_z, reduction_indices=1)
+        max_2 = tf.reshape(max_, [self.n_particles, 1, self.batch_size])
+        log_q_z = tf.log(tf.reduce_sum(tf.exp(log_pi_qc_z-max_2), reduction_indices=1)) + max_
 
-        return qz_reshaped
+        return log_q_z
 
 
 
@@ -355,7 +332,7 @@ class MoG_VAE():
         '''
         Log of bernoulli distribution
 
-        t is [batch_size, n_input]
+        target t is [batch_size, n_input]
         pred_no_sig is [n_particles, batch_size, n_input] 
         output is [n_particles, batch_size]
         '''
@@ -370,39 +347,13 @@ class MoG_VAE():
         return -reconstr_loss
 
 
-    # def weight_by_cluster(self, log_w, normalized_weights):
-    # 	'''
-    # 	log_w: [P,B]
-    # 	normalized_weights: [C]
-    # 	log_w output: [B,C]
-    # 	'''
-
-    #     samps_per_cluster = int(np.ceil(self.n_particles / float(self.n_clusters)))
-
-    #     weights= []
-    #     for cluster in range(self.n_clusters):
-
-    #         # [spc, B]
-    #         samples_from_this_cluster = tf.slice(log_w, [cluster*samps_per_cluster, 0], [samps_per_cluster, self.batch_size])
-    #         avg_of_clust = tf.reduce_mean(samples_from_this_cluster, reduction_indices=0) #over smaples so its [B]
-    #         weights.append(avg_of_clust)
-            
-    #     # [C,B]
-    #     weights = tf.pack(weights)
-    #     # [B,C]
-    #     weights = tf.transpose(weights, [1,0])
-    #     # [B,C]
-    #     log_w = weights + tf.log(normalized_weights)
-
-    #     return log_w
-
 
     def weight_by_cluster(self, log_w, normalized_weights):
-    	'''
-    	log_w: [P,B]
-    	normalized_weights: [B,C]
-    	log_w output: [B,C]
-    	'''
+        '''
+        log_w: [P,B]
+        normalized_weights: [B,C]
+        log_w output: [B,C]
+        '''
 
         samps_per_cluster = int(np.ceil(self.n_particles / float(self.n_clusters)))
 
@@ -415,9 +366,156 @@ class MoG_VAE():
         #[B,C]
         # weights_reshaped = tf.reshape(normalized_weights, [self.batch_size, self.n_clusters])
         #[B,C]
-        log_w = log_w + tf.log(normalized_weights)
+        # log_w = log_w + tf.log(normalized_weights)
+        log_w = log_w * normalized_weights
+
+
 
         return log_w
+
+
+    # def train(self, train_x, valid_x=[], display_step=5, path_to_load_variables='', path_to_save_variables='', starting_stage=0, ending_stage=5, path_to_save_training_info=''):
+    #     '''
+    #     Train.
+    #     Use early stopping
+    #     '''
+
+    #     n_datapoints = len(train_x)
+    #     max_epochs = 1000
+    #     best_valid_elbo = -99999
+    #     best_valid_epochs = 0
+    #     early_stopping_count = 0
+
+
+    #     #Load variables
+    #     saver = tf.train.Saver()
+    #     self.sess = tf.Session()
+    #     if path_to_load_variables == '':
+    #         self.sess.run(tf.initialize_all_variables())
+    #     else:
+    #         #Load variables
+    #         saver.restore(self.sess, path_to_load_variables)
+    #         print 'loaded variables ' + path_to_load_variables
+        
+
+    #     for epoch in range(max_epochs):
+
+    #         #shuffle the data
+    #         arr = np.arange(len(train_x))
+    #         np.random.shuffle(arr)
+    #         train_x = train_x[arr]
+
+    #         data_index = 0
+    #         for step in range(n_datapoints/self.batch_size):
+
+    #             #Make batch
+    #             batch = []
+    #             while len(batch) != self.batch_size:
+    #                 datapoint = train_x[data_index]
+    #                 batch.append(datapoint)
+    #                 data_index +=1
+
+    #             # Fit training using batch data
+    #             # _ = self.sess.run((self.optimizer), feed_dict={self.x: batch})
+    #             _, cost_ = self.sess.run((self.optimizer, self.elbo), feed_dict={self.x: batch})
+
+    #             if np.isnan(cost_).any():
+    #                 q, p, p2 = self.sess.run((self._log_q_z_given_x(self.z, self.recog_means, self.recog_log_vars, self.weights), self._log_p_z(self.z), self._log_likelihood(self.x, self.x_reconstr_mean_no_sigmoid)), feed_dict={self.x: batch})
+    #                 print 'nan!'
+    #                 print np.sum(q)
+    #                 print np.sum(p)
+    #                 print np.sum(p2)
+    #                 fsafd
+                
+    #             # Display logs per epoch step
+    #             if step % display_step == 0:
+
+    #                 cost = self.sess.run((self.elbo), feed_dict={self.x: batch})
+    #                 cost = -cost #because I want to see the NLL
+
+    #                 print "Epoch", str(epoch), 'Step:%04d' % (step+1) +'/'+ str(n_datapoints/self.batch_size), "cost=", "{:.6f}".format(float(cost))#, 'time', time.time() - start
+
+    #                 # lw= self.sess.run((self.log_weights), feed_dict={self.x: batch})
+    #                 # print np.exp(lw)
+
+
+
+    #         if epoch %20 ==0 and epoch != 0:
+
+    #             valid_elbos =[]
+    #             #calculate the validation score
+    #             data_index = 0
+    #             for step in range(len(valid_x)/self.batch_size):
+    #                 batch = []
+    #                 while len(batch) != self.batch_size:
+    #                     datapoint = valid_x[data_index]
+    #                     batch.append(datapoint)
+    #                     data_index +=1
+
+    #                 elbo = self.sess.run((self.elbo), feed_dict={self.x: batch})
+    #                 valid_elbos.append(elbo)
+
+    #             valid_elbo = np.mean(valid_elbos)
+    #             print 'validation elbo', valid_elbo
+
+    #             if valid_elbo > best_valid_elbo or best_valid_elbo == -99999:
+    #                 best_valid_elbo = valid_elbo
+    #                 early_stopping_count =0
+    #                 best_valid_epochs = epoch
+
+    #                 # save if its the best
+    #                 if path_to_save_variables != '':
+    #                     # print 'saving variables to ' + path_to_save_variables
+    #                     saver.save(self.sess, path_to_save_variables)
+    #                     print 'Saved variables to ' + path_to_save_variables
+
+    #             else:
+    #                 early_stopping_count += 1
+    #                 print 'early stopping', early_stopping_count
+    #                 if early_stopping_count == 2:
+    #                     print 'early stopping break'
+    #                     break
+
+    #     return best_valid_epochs
+
+
+
+
+
+
+
+
+    def encode(self, data):
+
+        return self.sess.run([self.recog_means, self.recog_log_vars, self.weights], feed_dict={self.x:data})
+
+
+    def decode(self, sample):
+
+        return self.sess.run(self.x_reconstr_mean_no_sigmoid, feed_dict={self.z:sample})
+
+
+
+    def load_parameters(self, path_to_load_variables):
+
+
+
+
+        saver = tf.train.Saver()
+        self.sess = tf.Session()
+
+        if path_to_load_variables == '':
+            # self.sess.run(tf.initialize_all_variables())
+            print 'No path tpo variables'
+            error
+        else:
+            #Load variables
+            saver.restore(self.sess, path_to_load_variables)
+            print 'loaded variables ' + path_to_load_variables
+
+
+
+
 
 
     def train(self, train_x, valid_x=[], display_step=5, path_to_load_variables='', path_to_save_variables='', starting_stage=0, ending_stage=5, path_to_save_training_info=''):
@@ -464,12 +562,48 @@ class MoG_VAE():
                         batch.append(datapoint)
                         data_index +=1
 
+                    
+                    # if step==0:
+                    #     w= self.sess.run((self.weights), feed_dict={self.x: batch})
+                    #     print w
+                    #     qz, pz, pxz = self.sess.run((self.log_q, self.log_p_z, self.log_p), feed_dict={self.x: batch})
+                    #     print np.mean(qz), np.mean(pz), np.mean(pxz)
+
                     # Fit training using batch data
                     _ = self.sess.run((self.optimizer), feed_dict={self.x: batch})
+                    # _, cost_ = self.sess.run((self.optimizer, self.elbo), feed_dict={self.x: batch})
 
-                    # print self.sess.run((self.asdf), feed_dict={self.x: batch})
-                    # fasdfa
+                    qz, pz, pxz = self.sess.run((self.log_q, self.log_p_z, self.log_p), feed_dict={self.x: batch})
+                    print np.mean(pxz), np.mean(pz), np.mean(qz)
+                    print '1'
+                    log_q_z_per_cluster= self.sess.run((self.log_q_z_per_cluster), feed_dict={self.x: batch})
+                    print log_q_z_per_cluster
+
+                    print '1.5'
+                    weights_reshaped = self.sess.run((self.weights_reshaped), feed_dict={self.x: batch})
+                    print weights_reshaped
+
+                    print '2'
+                    log_pi_qc_z = self.sess.run((self.log_pi_qc_z), feed_dict={self.x: batch})
+                    print log_pi_qc_z
+
+                    print '3'
+                    print qz
+                    print 
+
+                    if np.isnan(qz).any():
+                        print 'nan!'
+                        fsafd     
                     
+
+                    # if step %5==0:
+                    #     w= self.sess.run((self.weights), feed_dict={self.x: batch})
+                    #     print w
+
+
+
+                        # if step%333==0 and step!=0:
+                        #     fadsf
                     # Display logs per epoch step
                     if step % display_step == 0:
 
@@ -477,9 +611,20 @@ class MoG_VAE():
                         cost = -cost #because I want to see the NLL
 
                         print "Stage:" + str(stage)+'/' + str(ending_stage), "Pass", str(pass_)+'/'+str(passes_over_data-1), 'Step:%04d' % (step+1) +'/'+ str(n_datapoints/self.batch_size), "cost=", "{:.6f}".format(float(cost))#, 'time', time.time() - start
+                        
+                        qz, pz, pxz = self.sess.run((self.log_q, self.log_p_z, self.log_p), feed_dict={self.x: batch})
+                        print np.mean(pxz), np.mean(pz), np.mean(qz)                        
+                        w= self.sess.run((self.weights), feed_dict={self.x: batch})
+                        print w
 
-                        # lw= self.sess.run((self.log_weights), feed_dict={self.x: batch})
-                        # print np.exp(lw)
+                        if np.isnan(cost).any():
+
+                            q, p, p2 = self.sess.run((self._log_q_z_given_x(self.z, self.recog_means, self.recog_log_vars, self.weights), self._log_p_z(self.z), self._log_likelihood(self.x, self.x_reconstr_mean_no_sigmoid)), feed_dict={self.x: batch})
+                            print 'nan!'
+                            print np.sum(q)
+                            print np.sum(p)
+                            print np.sum(p2)
+                            fsafd
 
         if path_to_save_variables != '':
             # print 'saving variables to ' + path_to_save_variables
@@ -492,28 +637,6 @@ class MoG_VAE():
 
 
 
-    def encode(self, data):
-
-        return self.sess.run([self.recog_means, self.recog_log_vars, self.weights], feed_dict={self.x:data})
 
 
-    def decode(self, sample):
-
-        return self.sess.run(self.x_reconstr_mean, feed_dict={self.z:sample})
-
-
-
-    def load_parameters(self, path_to_load_variables):
-
-        saver = tf.train.Saver()
-        self.sess = tf.Session()
-
-        if path_to_load_variables == '':
-            # self.sess.run(tf.initialize_all_variables())
-            print 'No path tpo variables'
-            error
-        else:
-            #Load variables
-            saver.restore(self.sess, path_to_load_variables)
-            print 'loaded variables ' + path_to_load_variables
 

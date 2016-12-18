@@ -63,11 +63,12 @@ class MoG_IWAE(MoG_VAE):
         #[B,C]
         log_w = tf.transpose(logmeanexp, [1,0])
         #[B,C]
-        weights_reshaped = tf.reshape(normalized_weights, [self.batch_size, self.n_clusters])
+        # weights_reshaped = tf.reshape(normalized_weights, [self.batch_size, self.n_clusters])
         #[B,C]
-        log_w = log_w + tf.log(weights_reshaped)
+        log_w = log_w * normalized_weights #+ tf.log(weights_reshaped)
 
         return log_w
+
 
 
 
