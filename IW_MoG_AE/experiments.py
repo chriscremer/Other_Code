@@ -104,21 +104,12 @@ def evaluate(model, data, n_samples):
         # [P]
         p_z = p_z_dist.pdf(samples)
 
-<<<<<<< HEAD
-            # [P,Z]
-            sample_from_N0I = np.random.randn(n_samples,n_z)
-
-
-            fasdf
-            
-=======
         q_z_given_x = np.zeros([n_samples])
         for c in range(n_clusters):
             # dists.append(norm(mean=recog_means[c], cov=recog_vars[c]))
             q_i_dist = norm(mean=recog_means[c], cov=recog_vars[c])
             q_i = q_i_dist.pdf(samples)
             q_z_given_x += q_i * weights[c]
->>>>>>> b3010cc5346f4f24a53b7af6d6062aedcda8e9db
 
         # Reconstruct sample
         samples = np.reshape(samples, [n_samples, 1, n_z])
@@ -139,20 +130,10 @@ def evaluate(model, data, n_samples):
         # [P] 
         # log_p_x_given_z = np.sum(data[i]*np.log(x_mean) + ((1.-data[i])*np.log(1.-x_mean)), axis=1)
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-            # # Sample that component, which is a diagonal Gaussian
-            # sample = 
-            #     np.sqrt(np.exp(recog_log_vars[component*n_z:component*n_z+n_z:1])) 
-            #     + recog_means[component*n_z:component*n_z+n_z:1]) 
-=======
->>>>>>> b3010cc5346f4f24a53b7af6d6062aedcda8e9db
-=======
         log_p_x_given_z = -np.sum(np.maximum(x_mean_no_sigmoig, 0) 
                             - x_mean_no_sigmoig * data[i]
                             + np.log(1. + np.exp(-np.abs(x_mean_no_sigmoig))),
                              axis=1)
->>>>>>> 3bb45c59f861cc40bdf977ea1f0aabc990fd1e6d
 
 
 
