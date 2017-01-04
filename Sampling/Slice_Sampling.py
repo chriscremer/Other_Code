@@ -25,6 +25,7 @@ def distribution_plot_lists(dist_prob):
 
 
 n_samples = 1000
+display_step = 10
 
 step_out_increment = .1
 
@@ -67,7 +68,7 @@ for i in range(n_samples):
     samps.append(x)
 
 
-    if i %100 == 0:
+    if i %display_step == 0:
     
         #Clear plot
         plt.cla()
@@ -92,7 +93,7 @@ for i in range(n_samples):
         plt.legend(fontsize=6)
 
         # plt.draw()
-        plt.pause(1./100.)
+        plt.pause(1./10.)
         # plt.pause(5.)
 
 

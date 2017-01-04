@@ -4,7 +4,7 @@
 
 # Produces distant proposals for the Metropolis algorithm
 
-#Need gradient info, its tricky for my MoG posterior, but I think it makes sense in VAE setting. 
+#Need gradient info, its tricky for my MoG posterior. So Im using a N(0,1) posterior 
 
 
 
@@ -103,6 +103,7 @@ def hmc(init_x):
 
 
 n_samples = 1000
+display_step = 10
 
 
 fig = plt.figure(figsize=(8,8), facecolor='white')
@@ -123,7 +124,7 @@ for i in range(n_samples):
     samps.append(x)
 
 
-    if i %100 == 0:
+    if i %display_step == 0:
     
         #Clear plot
         plt.cla()
@@ -140,7 +141,7 @@ for i in range(n_samples):
         ax.plot([],[],label='Sample '+str(i))#+' Weight ' + str(("%.2f" % w)))
         plt.legend(fontsize=6)
 
-        plt.pause(1./100.)
+        plt.pause(1./10.)
         # plt.pause(5.)
 
 

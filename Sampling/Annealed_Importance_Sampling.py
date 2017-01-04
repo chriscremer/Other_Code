@@ -5,6 +5,8 @@
 
 # using Metropolis transitions
 
+# Advantage of annealing: helps with multimodal targets
+
 # TODO: plot the intermediate distributions
 
 
@@ -26,26 +28,26 @@ def proposal_prob(x):
     y = norm.pdf(x, loc=0, scale=1.**(.5))
     return y
 
-def proposal_prob2(x, mean):
-    #square root scale to make var into std
-    y = norm.pdf(x, loc=mean, scale=1.**(.5))
-    return y
+# def proposal_prob2(x, mean):
+#     #square root scale to make var into std
+#     y = norm.pdf(x, loc=mean, scale=1.**(.5))
+#     return y
 
 def distribution_plot_lists(dist_prob):
     x = np.linspace(-12, 12, 200)
     y = [dist_prob(x_i) for x_i in x]
     return x, y
 
-def intermediate_dist(x, beta, mean):
+# def intermediate_dist(x, beta, mean):
 
-    #geometric average of prior and posterior
+#     #geometric average of prior and posterior
 
-    prior = proposal_prob2(x, mean)
-    posterior = target_prob(x)
+#     prior = proposal_prob2(x, mean)
+#     posterior = target_prob(x)
 
-    intermediate = prior**(1-beta) * posterior**(beta)
+#     intermediate = prior**(1-beta) * posterior**(beta)
 
-    return intermediate
+#     return intermediate
 
 
 def intermediate_dist2(x, beta):
@@ -63,6 +65,7 @@ def intermediate_dist2(x, beta):
 
 
 n_samples = 1000
+display_step = 10
 
 n_transitions = 50
 
@@ -86,27 +89,6 @@ for i in range(n_samples):
 
     # Annealing chain
     for t in range(n_transitions):
-
-        # - Start by sampling the prior
-        # - Then make a Metropolis transition BUT in this case,
-        # the target distribution isnt the same for the first 
-        # and second sample. The target starts as the prior then 
-        # becomes a geometric average of the prior and the actual 
-        # target (psoterior). So need to compute the ratio of the 
-        # prob of intermediate distribution. So if it doesnt 
-        # in probability, I might reject it and use the previous 
-        # one. 
-        # - Once the annealed Metropolis chain is complete, I'll 
-        # have a sequence of samples. I only care about the last
-        # one. 
-        # However, to compute the weight of that sample, I need 
-        # to look back at the ratio of the probs of the 
-        # intermediate distributions. see ais paper for equation. 
-        # - In the end Ill have samples and weights, then just do
-        # importance sampling. The advantage is that I can get to 
-        # other modes to do the annealing. 
-
-        #If transitions is 0/1 then it should just be IS
 
         if t==0:
             #Sample from the initial proposal 
@@ -147,7 +129,7 @@ for i in range(n_samples):
 
 
 
-    if i %100 == 0:
+    if i %display_step == 0:
     
         #Clear plot
         plt.cla()
@@ -167,7 +149,7 @@ for i in range(n_samples):
         plt.legend(fontsize=6)
 
         # plt.draw()
-        plt.pause(1./100.)
+        plt.pause(1./10.)
         # plt.pause(5.)
 
 
