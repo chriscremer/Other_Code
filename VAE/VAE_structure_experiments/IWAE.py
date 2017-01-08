@@ -31,7 +31,7 @@ class VAE():
         #Variables
         self.network_weights = self._initialize_weights(network_architecture)
         
-        #Encoder - Recognition model - p(z|x): recog_mean,z_log_std_sq=[batch_size, n_z]
+        #Encoder - Recognition model - q(z|x): recog_mean,z_log_std_sq=[batch_size, n_z]
         self.recog_means, self.recog_log_vars = self._recognition_network(self.x, self.network_weights['encoder_weights'], self.network_weights['encoder_biases'])
         
         #Sample
