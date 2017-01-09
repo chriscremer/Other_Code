@@ -2,6 +2,8 @@
 
 
 
+
+
 import numpy as np
 import tensorflow as tf
 import random
@@ -27,6 +29,7 @@ class DKF():
         self.z_size = network_architecture["n_z"]
         self.input_size = network_architecture["n_input"]
         self.action_size = network_architecture["n_actions"]
+        self.reg_param = .00001
 
 
         # Graph Input: [B,T,X], [B,T,A]
@@ -38,9 +41,10 @@ class DKF():
 
         #Objective
         self.elbo = self.Model(self.x, self.actions, self.network_weights)
+        self.cost = -self.elbo + (self.reg_param * self.l2_regularization())
 
         #Optimize
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=1e-02).minimize(-self.elbo)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=1e-02).minimize(self.cost)
 
         #Evaluation
         self.generate = self.generate(self.x, self.actions)
@@ -111,6 +115,17 @@ class DKF():
 
         return all_weights
 
+
+    def l2_regularization(self):
+
+        sum_ = 0
+        for net in self.network_weights:
+
+            for weights_biases in self.network_weights[net]:
+
+                sum_ += tf.reduce_sum(tf.square(self.network_weights[net][weights_biases]))
+
+        return sum_
 
 
     def log_normal(self, z, mean, log_var):
@@ -457,17 +472,17 @@ class DKF():
 
 if __name__ == "__main__":
 
-    steps = 40
+    training_steps = 4000
     f_height=30
     f_width=30
     ball_size=5
     n_time_steps = 10
     n_particles = 3
     batch_size = 4
-    path_to_load_variables=home+'/Documents/tmp/dkf_ball4.ckpt'
-    # path_to_load_variables=''
-    path_to_save_variables=home+'/Documents/tmp/dkf_ball5.ckpt'
-    # path_to_save_variables=''
+    # path_to_load_variables=home+'/Documents/tmp/dkf_ball4.ckpt'
+    path_to_load_variables=''
+    # path_to_save_variables=home+'/Documents/tmp/dkf_ball5.ckpt'
+    path_to_save_variables=''
 
     train = 1
     generate = 1
@@ -491,7 +506,7 @@ if __name__ == "__main__":
 
     if train:
         print 'Training'
-        dkf.train(get_data=get_ball, steps=steps, display_step=20, path_to_load_variables=path_to_load_variables, path_to_save_variables=path_to_save_variables)
+        dkf.train(get_data=get_ball, steps=training_steps, display_step=20, path_to_load_variables=path_to_load_variables, path_to_save_variables=path_to_save_variables)
 
 
     #GENERATE - Give it a sequence of actions and make it generate the frames
