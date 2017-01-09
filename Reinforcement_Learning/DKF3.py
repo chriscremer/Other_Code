@@ -472,6 +472,9 @@ class DKF():
 
 if __name__ == "__main__":
 
+    save_to = home + '/data/' #for boltz
+    # save_to = home + '/Documents/tmp/' # for mac
+
     training_steps = 4000
     f_height=30
     f_width=30
@@ -481,8 +484,8 @@ if __name__ == "__main__":
     batch_size = 4
     # path_to_load_variables=home+'/Documents/tmp/dkf_ball4.ckpt'
     path_to_load_variables=''
-    # path_to_save_variables=home+'/Documents/tmp/dkf_ball5.ckpt'
-    path_to_save_variables=''
+    path_to_save_variables=save_to + 'dkf_ball_vars.ckpt'
+    # path_to_save_variables=''
 
     train = 1
     generate = 1
@@ -537,12 +540,12 @@ if __name__ == "__main__":
 
 
         kargs = { 'duration': .6 }
-        imageio.mimsave(home+"/Downloads/gen_gif.gif", gen_gif, 'GIF', **kargs)
-        print 'saved gif: /Downloads/gen_gif.gif'
+        imageio.mimsave(save_to+'gen_gif.gif', gen_gif, 'GIF', **kargs)
+        print 'saved gif:' + save_to+'gen_gif.gif'
 
         kargs = { 'duration': .6 }
-        imageio.mimsave(home+"/Downloads/real_gif.gif", real_gif, 'GIF', **kargs)
-        print 'saved gif: /Downloads/real_gif.gif'
+        imageio.mimsave(save_to+'real_gif.gif', real_gif, 'GIF', **kargs)
+        print 'saved gif:' +save_to+'real_gif.gif'
 
     donedonedone
 
