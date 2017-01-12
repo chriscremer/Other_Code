@@ -136,7 +136,9 @@ class REINFORCE():
 
         # compute discounted future rewards
         discounted_rewards = np.zeros(T)
-        for t in reversed(xrange(T-1)):
+        for t in reversed(xrange(T)):
+        # for t in reversed(xrange(T-1)):
+
           # future discounted reward from now on
           r = rewards[t] + self.discount_factor * r
           discounted_rewards[t] = r

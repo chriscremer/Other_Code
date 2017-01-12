@@ -1,9 +1,12 @@
 
 
-# changes: regularizaiton of networks and gaussian likelihood, added test function
-# so ball example isnt really meant for this network, see DKF2
 
+# since the scan isnt working in 4 and 5, im swapping the loops
+# ie. loop over particles then loop over the timesteps
+# this way the timestep loop is very similar to an RNN, only dif is I sample
+# Before I ..
 
+# um this might not solve any problems becaues I still need logprobs
 
 import numpy as np
 import tensorflow as tf
@@ -25,8 +28,8 @@ class DKF():
         self.transfer_fct = tf.tanh
         self.learning_rate = learning_rate
         self.batch_size = batch_size
-        self.n_time_steps = n_time_steps
-        self.n_particles = n_particles
+        # self.n_time_steps = n_time_steps #this shouldnt be used
+        # self.n_particles = n_particles
         self.z_size = network_architecture["n_z"]
         self.input_size = network_architecture["n_input"]
         self.action_size = network_architecture["n_actions"]
@@ -48,7 +51,15 @@ class DKF():
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=1e-02).minimize(self.cost)
 
         #Evaluation
-        self.generate = self.generate(self.x, self.actions)
+        # self.generate = self.generate(self.x, self.actions)
+        self.current_z = tf.placeholder(tf.float32, [None, self.z_size])
+        self.prev_x = tf.placeholder(tf.float32, [None, self.input_size])
+        self.current_emission = self.observation_net(tf.concat(1, [self.current_z, self.prev_x]), self.network_weights)
+
+        self.prev_z = tf.placeholder(tf.float32, [None, self.z_size])
+        self.current_action = tf.placeholder(tf.float32, [None, self.action_size])
+        apz = tf.concat(1, [tf.concat(1, [self.current_action, self.prev_x]), self.prev_z])
+        self.next_state = self.transition_net(apz, self.network_weights)
 
 
     def _initialize_weights(self, network_architecture):
@@ -245,107 +256,111 @@ class DKF():
         x: [B,T,X]
         actions: [B,T,A]
 
-        q(z|z-1,x-1,u,x) for each t
-
-        output particles: [B,T,P,Z]
-        and their probs: [B,T,P]
+        output: elbo scalar
         '''
 
-        elbo_list = []
+        def fn_over_timesteps_for_scan(particle_and_logprobs, xap):
+            '''
+            z: [B,Z+3]
+            xap: [B,X+A+X]
+            '''
 
-        prev_x = tf.zeros([self.batch_size, self.input_size])
-        prev_z = tf.zeros([self.batch_size, self.n_particles, self.z_size])
+            #unpack particle_and_logprobs
+            z = tf.slice(particle_and_logprobs, [0,0], [self.batch_size, self.z_size])
 
-        for t in range(self.n_time_steps):
 
-            #slice current x, current action: [B,1,X] and [B,1,A]
-            current_x = tf.slice(x, [0, t, 0], [self.batch_size, 1, self.input_size])
-            current_a = tf.slice(actions, [0, t, 0], [self.batch_size, 1, self.action_size])
-            #reshape [B,X] and [B,A]
-            current_x = tf.reshape(current_x, [self.batch_size, self.input_size])
-            current_a = tf.reshape(current_a, [self.batch_size, self.action_size])
+            #Concatenate current x, current action, prev x, zi: [B,2X+A+Z]
+            concatenate_all = tf.concat(1, [xap, z])
+            #Predict q(z|z-1,x-1,u,x): [B,Z]
+            z_mean, z_log_var = self.recognition_net(concatenate_all, network_weights)
+
+
+            #Concatenate current action, prev x, zi: [B,X+A+Z]
+            current_a_prev_x = tf.slice(xap, [0,self.input_size], [self.batch_size, self.action_size+self.input_size])
+            concatenate_all = tf.concat(1, [current_a_prev_x, z])
+            #Predict p(z|z-1,x-1,u): [B,Z]
+            prior_mean, prior_log_var = self.transition_net(concatenate_all, network_weights)
+
+            #Sample from q(z|z-1,x-1,u,x)  [B,Z]
+            eps = tf.random_normal((self.batch_size, self.z_size), 0, 1, dtype=tf.float32)
 
             
-            log_q_z_list = []
-            log_p_z_list = []
-            log_p_x_list = []
-            particles = []
-            for k in range(self.n_particles):
+            this_particle = tf.add(z_mean, tf.mul(tf.sqrt(tf.exp(z_log_var)), eps))
 
-                #slice out one z [B,1,Z]
-                z_k = tf.slice(prev_z, [0, k, 0], [self.batch_size, 1, self.z_size])
-                #reshape [B,Z]
-                z_k = tf.reshape(z_k, [self.batch_size, self.z_size])
+            #Concatenate prev x, this_particle: [B,X+A]
+            prev_x = tf.slice(xap, [0,self.input_size+self.action_size], [self.batch_size, self.input_size])
+            concatenate_all = tf.concat(1, [this_particle, prev_x])
+            #Predict p(x|z,x-1): [B,X]
+            x_mean, x_log_var = self.observation_net(concatenate_all, network_weights)
 
-                #Concatenate current x, current action, prev x, z_k: [B,2X+A+Z]
-                concatenate_all = tf.concat(1, [tf.concat(1, [tf.concat(1, [current_x, prev_x]), z_k]), current_a])
-                #Predict q(z|z-1,x-1,u,x): [B,Z]
-                z_mean, z_log_var = self.recognition_net(concatenate_all, network_weights)
+            #Compute log q(z|z-1,x-1,u,x) [B]
+            log_q_z = self.log_normal(this_particle, z_mean, z_log_var)
 
-                #Concatenate current action, prev x, z_k: [B,X+A+Z]
-                concatenate_all = tf.concat(1, [tf.concat(1, [current_a, prev_x]), z_k])
-                #Predict p(z|z-1,x-1,u): [B,Z]
-                prior_mean, prior_log_var = self.transition_net(concatenate_all, network_weights)
+            #Compute log p(z|z-1,x-1,u)   [B]
+            log_p_z = self.log_normal(this_particle, prior_mean, prior_log_var)
 
-                #Sample from q(z|z-1,x-1,u,x)  [B,Z]
-                eps = tf.random_normal((self.batch_size, self.z_size), 0, 1, dtype=tf.float32)
-                this_particle = tf.add(z_mean, tf.mul(tf.sqrt(tf.exp(z_log_var)), eps))
+            #Compute log p(x|z,x-1)   [B]
+            current_x = tf.slice(xap, [0,0], [self.batch_size, self.input_size])
+            log_p_x = self.log_normal_x(current_x, x_mean, x_log_var)
 
-                #Concatenate prev x, this_particle: [B,X+A]
-                concatenate_all = tf.concat(1, [this_particle, prev_x])
-                #Predict p(x|z,x-1): [B,X]
-                x_mean, x_log_var = self.observation_net(concatenate_all, network_weights)
+            # [B,3]
+            logprobs = tf.pack([log_p_x, log_p_z, log_q_z], axis=1)
+            # [B,Z+3]
+            output = tf.concat(1, [this_particle, logprobs])
 
-                #Compute log q(z|z-1,x-1,u,x) [B]
-                log_q_z = self.log_normal(this_particle, z_mean, z_log_var)
+            return output
 
-                #Compute log p(z|z-1,x-1,u)   [B]
-                log_p_z = self.log_normal(this_particle, prior_mean, prior_log_var)
+        # [B,T,X+A]
+        x_and_a = tf.concat(2, [x, actions])
+        # [T,B,X+A]
+        x_and_a = tf.transpose(x_and_a, [1,0,2])
+        #making prev_x, which is x shifted to the right
+        # [B,1,X]
+        prev_x_zeros = tf.zeros([self.batch_size, 1, self.input_size])
+        # [B,T+1,X]
+        prev_x = tf.concat(1, [prev_x_zeros, x])
+        # remove the last x, [B,T,X]
+        prev_x_shape = tf.shape(prev_x)
+        prev_x = tf.slice(prev_x, [0,0,0], [self.batch_size, prev_x_shape[1]-1, self.input_size])
+        #concat prev_x to xa [T,B,X+A+X]
+        prev_x = tf.transpose(prev_x, [1,0,2])
+        xap = tf.concat(2, [x_and_a, prev_x])
 
-                #Compute log p(x|z,x-1)   [B]
-                # negative_log_p_x =  \
-                #     tf.reduce_sum(tf.maximum(x_mean, 0) 
-                #                 - x_mean * current_x
-                #                 + tf.log(1 + tf.exp(-abs(x_mean))),
-                #                  1)
-                log_p_x = self.log_normal_x(current_x, x_mean, x_log_var)
 
-                # [B]
-                # log_p_x = -negative_log_p_x
+        # [B,Z]
+        z_init = tf.zeros([self.batch_size, self.z_size])
+        px_init = tf.zeros([self.batch_size])
+        pz_init = tf.zeros([self.batch_size])
+        qz_init = tf.zeros([self.batch_size])
+        # [B,3]
+        logprobs_init = tf.pack([px_init, pz_init, qz_init], axis=1)
+        # [B,Z+3]
+        initializer = tf.concat(1, [z_init, logprobs_init])
 
-                log_q_z_list.append(log_q_z)
-                log_p_z_list.append(log_p_z)
-                log_p_x_list.append(log_p_x)
-                particles.append(this_particle)
+        # Scan over timesteps [T,B,z+3]
+        particles_and_logprobs = tf.scan(fn_over_timesteps_for_scan, xap, initializer=initializer)
 
-            # [B,X]
-            prev_x = current_x
-            # [B,K,Z]
-            prev_z = tf.pack(particles, axis=1)
+        #unpack the logprobs  list([z+3,T,B])
+        particles_and_logprobs_unstacked = tf.unstack(particles_and_logprobs, axis=2)
 
-            #[B,K]
-            log_q_z_list = tf.pack(log_q_z_list, axis=1)
-            log_p_z_list = tf.pack(log_p_z_list, axis=1)
-            log_p_x_list = tf.pack(log_p_x_list, axis=1)
+        #[T,B]
+        log_p_x_over_time = particles_and_logprobs_unstacked[self.z_size]
+        log_p_z_over_time = particles_and_logprobs_unstacked[self.z_size+1]
+        log_q_z_over_time = particles_and_logprobs_unstacked[self.z_size+2]
 
-            #[B]
-            elbo_t = tf.reduce_mean(log_p_x_list + log_p_z_list - log_q_z_list, axis=1) #over particles
+        # sum over timesteps  [B]
+        log_q_z_batch = tf.reduce_sum(log_q_z_over_time, axis=0)
+        log_p_z_batch = tf.reduce_sum(log_p_z_over_time, axis=0)
+        log_p_x_batch = tf.reduce_sum(log_p_x_over_time, axis=0)
+        # average over batch  [1]
+        self.log_q_z_final = tf.reduce_mean(log_q_z_batch)
+        self.log_p_z_final = tf.reduce_mean(log_p_z_batch)
+        self.log_p_x_final = tf.reduce_mean(log_p_x_batch)
 
-            self.log_p_x = tf.reduce_mean(log_p_x_list)
-            self.log_q_z = tf.reduce_mean(log_q_z_list)
-            self.log_p_z = tf.reduce_mean(log_p_z_list)
-
-            elbo_list.append(elbo_t)
-
-        #[B,T]
-        elbo_list = tf.pack(elbo_list, axis=1)
-
-        #[B]
-        elbo_over_time = tf.reduce_sum(elbo_list, axis=1) #over timesteps
-
-        elbo = tf.reduce_mean(elbo_over_time) #over batch
+        elbo = self.log_p_x_final + self.log_p_z_final - self.log_q_z_final
 
         return elbo
+
 
                 
 
@@ -374,11 +389,6 @@ class DKF():
                 batch.append(sequence)
                 batch_actions.append(actions)
 
-            # print np.array(batch).shape
-            # print np.array(batch_actions).shape
-            # if len(np.array(batch_actions).shape) != 3:
-            #     print batch_actions
-
             _ = self.sess.run(self.optimizer, feed_dict={self.x: batch, self.actions: batch_actions})
 
             # Display
@@ -387,7 +397,7 @@ class DKF():
                 cost = self.sess.run(self.elbo, feed_dict={self.x: batch, self.actions: batch_actions})
                 cost = -cost #because I want to see the NLL
 
-                p1,p2,p3 = self.sess.run([self.log_p_x, self.log_p_z, self.log_q_z ], feed_dict={self.x: batch, self.actions: batch_actions})
+                p1,p2,p3 = self.sess.run([self.log_p_x_final, self.log_p_z_final, self.log_q_z_final ], feed_dict={self.x: batch, self.actions: batch_actions})
 
 
                 print "Step:", '%04d' % (step+1), "cost=", "{:.5f}".format(cost), p1, p2, p3
@@ -402,16 +412,6 @@ class DKF():
 
     def test(self, get_data, steps=1000, display_step=10, path_to_load_variables='', path_to_save_variables=''):
 
-
-        # saver = tf.train.Saver()
-        # self.sess = tf.Session()
-
-        # if path_to_load_variables == '':
-        #     self.sess.run(tf.global_variables_initializer())
-        # else:
-        #     #Load variables
-        #     saver.restore(self.sess, path_to_load_variables)
-        #     print 'loaded variables ' + path_to_load_variables
 
 
         # Training cycle
@@ -436,119 +436,31 @@ class DKF():
                 cost = self.sess.run(self.elbo, feed_dict={self.x: batch, self.actions: batch_actions})
                 cost = -cost #because I want to see the NLL
 
-                p1,p2,p3 = self.sess.run([self.log_p_x, self.log_p_z, self.log_q_z ], feed_dict={self.x: batch, self.actions: batch_actions})
+                p1,p2,p3 = self.sess.run([self.log_p_x_final, self.log_p_z_final, self.log_q_z_final ], feed_dict={self.x: batch, self.actions: batch_actions})
 
 
                 print "Step:", '%04d' % (step+1), "cost=", "{:.5f}".format(cost), p1, p2, p3
 
 
-        # if path_to_save_variables != '':
-        #     saver.save(self.sess, path_to_save_variables)
-        #     print 'Saved variables to ' + path_to_save_variables
 
         print 'Done test'
 
 
 
-    def generate(self, x, actions):
-
-        #give actions, show what the resulting frame is
-        # ill provide the correct frame at each timestep
-
-        prev_x = tf.zeros([self.batch_size, self.input_size])
-        prev_z = tf.zeros([self.batch_size, self.n_particles, self.z_size])
-
-        frames = []
-        for t in range(self.n_time_steps):
-
-            # #slice current x, current action: [B,1,X] and [B,1,A]
-            current_x = tf.slice(x, [0, t, 0], [self.batch_size, 1, self.input_size])
-            current_a = tf.slice(actions, [0, t, 0], [self.batch_size, 1, self.action_size])
-            #reshape [B,X] and [B,A]
-            current_x = tf.reshape(current_x, [self.batch_size, self.input_size])
-            current_a = tf.reshape(current_a, [self.batch_size, self.action_size])
-
-            x_means = []
-            particles = []
-            for k in range(self.n_particles):
-
-                #slice out one z [B,1,Z]
-                z_k = tf.slice(prev_z, [0, k, 0], [self.batch_size, 1, self.z_size])
-                #reshape [B,Z]
-                z_k = tf.reshape(z_k, [self.batch_size, self.z_size])
-
-                #dont need the inference net
-
-                # #Concatenate current x, current action, prev x, z_k: [B,2X+A+Z]
-                # concatenate_all = tf.concat(1, [tf.concat(1, [tf.concat(1, [current_x, prev_x]), z_k]), current_a])
-                # #Predict q(z|z-1,x-1,u,x): [B,Z]
-                # z_mean, z_log_var = self.recognition_net(concatenate_all, network_weights)
-
-                #Concatenate current action, prev x, z_k: [B,X+A+Z]
-                concatenate_all = tf.concat(1, [tf.concat(1, [current_a, prev_x]), z_k])
-                #Predict p(z|z-1,x-1,u): [B,Z]
-                prior_mean, prior_log_var = self.transition_net(concatenate_all, self.network_weights)
-
-                #Sample from p_z  [B,Z]
-                eps = tf.random_normal((self.batch_size, self.z_size), 0, 1, dtype=tf.float32)
-                this_particle = tf.add(prior_mean, tf.mul(tf.sqrt(tf.exp(prior_log_var)), eps))
-
-                #Concatenate prev x, this_particle: [B,X+A]
-                concatenate_all = tf.concat(1, [this_particle, prev_x])
-                #Predict p(x|z,x-1): [B,X]
-                x_mean = self.observation_net(concatenate_all, self.network_weights)
-
-                x_mean_sigmoid = tf.sigmoid(x_mean)
-
-                x_means.append(x_mean_sigmoid)
-
-                particles.append(this_particle)
+    def get_current_emission(self, state, prev_emission):
 
 
-            # [B,X]
-            prev_x = current_x
-            # [B,K,Z]
-            # prev_z = tf.reshape(this_particle, [self.batch_size, self.n_particles, self.z_size])
-            prev_z = tf.pack(particles, axis=1)
+        current_emission = self.sess.run(self.current_emission, feed_dict={self.current_z: state, self.prev_x: prev_emission})
 
-            frames.append(x_means)
+        return current_emission
 
 
-        return frames
+    def get_next_state(self, prev_z, current_action, prev_x):
 
 
-    def run_generate(self, get_data, path_to_load_variables=''):
+        next_state = self.sess.run(self.next_state, feed_dict={self.prev_z: prev_z, self.prev_x: prev_x, self.current_action: current_action})
 
-        saver = tf.train.Saver()
-        self.sess = tf.Session()
-
-        if path_to_load_variables == '':
-            self.sess.run(tf.global_variables_initializer())
-        else:
-            #Load variables
-            saver.restore(self.sess, path_to_load_variables)
-            print 'loaded variables ' + path_to_load_variables
-
-
-        batch = []
-        batch_actions = []
-        while len(batch) != self.batch_size:
-
-            sequence, actions=get_data()
-            batch.append(sequence)
-            batch_actions.append(actions)
-
-        gen_frames = self.sess.run(self.generate, feed_dict={self.x: batch, self.actions: batch_actions})
-
-        gen_frames = np.array(gen_frames)
-        batch = np.array(batch)
-
-
-        return batch, gen_frames
-
-
-
-
+        return next_state
 
 
 
