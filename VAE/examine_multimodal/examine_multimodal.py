@@ -578,9 +578,9 @@ if __name__ == "__main__":
     batch_size = 20
     n_particles = 1
     timelimit=500
-    path_to_load_variables=home+'/Documents/tmp/examine_mulitmodal.ckpt'
-    # path_to_load_variables=''
-    path_to_save_variables=home+'/Documents/tmp/examine_mulitmodal.ckpt'
+    # path_to_load_variables=home+'/Documents/tmp/examine_mulitmodal.ckpt'
+    path_to_load_variables=''
+    path_to_save_variables=home+'/Documents/tmp/examine_mulitmodal_z2.ckpt'
 
     network_architecture = \
         dict(n_hidden_recog_1=200, # 1st layer encoder neurons
@@ -588,7 +588,7 @@ if __name__ == "__main__":
              n_hidden_gener_1=200, # 1st layer decoder neurons
              n_hidden_gener_2=200, # 2nd layer decoder neurons
              n_input=f_height*f_width, # 784 image
-             n_z=20)  # dimensionality of latent space
+             n_z=2)  # dimensionality of latent space
     
 
     def get_ball():
@@ -598,8 +598,8 @@ if __name__ == "__main__":
     vae = VAE(network_architecture, transfer_fct=tf.tanh, learning_rate=0.001, batch_size=batch_size, n_particles=n_particles)
     
     # Train model
-    # print 'Training VAE'
-    # vae.train2(get_ball, valid_x=[], display_step=200, path_to_load_variables=path_to_load_variables, path_to_save_variables=path_to_save_variables, starting_stage=7, timelimit=timelimit)
+    print 'Training VAE'
+    vae.train2(get_ball, valid_x=[], display_step=200, path_to_load_variables=path_to_load_variables, path_to_save_variables=path_to_save_variables, starting_stage=7, timelimit=timelimit)
 
     # Sample the model
     n_samples=3
@@ -657,7 +657,7 @@ if __name__ == "__main__":
     for i, yi in enumerate(x_values):
         for j, xi in enumerate(y_values):
 
-            print i,j
+            print i,j #,'  ', xi,yi
 
             # z_mu = np.array([[xi, yi]])
             z_mu = [xi,yi]
@@ -685,8 +685,9 @@ if __name__ == "__main__":
     plt.imshow(canvas, origin="upper")
 
     # plt.tight_layout()
-    plt.show()
+    # plt.show()
 
+    plt.savefig(home+'/Documents/tmp/examine_mulitmodal.png')
 
     print 'Done'
 
