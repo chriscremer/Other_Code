@@ -205,6 +205,7 @@ class DKF():
         for layer_i in range(n_layers):
 
             input_ = self.transfer_fct(tf.add(tf.matmul(input_, weights['l'+str(layer_i)]), biases['l'+str(layer_i)])) 
+            #add batch norm here
 
         z_mean = tf.add(tf.matmul(input_, weights['out_mean']), biases['out_mean'])
         z_log_var = tf.add(tf.matmul(input_, weights['out_log_var']), biases['out_log_var'])
@@ -222,6 +223,7 @@ class DKF():
         for layer_i in range(n_layers):
 
             input_ = self.transfer_fct(tf.add(tf.matmul(input_, weights['l'+str(layer_i)]), biases['l'+str(layer_i)])) 
+            #add batch norm here
 
         x_mean = tf.add(tf.matmul(input_, weights['out_mean']), biases['out_mean'])
         x_log_var = tf.add(tf.matmul(input_, weights['out_log_var']), biases['out_log_var'])
@@ -239,6 +241,8 @@ class DKF():
         for layer_i in range(n_layers):
 
             input_ = self.transfer_fct(tf.add(tf.matmul(input_, weights['l'+str(layer_i)]), biases['l'+str(layer_i)])) 
+            #add batch norm here
+
 
         z_mean = tf.add(tf.matmul(input_, weights['out_mean']), biases['out_mean'])
         z_log_var = tf.add(tf.matmul(input_, weights['out_log_var']), biases['out_log_var'])
@@ -258,6 +262,8 @@ class DKF():
 
         output: elbo scalar
         '''
+
+        #TODO allow for multiple particles
 
         def fn_over_timesteps_for_scan(particle_and_logprobs, xap):
             '''
