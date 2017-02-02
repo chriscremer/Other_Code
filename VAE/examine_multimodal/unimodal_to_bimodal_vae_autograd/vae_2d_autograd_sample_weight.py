@@ -1,3 +1,5 @@
+
+
 # Implements auto-encoding variational Bayes.
 
 from __future__ import absolute_import, division
@@ -12,6 +14,16 @@ from autograd.optimizers import adam
 
 import scipy as sp
 import matplotlib.pyplot as plt
+
+
+
+def log_mean_exp(x):
+
+    #[B]
+    max_ = np.max(x)
+    lme = np.log(np.mean(np.exp(x-max_))) + max_
+    return lme
+
 
 def diag_gaussian_log_density(x, mu, log_std):
     return np.sum(norm.logpdf(x, mu, np.exp(log_std)), axis=-1)
@@ -71,24 +83,48 @@ def p_images_given_latents(gen_params, images, latents):
     return diag_gaussian_log_density(images, means, log_std)
 
 
-def vae_lower_bound(gen_params, rec_params, data, rs):
+# def vae_lower_bound(gen_params, rec_params, data, rs):
+#     # We use a simple Monte Carlo estimate of the KL
+#     # divergence from the prior.
+#     q_means, q_log_stds = nn_predict_gaussian(rec_params, data)
+#     latents = sample_diag_gaussian(q_means, q_log_stds, rs)
+#     q_latents = diag_gaussian_log_density(latents, q_means, q_log_stds)
+#     p_latents = diag_gaussian_log_density(latents, 0, 1)
+#     likelihood = p_images_given_latents(gen_params, data, latents)
+#     # print (np.mean(p_latents), np.mean(likelihood) , np.mean(q_latents))
+#     return np.mean(p_latents + likelihood - q_latents)
+
+# def vae_lower_bound_me(gen_params, rec_params, data, rs):
+#     q_means, q_log_stds = nn_predict_gaussian(rec_params, data)
+#     latents = sample_diag_gaussian(q_means, q_log_stds, rs)
+#     q_latents = diag_gaussian_log_density(latents, q_means, q_log_stds)
+#     p_latents = diag_gaussian_log_density(latents, 0, 1)
+#     likelihood = p_images_given_latents(gen_params, data, latents)
+#     return (np.mean(p_latents), np.mean(likelihood) , np.mean(q_latents))
+
+
+
+
+def annealed_iw_iwae_lower_bound(gen_params, rec_params, data, rs, annealing):
     # We use a simple Monte Carlo estimate of the KL
     # divergence from the prior.
     q_means, q_log_stds = nn_predict_gaussian(rec_params, data)
     latents = sample_diag_gaussian(q_means, q_log_stds, rs)
     q_latents = diag_gaussian_log_density(latents, q_means, q_log_stds)
-    p_latents = diag_gaussian_log_density(latents, 0, 1)
+    p_latents = diag_gaussian_log_density(latents, 0, np.log(1))
     likelihood = p_images_given_latents(gen_params, data, latents)
-    # print (np.mean(p_latents), np.mean(likelihood) , np.mean(q_latents))
-    return np.mean(p_latents + likelihood - q_latents)
 
-def vae_lower_bound_me(gen_params, rec_params, data, rs):
-    q_means, q_log_stds = nn_predict_gaussian(rec_params, data)
-    latents = sample_diag_gaussian(q_means, q_log_stds, rs)
-    q_latents = diag_gaussian_log_density(latents, q_means, q_log_stds)
-    p_latents = diag_gaussian_log_density(latents, 0, 1)
-    likelihood = p_images_given_latents(gen_params, data, latents)
-    return (np.mean(p_latents), np.mean(likelihood) , np.mean(q_latents))
+    #so here do log mean exp
+    # return ((annealing)*log_mean_exp(p_latents + likelihood - q_latents)) + ((1.-annealing)*np.mean(p_latents + likelihood - q_latents))
+    
+    # return (np.mean(likelihood + (1.-annealing)*(p_latents - q_latents))) # this is warm up
+
+    return (np.mean(likelihood ))#+ p_latents - q_latents)) # this is warm up
+
+
+
+
+
 
 def bimodal_data():
 
@@ -113,15 +149,15 @@ def bimodal_data():
 
 if __name__ == '__main__':
     # Model hyper-parameters
-    latent_dim = 200
+    latent_dim = 5
     data_dim = 2
-    gen_layer_sizes = [latent_dim, 10, 10, data_dim * 2]
-    rec_layer_sizes = [data_dim, 10, 10, latent_dim * 2]
+    gen_layer_sizes = [latent_dim, 30,30,30, data_dim * 2]
+    rec_layer_sizes = [data_dim, 30,30,30, latent_dim * 2]
 
     # Training parameters
     param_scale = 0.1
     batch_size = 20
-    num_epochs = 2000
+    num_epochs = 3000
     step_size = 0.001
 
     init_gen_params = init_net_params(param_scale, gen_layer_sizes)
@@ -147,7 +183,11 @@ if __name__ == '__main__':
     def objective(combined_params, iter):
         data_idx = batch_indices(iter)
         gen_params, rec_params = combined_params
-        return -vae_lower_bound(gen_params, rec_params, X[data_idx], seed) / data_dim
+
+        annealing = (.999**iter)
+        # return -vae_lower_bound(gen_params, rec_params, X[data_idx], seed) / data_dim
+        return -annealed_iw_iwae_lower_bound(gen_params, rec_params, X[data_idx], seed, annealing) #/ data_dim
+
 
     # Get gradients of objective using autograd.
     objective_grad = grad(objective)
@@ -157,7 +197,8 @@ if __name__ == '__main__':
         if iter % 10 == 0:
             gen_params, rec_params = combined_params
             bound = np.mean(objective(combined_params, iter))
-            print("{}|{:15}|{:20}".format(iter, iter//num_batches, bound))
+            annealing = (.999**iter)
+            print("{}|{:15}|{:20}|{:25}".format(iter, iter//num_batches, bound, annealing))
 
             # rs = npr.RandomState(0)
             # pz, lik, qz = vae_lower_bound_me(gen_params, rec_params, X, rs)
@@ -167,6 +208,24 @@ if __name__ == '__main__':
             # print(fake_data)
             # save_images(fake_data, 'vae_samples.png', vmin=0, vmax=1)
             # print (gen_params[0])
+
+            #TO VIZUALIZE
+            rs = npr.RandomState(0)
+            plt.cla()
+            plt.scatter(X.T[0], X.T[1], color='green', label='Training set')
+            gen_data, latents = generate_from_prior(gen_params=gen_params, num_samples=100, num_latent_dims=latent_dim)
+            plt.scatter(gen_data.T[0], gen_data.T[1], color='blue', label='Prior Samples')
+            #Reconstruct
+            data = X
+            q_means, q_log_stds = nn_predict_gaussian(rec_params, data)
+            latents = sample_diag_gaussian(q_means, q_log_stds, rs)
+            gen_data = neural_net_predict(gen_params, latents)
+            plt.scatter(gen_data.T[0], gen_data.T[1], color='red', label='Reconstruct')
+            plt.plot([],[],label=str(latent_dim)+' latent dims')
+            plt.legend()
+            # plt.show()
+            plt.draw()
+            plt.pause(1.0/50.0)
 
     # The optimizers provided can optimize lists, tuples, or dicts of parameters.
     optimized_params = adam(objective_grad, combined_init_params, step_size=step_size,
@@ -207,7 +266,7 @@ if __name__ == '__main__':
     plt.scatter(gen_data.T[0], gen_data.T[1], color='red', label='Reconstruct')
 
 
-    plt.plot([],[],label=str(latent_dim)+' latent dims')
+    plt.plot([],[],label=str(latent_dim)+' latent dims. N(0,I) Prior')
 
     plt.legend()
     plt.show()
