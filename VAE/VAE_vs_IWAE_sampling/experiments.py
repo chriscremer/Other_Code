@@ -124,6 +124,8 @@ if __name__ == '__main__':
     # python experiments.py -m vae -k 1 -a train -s vae_1
     # python experiments.py -m vae -k 10 -a train -s vae_10_s6 -l vae_10 -ss 6 -es 6
     # python experiments.py -m vae -k 10 -a evaluate -l vae_10
+    # python experiments.py -a combined 
+
     parser = argparse.ArgumentParser(description='Run experiments.')
     parser.add_argument('--model', '-m', choices=['vae', 'iwae', 'mog_vae', 'mog_iwae'], 
         default='vae')
@@ -234,17 +236,17 @@ if __name__ == '__main__':
                  n_z=50,  # dimensionality of latent space
                  decoder_net=[200,200]) 
 
-        n_a1 = \
-            dict(n_input=f_height*f_width, # 784 image
-                 encoder_net=[400,400], 
-                 n_z=50,  # dimensionality of latent space
-                 decoder_net=[400,400]) 
+        # n_a1 = \
+        #     dict(n_input=f_height*f_width, # 784 image
+        #          encoder_net=[400,400], 
+        #          n_z=50,  # dimensionality of latent space
+        #          decoder_net=[400,400]) 
 
-        n_a2 = \
-            dict(n_input=f_height*f_width, # 784 image
-                 encoder_net=[200,200,200], 
-                 n_z=50,  # dimensionality of latent space
-                 decoder_net=[200,200,200]) 
+        # n_a2 = \
+        #     dict(n_input=f_height*f_width, # 784 image
+        #          encoder_net=[200,200,200], 
+        #          n_z=50,  # dimensionality of latent space
+        #          decoder_net=[200,200,200]) 
 
         # n_a3 = \
         #     dict(n_input=f_height*f_width, # 784 image
@@ -252,9 +254,13 @@ if __name__ == '__main__':
         #          n_z=50,  # dimensionality of latent space
         #          decoder_net=[400,400,400]) 
 
-        list_of_archs = [n_a0, n_a1, n_a2]
-        list_of_archs_i = [0,1,2]
-                 
+        # list_of_archs = [n_a0, n_a1, n_a2]
+        # list_of_archs_i = [0,1,2]
+    
+        list_of_archs = [n_a0]
+        list_of_archs_i = [0]
+
+
         for k in list_of_k_samples:
 
             for m in list_of_models:
