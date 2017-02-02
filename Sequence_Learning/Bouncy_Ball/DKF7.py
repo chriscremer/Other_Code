@@ -1,12 +1,8 @@
 
 
+# adding generate sequence methods
 
-# since the scan isnt working in 4 and 5, im swapping the loops
-# ie. loop over particles then loop over the timesteps
-# this way the timestep loop is very similar to an RNN, only dif is I sample
-# Before I ..
-
-# um this might not solve any problems becaues I still need logprobs
+# going back to bernoulli emission prob becasue data is 0-1
 
 import numpy as np
 import tensorflow as tf
@@ -14,18 +10,16 @@ import random
 import math
 from os.path import expanduser
 home = expanduser("~")
-import imageio
-
-from ball_sequence import make_ball_gif
 
 
-class DKF():
+class DKF(object):
 
     def __init__(self, network_architecture, transfer_fct=tf.nn.softplus, learning_rate=0.001, batch_size=5, n_time_steps=2, n_particles=3):
         
         tf.reset_default_graph()
 
         self.transfer_fct = tf.tanh
+        # transfer_fct=tf.nn.softplus
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         # self.n_time_steps = n_time_steps #this shouldnt be used
@@ -33,7 +27,7 @@ class DKF():
         self.z_size = network_architecture["n_z"]
         self.input_size = network_architecture["n_input"]
         self.action_size = network_architecture["n_actions"]
-        self.reg_param = .00001
+        self.reg_param = .001
 
 
         # Graph Input: [B,T,X], [B,T,A]
@@ -54,12 +48,17 @@ class DKF():
         # self.generate = self.generate(self.x, self.actions)
         self.current_z = tf.placeholder(tf.float32, [None, self.z_size])
         self.prev_x = tf.placeholder(tf.float32, [None, self.input_size])
-        self.current_emission = self.observation_net(tf.concat(1, [self.current_z, self.prev_x]), self.network_weights)
+        self.current_emission = tf.sigmoid(self.observation_net(tf.concat(1, [self.current_z, self.prev_x]), self.network_weights))
 
         self.prev_z = tf.placeholder(tf.float32, [None, self.z_size])
         self.current_action = tf.placeholder(tf.float32, [None, self.action_size])
         apz = tf.concat(1, [tf.concat(1, [self.current_action, self.prev_x]), self.prev_z])
         self.next_state = self.transition_net(apz, self.network_weights)
+
+        self.current_x = tf.placeholder(tf.float32, [None, self.input_size])
+        infer_input = tf.concat(1, [tf.concat(1, [tf.concat(1, [self.current_x, self.current_action]), self.prev_x]), self.prev_z])
+        #Predict q(z|z-1,x-1,u,x): [B,Z]
+        self.infer_state = self.recognition_net(infer_input, self.network_weights)
 
 
     def _initialize_weights(self, network_architecture):
@@ -185,9 +184,11 @@ class DKF():
         # [1]
         term2 = self.input_size * tf.log(2*math.pi)
 
+
         dif = tf.square(x - mean)
         dif_cov = dif / tf.exp(log_var)
         term3 = tf.reduce_sum(dif_cov, 1) #sum over dimensions so its [B]
+
 
         all_ = term1 + term2 + term3
         log_norm = -.5 * all_
@@ -271,7 +272,7 @@ class DKF():
             xap: [B,X+A+X]
             '''
 
-            #unpack particle_and_logprobs
+            #slice out the particle
             z = tf.slice(particle_and_logprobs, [0,0], [self.batch_size, self.z_size])
 
 
@@ -285,7 +286,9 @@ class DKF():
             current_a_prev_x = tf.slice(xap, [0,self.input_size], [self.batch_size, self.action_size+self.input_size])
             concatenate_all = tf.concat(1, [current_a_prev_x, z])
             #Predict p(z|z-1,x-1,u): [B,Z]
-            prior_mean, prior_log_var = self.transition_net(concatenate_all, network_weights)
+            # prior_mean, prior_log_var = self.transition_net(concatenate_all, network_weights)
+            prior_mean = tf.zeros([self.batch_size, self.z_size])
+            prior_log_var = tf.log(tf.ones([self.batch_size, self.z_size]))
 
             #Sample from q(z|z-1,x-1,u,x)  [B,Z]
             eps = tf.random_normal((self.batch_size, self.z_size), 0, 1, dtype=tf.float32)
@@ -305,14 +308,22 @@ class DKF():
             #Compute log p(z|z-1,x-1,u)   [B]
             log_p_z = self.log_normal(this_particle, prior_mean, prior_log_var)
 
-            #Compute log p(x|z,x-1)   [B]
+
             current_x = tf.slice(xap, [0,0], [self.batch_size, self.input_size])
-            log_p_x = self.log_normal_x(current_x, x_mean, x_log_var)
+            # log_p_x = self.log_normal_x(current_x, x_mean, x_log_var)
+
+            #Compute log p(x|z,x-1)   [B]
+            negative_log_p_x =  \
+                tf.reduce_sum(tf.maximum(x_mean, 0) 
+                            - x_mean * current_x
+                            + tf.log(1 + tf.exp(-abs(x_mean))),
+                             1)
+            log_p_x = - negative_log_p_x
 
             # [B,3]
             logprobs = tf.pack([log_p_x, log_p_z, log_q_z], axis=1)
             # [B,Z+3]
-            output = tf.concat(1, [this_particle, logprobs])
+            output = tf.concat(1, [this_particle, logprobs, x_mean, x_log_var])  
 
             return output
 
@@ -333,6 +344,10 @@ class DKF():
         xap = tf.concat(2, [x_and_a, prev_x])
 
 
+        x_init = tf.zeros([self.batch_size, self.input_size])
+        var_init = tf.zeros([self.batch_size, self.input_size])
+
+
         # [B,Z]
         z_init = tf.zeros([self.batch_size, self.z_size])
         px_init = tf.zeros([self.batch_size])
@@ -341,18 +356,37 @@ class DKF():
         # [B,3]
         logprobs_init = tf.pack([px_init, pz_init, qz_init], axis=1)
         # [B,Z+3]
-        initializer = tf.concat(1, [z_init, logprobs_init])
+        initializer = tf.concat(1, [z_init, logprobs_init, x_init, var_init])
 
         # Scan over timesteps [T,B,z+3]
         particles_and_logprobs = tf.scan(fn_over_timesteps_for_scan, xap, initializer=initializer)
+
+
+        self.see_x_mean = tf.slice(particles_and_logprobs, [0,0,self.z_size+3], [1,self.batch_size, self.input_size])
+        self.see_x_var = tf.slice(particles_and_logprobs, [0,0,self.z_size+3+self.input_size], [1,self.batch_size, self.input_size])
+
+        thing1 = tf.reshape(x, [self.batch_size, self.input_size])
+        thing2 = tf.reshape(self.see_x_mean, [self.batch_size, self.input_size])
+        thing3 = tf.reshape(self.see_x_var, [self.batch_size, self.input_size])
+
+        self.log_prob = self.log_normal_x(thing1, thing2, thing3)
+        
 
         #unpack the logprobs  list([z+3,T,B])
         particles_and_logprobs_unstacked = tf.unstack(particles_and_logprobs, axis=2)
 
         #[T,B]
         log_p_x_over_time = particles_and_logprobs_unstacked[self.z_size]
+
+        self.log_p_x_over_time = log_p_x_over_time
+
         log_p_z_over_time = particles_and_logprobs_unstacked[self.z_size+1]
         log_q_z_over_time = particles_and_logprobs_unstacked[self.z_size+2]
+        # log_p_x_over_time = tf.slice(particles_and_logprobs, [0,0,self.z_size], [1,self.batch_size, 1])
+        # log_p_z_over_time = tf.slice(particles_and_logprobs, [0,0,self.z_size+1], [1,self.batch_size, 1])
+        # log_q_z_over_time = tf.slice(particles_and_logprobs, [0,0,self.z_size+2], [1,self.batch_size, 1])
+
+
 
         # sum over timesteps  [B]
         log_q_z_batch = tf.reduce_sum(log_q_z_over_time, axis=0)
@@ -400,13 +434,22 @@ class DKF():
             # Display
             if step % display_step == 0:
 
+                # if step % 200 == 0:
+                #     sxm, sxv, lp, lpxot = self.sess.run([self.see_x_mean, self.see_x_var, self.log_prob, self.log_p_x_over_time], feed_dict={self.x: batch, self.actions: batch_actions})
+                #     print batch 
+                #     print sxm
+                #     print sxv
+                #     print lpxot
+                #     print lp
+
                 cost = self.sess.run(self.elbo, feed_dict={self.x: batch, self.actions: batch_actions})
                 cost = -cost #because I want to see the NLL
 
                 p1,p2,p3 = self.sess.run([self.log_p_x_final, self.log_p_z_final, self.log_q_z_final ], feed_dict={self.x: batch, self.actions: batch_actions})
 
+                reg = self.sess.run(self.l2_regularization(), feed_dict={self.x: batch, self.actions: batch_actions})
 
-                print "Step:", '%04d' % (step+1), "cost=", "{:.5f}".format(cost), p1, p2, p3
+                print "Step:", '%04d' % (step), "-elbo=", "{:.5f}".format(cost), 'logprobs', p1, p2, p3, reg
 
 
         if path_to_save_variables != '':
@@ -418,20 +461,16 @@ class DKF():
 
     def test(self, get_data, steps=1000, display_step=10, path_to_load_variables='', path_to_save_variables=''):
 
-
-
         # Training cycle
         for step in range(steps):
 
             batch = []
             batch_actions = []
             while len(batch) != self.batch_size:
-
                 sequence, actions=get_data()
                 batch.append(sequence)
                 batch_actions.append(actions)
 
-                
             # if len(np.array(batch_actions).shape) != 3:
             #     print batch_actions
             # _ = self.sess.run(self.optimizer, feed_dict={self.x: batch, self.actions: batch_actions})
@@ -446,8 +485,6 @@ class DKF():
 
 
                 print "Step:", '%04d' % (step+1), "cost=", "{:.5f}".format(cost), p1, p2, p3
-
-
 
         print 'Done test'
 
@@ -469,12 +506,161 @@ class DKF():
         return next_state
 
 
+    def get_generated_sequence(self, n_timesteps, path_to_load_variables):
+
+        #eventually want to be able to start from anywhere. 
+        #which means I pass in a state
+
+        saver = tf.train.Saver()
+        self.sess = tf.Session()
+
+        if path_to_load_variables == '':
+            self.sess.run(tf.global_variables_initializer())
+        else:
+            #Load variables
+            saver.restore(self.sess, path_to_load_variables)
+            print 'loaded variables ' + path_to_load_variables
 
 
+
+        sequence = []
+
+        #start with 0 state, generate observation
+        state = np.zeros([1,self.z_size])
+        prev_emission = np.zeros([1,self.input_size])
+        current_action = np.zeros([1,1])
+
+        for t in range(n_timesteps):
+        
+            current_emission_mean, current_emission_log_var = self.sess.run(self.current_emission, feed_dict={self.current_z: state, self.prev_x: prev_emission})
+            
+            sequence.append(current_emission_mean)
+            prev_emission = current_emission_mean
+
+            next_state_mean, next_state_log_var = self.sess.run(self.next_state, feed_dict={self.prev_z: state, self.prev_x: prev_emission, self.current_action: current_action})
+            state = next_state_mean
+
+        return np.array(sequence)
+
+
+
+    def get_generated_sequence_given_x_frames(self, n_timesteps, path_to_load_variables, get_data):
+
+        #eventually want to be able to start from anywhere. 
+        #which means I pass in a state
+
+        saver = tf.train.Saver()
+        self.sess = tf.Session()
+
+        if path_to_load_variables == '':
+            self.sess.run(tf.global_variables_initializer())
+        else:
+            #Load variables
+            saver.restore(self.sess, path_to_load_variables)
+            print 'loaded variables ' + path_to_load_variables
+
+
+        batch = []
+        batch_actions = []
+        while len(batch) != 1:
+            sequence, actions=get_data()
+            batch.append(sequence)
+            batch_actions.append(actions)
+
+        n_given_frames = 20
+
+
+        sequence = []
+
+        #start with 0 state, generate observation
+        state = np.zeros([1,self.z_size])
+        prev_emission = np.zeros([1,self.input_size])
+        current_action = np.zeros([1,1])
+
+        for t in range(n_timesteps):
+
+            current_x = np.reshape(batch[0][t], [1,self.input_size])
+
+            if t < n_given_frames:
+
+                sequence.append(current_x)
+
+                recog_mean, recog_log_var = self.sess.run(self.infer_state, feed_dict={self.prev_z: state, self.prev_x: prev_emission, self.current_x: current_x, self.current_action: current_action})
+                prev_emission = current_x
+                state = recog_mean
+
+            else:
+            
+                current_emission_mean, current_emission_log_var = self.sess.run(self.current_emission, feed_dict={self.current_z: state, self.prev_x: prev_emission})
+                
+                prev_emission = current_emission_mean
+
+                next_state_mean, next_state_log_var = self.sess.run(self.next_state, feed_dict={self.prev_z: state, self.prev_x: prev_emission, self.current_action: current_action})
+                state = next_state_mean
+
+                sequence.append(current_emission_mean)
+
+        return np.array(sequence)
+
+
+
+    def reconstruct_frame(self, n_timesteps, path_to_load_variables, get_data):
+
+        #first is real, second is reconstruction
+
+        saver = tf.train.Saver()
+        self.sess = tf.Session()
+
+        if path_to_load_variables == '':
+            self.sess.run(tf.global_variables_initializer())
+        else:
+            #Load variables
+            saver.restore(self.sess, path_to_load_variables)
+            print 'loaded variables ' + path_to_load_variables
+
+
+        batch = []
+        batch_actions = []
+        while len(batch) != 1:
+            sequence, actions=get_data()
+            batch.append(sequence)
+            batch_actions.append(actions)
+
+        sequence = []
+
+        #start with 0 state, generate observation
+        state = np.zeros([1,self.z_size])
+        prev_emission = np.zeros([1,self.input_size])
+        current_action = np.zeros([1,1])
+
+
+        current_x = np.reshape(batch[0][0], [1,self.input_size])
+
+
+        sequence.append(current_x)
+
+        recog_mean, recog_log_var = self.sess.run(self.infer_state, feed_dict={self.prev_z: state, self.prev_x: prev_emission, self.current_x: current_x, self.current_action: current_action})
+        prev_emission = current_x
+        state = recog_mean
+
+    
+        current_emission_mean, current_emission_log_var = self.sess.run(self.current_emission, feed_dict={self.current_z: state, self.prev_x: prev_emission})
+        
+        # prev_emission = current_emission_mean
+
+        # next_state_mean, next_state_log_var = self.sess.run(self.next_state, feed_dict={self.prev_z: state, self.prev_x: prev_emission, self.current_action: current_action})
+        # state = next_state_mean
+
+        sequence.append(current_emission_mean)
+
+        return np.array(sequence)
 
 
 
 if __name__ == "__main__":
+
+    import imageio
+    from ball_sequence import make_ball_gif
 
     save_to = home + '/data/' #for boltz
     # save_to = home + '/Documents/tmp/' # for mac

@@ -8,6 +8,8 @@
 
 # um this might not solve any problems becaues I still need logprobs
 
+# It works. I only use one particle
+
 import numpy as np
 import tensorflow as tf
 import random
@@ -16,7 +18,7 @@ from os.path import expanduser
 home = expanduser("~")
 import imageio
 
-from ball_sequence import make_ball_gif
+
 
 
 class DKF():
@@ -26,6 +28,7 @@ class DKF():
         tf.reset_default_graph()
 
         self.transfer_fct = tf.tanh
+        # transfer_fct=tf.nn.softplus
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         # self.n_time_steps = n_time_steps #this shouldnt be used
@@ -475,6 +478,8 @@ class DKF():
 
 
 if __name__ == "__main__":
+
+    from ball_sequence import make_ball_gif
 
     save_to = home + '/data/' #for boltz
     # save_to = home + '/Documents/tmp/' # for mac
