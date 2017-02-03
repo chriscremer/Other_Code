@@ -48,8 +48,8 @@ class VAE():
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=1e-02).minimize(-self.elbo)
 
         #For evaluation
-        # self.log_w = self._log_likelihood(self.x, self.x_reconstr_mean_no_sigmoid) + self._log_p_z(self.z) - self._log_q_z_given_x(self.z, self.recog_mean, self.recog_log_std_sq)
-        # self.x_reconstr_mean = tf.nn.sigmoid(self.x_reconstr_mean_no_sigmoid)
+        self.log_w = self._log_likelihood(self.x, self.x_reconstr_mean_no_sigmoid) + self._log_p_z(self.z) - self._log_q_z_given_x(self.z, self.recog_means, self.recog_log_vars)
+        self.x_reconstr_mean = tf.nn.sigmoid(self.x_reconstr_mean_no_sigmoid)
 
 
     def _initialize_weights(self, network_architecture):
@@ -311,6 +311,73 @@ class VAE():
             print 'loaded variables ' + path_to_load_variables
 
 
+
+    def reconstruct(self, sampling, data):
+
+        # #Ramdomly select a batch
+        # batch = []
+        # while len(batch) != self.batch_size:
+        #     datapoint = data[np.random.randint(0,len(data))]
+        #     batch.append(datapoint)
+        batch = data
+
+
+        if sampling == 'vae':
+
+            #Encode and get p and q
+            log_ws, recons = self.sess.run((self.log_w, self.x_reconstr_mean), feed_dict={self.x: batch})
+
+            # print log_ws.shape
+            # print recons.shape
+
+            return recons, batch
+
+        if sampling == 'iwae':
+
+            recons_resampled = []
+            for i in range(self.n_particles):
+
+                #Encode and get p and q.. log_ws [K,B,1], reons [K,B,X]
+                log_ws, recons = self.sess.run((self.log_w, self.x_reconstr_mean), feed_dict={self.x: batch})
+
+                #log normalize
+                max_ = np.max(log_ws, axis=0)
+                lse = np.log(np.sum(np.exp(log_ws-max_), axis=0)) + max_
+                log_norm_ws = log_ws - lse
+
+                # ws = np.exp(log_ws)
+                # sums = np.sum(ws, axis=0)
+                # norm_ws = ws / sums
+
+
+                # print log_ws
+                # print
+                # print lse
+                # print
+                # print log_norm_ws
+                # print 
+                # print np.exp(log_norm_ws)
+                # fsdfa
+
+                #sample one based on cat(w)
+
+                samps = []
+                for j in range(self.batch_size):
+
+                    samp = np.argmax(np.random.multinomial(1, np.exp(log_norm_ws.T[j])-.000001))
+                    samps.append(recons[samp][j])
+                    # print samp
+
+                # print samps
+                # print samps.shape
+                # fasdf
+                recons_resampled.append(np.array(samps))
+
+            recons_resampled = np.array(recons_resampled)
+            # print recons_resampled.shape
+
+
+            return recons_resampled, batch
 
 
 
