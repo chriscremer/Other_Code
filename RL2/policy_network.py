@@ -23,6 +23,7 @@ class Policy():
         self.learning_rate = 0.001
         self.reg_param = .00001
 
+        self.network_architecture = network_architecture
         self.input_size = network_architecture["input_size"]
         self.z_size = network_architecture["z_size"]
         self.action_size = network_architecture["action_size"]
@@ -35,10 +36,14 @@ class Policy():
 
         #Objective
         self.objective = self.J_equation()
-        self.cost = -self.objective
+        self.cost = -self.objective + (self.reg_param * self.l2_regularization())
 
         #Optimize
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=1e-02).minimize(self.cost)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=1e-02).minimize(self.cost, var_list=self.params_list)
+
+        #Evaluate
+        self.state_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
+        self.action_ = self.predict_action(self.state_)
 
 
     def _initialize_weights(self, network_architecture):
@@ -54,31 +59,37 @@ class Policy():
         params_dict = dict()
 
         #Recognition/Inference net q(z|z-1,u,x)
-        params_dict['policy_weights'] = {}
-        params_dict['policy_biases'] = {}
+        # params_dict['policy_weights'] = {}
+        # params_dict['policy_biases'] = {}
 
         for layer_i in range(len(network_architecture['policy_net'])):
             if layer_i == 0:
-                params_dict['policy_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(self.z_size, network_architecture['policy_net'][layer_i]))
-                params_dict['policy_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['policy_net'][layer_i]], dtype=tf.float32))
+                params_dict['policy_weights_l'+str(layer_i)] = tf.Variable(xavier_init(self.z_size, network_architecture['policy_net'][layer_i]))
+                params_dict['policy_biases_l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['policy_net'][layer_i]], dtype=tf.float32))
             else:
-                params_dict['policy_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['policy_net'][layer_i-1], network_architecture['policy_net'][layer_i]))
-                params_dict['policy_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['policy_net'][layer_i]], dtype=tf.float32))
+                params_dict['policy_weights_l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['policy_net'][layer_i-1], network_architecture['policy_net'][layer_i]))
+                params_dict['policy_biases_l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['policy_net'][layer_i]], dtype=tf.float32))
 
-        params_dict['policy_weights']['out_mean'] = tf.Variable(xavier_init(network_architecture['policy_net'][-1], self.action_size))
-        params_dict['policy_biases']['out_mean'] = tf.Variable(tf.zeros([self.action_size], dtype=tf.float32))
-
+        params_dict['policy_weights_out_mean'] = tf.Variable(xavier_init(network_architecture['policy_net'][-1], self.action_size))
+        params_dict['policy_biases_out_mean'] = tf.Variable(tf.zeros([self.action_size], dtype=tf.float32))
 
 
         params_list = []
-        for weights_biases in params_dict:
+        for layer in params_dict:
 
-            for layer in params_dict[weights_biases]:
-
-                params_list.append(params_dict[weights_biases][layer])
+            params_list.append(params_dict[layer])
 
         return params_dict, params_list
 
+
+    def l2_regularization(self):
+
+        sum_ = 0
+        for layer in self.params_dict:
+
+            sum_ += tf.reduce_sum(tf.square(self.params_dict[layer]))
+
+        return sum_
 
 
 
@@ -91,17 +102,17 @@ class Policy():
         needs to be one hot because model has only seen one hot actions
         '''
 
-        n_layers = len(self.params_dict['policy_weights']) - 1 #minus 1 for output layer
-        weights = self.params_dict['policy_weights']
-        biases = self.params_dict['policy_biases']
+        n_layers = len(self.network_architecture['policy_net'])
+        # weights = self.params_dict['policy_weights']
+        # biases = self.params_dict['policy_biases']
 
         input_ = prev_z
 
         for layer_i in range(n_layers):
 
-            input_ = self.transfer_fct(tf.add(tf.matmul(input_, weights['l'+str(layer_i)]), biases['l'+str(layer_i)])) 
+            input_ = self.transfer_fct(tf.add(tf.matmul(input_, self.params_dict['policy_weights_l'+str(layer_i)]), self.params_dict['policy_biases_l'+str(layer_i)])) 
 
-        action = tf.add(tf.matmul(input_, weights['out_mean']), biases['out_mean'])
+        action = tf.add(tf.matmul(input_, self.params_dict['policy_weights_out_mean']), self.params_dict['policy_biases_out_mean'])
 
         action = tf.argmax(action, axis=1) 
 
@@ -130,9 +141,16 @@ class Policy():
         # reward_matrix = tf.concat(0, [forw, back])
         reward_matrix = tf.ones([self.input_size])
 
+
+        range_f = np.array([float(x) for x in range(0,self.input_size/2)], dtype='float32')
+        range_r = np.array([float(x) for x in range(0,self.input_size/2)], dtype='float32')[::-1]
+        r_mat = np.concatenate([range_f, range_r], axis=0)
+        # print r_mat
+        reward_matrix = tf.pack(r_mat)
+
         reward_matrix = tf.reshape(reward_matrix, [1, self.input_size])
 
-        rewards = tf.reduce_sum(tf.multiply(observation_t,reward_matrix), axis=1)
+        rewards = tf.reduce_sum(tf.multiply(tf.sigmoid(observation_t),reward_matrix), axis=1)
 
         return rewards #of the batch? [B]
 

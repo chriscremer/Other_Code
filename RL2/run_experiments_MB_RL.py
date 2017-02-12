@@ -28,8 +28,8 @@ if __name__ == "__main__":
     n_particles = 4
 
     #Which task to run
-    train = 1
-    visualize=0
+    train = 0
+    visualize=1
 
 
     #Specify where to save stuff
@@ -90,6 +90,7 @@ if __name__ == "__main__":
                         policy_path_to_load_variables=policy_path_to_load_variables,
                         policy_path_to_save_variables=policy_path_to_save_variables)
 
+        print 'Training'
         mb_rl.train_both(get_data=get_data, steps=training_steps, display_step=20)
 
 
@@ -100,7 +101,8 @@ if __name__ == "__main__":
 
     if visualize==1:
 
-        print 'Visualizing'
+        print 'Testing model and policy'
+
         viz_timesteps = 40
         viz_n_particles = 3
         viz_batch_size = 1
@@ -108,17 +110,23 @@ if __name__ == "__main__":
         def get_data():
             sequence_obs, sequence_actions = buda.get_sequence(n_timesteps=viz_timesteps, obs_height=obs_height, obs_width=obs_width)
             return np.array(sequence_obs), np.array(sequence_actions)
-        #get actions and frames
-        #give model all actions and only some frames
 
-        print 'Initializing model..'
-        
-        dkf = DKF(network_architecture, batch_size=viz_batch_size, n_particles=viz_n_particles)
+        mb_rl = MB_RL(model_architecture=model_architecture, 
+                policy_architecture=policy_architecture, 
+                batch_size=viz_batch_size, n_particles=viz_n_particles, n_timesteps=viz_timesteps,
+                model_path_to_load_variables=model_path_to_save_variables,
+                model_path_to_save_variables='',
+                policy_path_to_load_variables=policy_path_to_save_variables,
+                policy_path_to_save_variables='')
 
 
-        # need to change it so i get mulitple trajectories , one for each particle
 
-        real_sequence, actions, real_and_gen = dkf.test(get_data=get_data, path_to_load_variables=path_to_save_variables)
+
+
+
+
+        print 'Visualizing model predictions'
+        real_sequence, actions, real_and_gen = mb_rl.test_model(get_data=get_data)
 
         print real_sequence.shape #[T,X]
         print actions.shape #[T,A]
@@ -129,7 +137,7 @@ if __name__ == "__main__":
 
         per_traj = 3
         offset = per_traj+2 #2 for the actions, per_traj for real
-        G = gridspec.GridSpec(per_traj*(n_particles+1)+offset, 3) # +1 for avg
+        G = gridspec.GridSpec(per_traj*(viz_n_particles+1)+offset, 3) # +1 for avg
 
         axes_1 = plt.subplot(G[0:2, 1])
         plt.imshow(actions.T, vmin=0, vmax=1, cmap="gray")
@@ -161,8 +169,52 @@ if __name__ == "__main__":
                 plt.yticks([])
                 plt.xticks(size=7)
 
-
         # plt.tight_layout()
         plt.show()
+
+
+
+
+
+        print 'Visualizing policy performance'
+        # def get_action_result():
+        #     sequence_obs, sequence_actions = buda.get_result_of_action(prez_position, current_action, obs_height, obs_width)
+        #     return np.array(sequence_obs), np.array(sequence_actions) 
+
+
+        seq = mb_rl.test_policy(get_action_results=buda.get_result_of_action, n_timesteps=viz_timesteps, obs_height=obs_height, obs_width=obs_width)
+
+        # print seq.shape  #[T,X]
+        #plot it
+
+        fig = plt.figure(figsize=(6, 8))
+
+        per_traj = 3
+        offset = per_traj+2 #2 for the actions, per_traj for real
+        G = gridspec.GridSpec(per_traj*(viz_n_particles+1)+offset, 3) # +1 for avg
+
+
+        axes_2 = plt.subplot(G[2:offset, :])
+        plt.imshow(seq.T, vmin=0, vmax=1, cmap="gray")
+        plt.ylabel('Policy', size=10)
+        plt.yticks([])
+        plt.xticks(size=7)
+        plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

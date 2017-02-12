@@ -26,6 +26,7 @@ class DKF():
         # self.n_time_steps = n_time_steps #this shouldnt be used
         self.n_particles = n_particles
 
+        self.network_architecture = network_architecture
         self.z_size = network_architecture["n_z"]
         self.input_size = network_architecture["n_input"]
         self.action_size = network_architecture["n_actions"]
@@ -37,8 +38,7 @@ class DKF():
         self.actions = tf.placeholder(tf.float32, [None, None, self.action_size])
         
         #Variables
-        self.network_weights = self._initialize_weights(network_architecture)
-        self.param_dict = self.network_weights
+        self.params_dict, self.params_list = self._initialize_weights(network_architecture)
 
         #Objective
         self.elbo = self.Model(self.x, self.actions)
@@ -59,6 +59,16 @@ class DKF():
         eps = tf.random_normal((self.batch_size, self.z_size), 0, 1, dtype=tf.float32)
         self.sample = tf.add(self.prior_mean_, tf.mul(tf.sqrt(tf.exp(self.prior_logvar_)), eps))
 
+        #for testing policy
+        #ENCODE
+        self.current_observation = tf.placeholder(tf.float32, [self.batch_size, self.input_size])
+        self.prev_z_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
+        self.current_a_ = tf.placeholder(tf.float32, [self.batch_size, self.action_size])
+        #Concatenate current x, current action, prev_z: [B,XA+Z]
+        concatenate_all = tf.concat(1, [self.current_observation, self.current_a_])
+        concatenate_all = tf.concat(1, [concatenate_all, self.prev_z_])
+        #Predict q(z|z-1,u,x): [B,Z] [B,Z]
+        self.z_mean_, z_log_var = self.recognition_net(concatenate_all)
 
 
 
@@ -73,75 +83,86 @@ class DKF():
             return tf.random_uniform((fan_in, fan_out), minval=low, maxval=high, dtype=tf.float32)
 
 
-        all_weights = dict()
+        params_dict = dict()
 
         #Recognition/Inference net q(z|z-1,u,x)
-        all_weights['encoder_weights'] = {}
-        all_weights['encoder_biases'] = {}
+        # all_weights['encoder_weights'] = {}
+        # all_weights['encoder_biases'] = {}
 
         for layer_i in range(len(network_architecture['encoder_net'])):
             if layer_i == 0:
-                all_weights['encoder_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(self.input_size+self.action_size+self.z_size, network_architecture['encoder_net'][layer_i]))
-                all_weights['encoder_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
+                params_dict['encoder_weights_l'+str(layer_i)] = tf.Variable(xavier_init(self.input_size+self.action_size+self.z_size, network_architecture['encoder_net'][layer_i]))
+                params_dict['encoder_biases_l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
             else:
-                all_weights['encoder_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['encoder_net'][layer_i-1], network_architecture['encoder_net'][layer_i]))
-                all_weights['encoder_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
+                params_dict['encoder_weights_l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['encoder_net'][layer_i-1], network_architecture['encoder_net'][layer_i]))
+                params_dict['encoder_biases_l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
 
-        all_weights['encoder_weights']['out_mean'] = tf.Variable(xavier_init(network_architecture['encoder_net'][-1], self.z_size))
-        all_weights['encoder_weights']['out_log_var'] = tf.Variable(xavier_init(network_architecture['encoder_net'][-1], self.z_size))
-        all_weights['encoder_biases']['out_mean'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
-        all_weights['encoder_biases']['out_log_var'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
+        params_dict['encoder_weights_out_mean'] = tf.Variable(xavier_init(network_architecture['encoder_net'][-1], self.z_size))
+        params_dict['encoder_weights_out_log_var'] = tf.Variable(xavier_init(network_architecture['encoder_net'][-1], self.z_size))
+        params_dict['encoder_biases_out_mean'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
+        params_dict['encoder_biases_out_log_var'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
 
 
         #Generator net p(x|z)
-        all_weights['decoder_weights'] = {}
-        all_weights['decoder_biases'] = {}
+        # all_weights['decoder_weights'] = {}
+        # all_weights['decoder_biases'] = {}
 
         for layer_i in range(len(network_architecture['decoder_net'])):
             if layer_i == 0:
-                all_weights['decoder_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(self.z_size, network_architecture['decoder_net'][layer_i]))
-                all_weights['decoder_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['decoder_net'][layer_i]], dtype=tf.float32))
+                params_dict['decoder_weights_l'+str(layer_i)] = tf.Variable(xavier_init(self.z_size, network_architecture['decoder_net'][layer_i]))
+                params_dict['decoder_biases_l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['decoder_net'][layer_i]], dtype=tf.float32))
             else:
-                all_weights['decoder_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['decoder_net'][layer_i-1], network_architecture['decoder_net'][layer_i]))
-                all_weights['decoder_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
+                params_dict['decoder_weights_l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['decoder_net'][layer_i-1], network_architecture['decoder_net'][layer_i]))
+                params_dict['decoder_biases_l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
 
-        all_weights['decoder_weights']['out_mean'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.input_size))
-        all_weights['decoder_biases']['out_mean'] = tf.Variable(tf.zeros([self.input_size], dtype=tf.float32))
+        params_dict['decoder_weights_out_mean'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.input_size))
+        params_dict['decoder_biases_out_mean'] = tf.Variable(tf.zeros([self.input_size], dtype=tf.float32))
         # all_weights['decoder_weights']['out_log_var'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.input_size))
         # all_weights['decoder_biases']['out_log_var'] = tf.Variable(tf.zeros([self.input_size], dtype=tf.float32))
 
 
 
         #Generator/Transition net q(z|z-1,u)
-        all_weights['trans_weights'] = {}
-        all_weights['trans_biases'] = {}
+        # all_weights['trans_weights'] = {}
+        # all_weights['trans_biases'] = {}
 
         for layer_i in range(len(network_architecture['trans_net'])):
             if layer_i == 0:
-                all_weights['trans_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(self.action_size+self.z_size, network_architecture['trans_net'][layer_i]))
-                all_weights['trans_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['trans_net'][layer_i]], dtype=tf.float32))
+                params_dict['trans_weights_l'+str(layer_i)] = tf.Variable(xavier_init(self.action_size+self.z_size, network_architecture['trans_net'][layer_i]))
+                params_dict['trans_biases_l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['trans_net'][layer_i]], dtype=tf.float32))
             else:
-                all_weights['trans_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['trans_net'][layer_i-1], network_architecture['trans_net'][layer_i]))
-                all_weights['trans_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['trans_net'][layer_i]], dtype=tf.float32))
+                params_dict['trans_weights_l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['trans_net'][layer_i-1], network_architecture['trans_net'][layer_i]))
+                params_dict['trans_biases_l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['trans_net'][layer_i]], dtype=tf.float32))
 
-        all_weights['trans_weights']['out_mean'] = tf.Variable(xavier_init(network_architecture['trans_net'][-1], self.z_size))
-        all_weights['trans_weights']['out_log_var'] = tf.Variable(xavier_init(network_architecture['trans_net'][-1], self.z_size))
-        all_weights['trans_biases']['out_mean'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
-        all_weights['trans_biases']['out_log_var'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
+        params_dict['trans_weights_out_mean'] = tf.Variable(xavier_init(network_architecture['trans_net'][-1], self.z_size))
+        params_dict['trans_weights_out_log_var'] = tf.Variable(xavier_init(network_architecture['trans_net'][-1], self.z_size))
+        params_dict['trans_biases_out_mean'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
+        params_dict['trans_biases_out_log_var'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
 
-        return all_weights
+
+
+
+
+        params_list = []
+        for layer in params_dict:
+
+            params_list.append(params_dict[layer])
+
+        return params_dict, params_list
+
+
+
 
 
     def l2_regularization(self):
 
         sum_ = 0
-        for net in self.network_weights:
+        for layer in self.params_dict:
 
-            for weights_biases in self.network_weights[net]:
-
-                sum_ += tf.reduce_sum(tf.square(self.network_weights[net][weights_biases]))
+            sum_ += tf.reduce_sum(tf.square(self.params_dict[layer]))
 
         return sum_
+
 
 
     def log_normal(self, z, mean, log_var):
@@ -174,17 +195,17 @@ class DKF():
     def recognition_net(self, input_):
         # input:[B,X+A+Z]
 
-        n_layers = len(self.network_weights['encoder_weights']) - 2 #minus 2 for the mean and var outputs
-        weights = self.network_weights['encoder_weights']
-        biases = self.network_weights['encoder_biases']
+        n_layers = len(self.network_architecture['encoder_net'])
+        # weights = self.network_weights['encoder_weights']
+        # biases = self.network_weights['encoder_biases']
 
         for layer_i in range(n_layers):
 
-            input_ = self.transfer_fct(tf.add(tf.matmul(input_, weights['l'+str(layer_i)]), biases['l'+str(layer_i)])) 
+            input_ = self.transfer_fct(tf.add(tf.matmul(input_, self.params_dict['encoder_weights_l'+str(layer_i)]), self.params_dict['encoder_biases_l'+str(layer_i)])) 
             #add batch norm here
 
-        z_mean = tf.add(tf.matmul(input_, weights['out_mean']), biases['out_mean'])
-        z_log_var = tf.add(tf.matmul(input_, weights['out_log_var']), biases['out_log_var'])
+        z_mean = tf.add(tf.matmul(input_, self.params_dict['encoder_weights_out_mean']), self.params_dict['encoder_biases_out_mean'])
+        z_log_var = tf.add(tf.matmul(input_, self.params_dict['encoder_weights_out_log_var']), self.params_dict['encoder_biases_out_log_var'])
 
         return z_mean, z_log_var
 
@@ -192,16 +213,16 @@ class DKF():
     def observation_net(self, input_):
         # input:[B,Z]
 
-        n_layers = len(self.network_weights['decoder_weights']) - 1 #minus 2 for the mean and var outputs
-        weights = self.network_weights['decoder_weights']
-        biases = self.network_weights['decoder_biases']
+        n_layers = len(self.network_architecture['decoder_net'])
+        # weights = self.network_weights['decoder_weights']
+        # biases = self.network_weights['decoder_biases']
 
         for layer_i in range(n_layers):
 
-            input_ = self.transfer_fct(tf.add(tf.matmul(input_, weights['l'+str(layer_i)]), biases['l'+str(layer_i)])) 
+            input_ = self.transfer_fct(tf.add(tf.matmul(input_, self.params_dict['decoder_weights_l'+str(layer_i)]), self.params_dict['decoder_biases_l'+str(layer_i)])) 
             #add batch norm here
 
-        x_mean = tf.add(tf.matmul(input_, weights['out_mean']), biases['out_mean'])
+        x_mean = tf.add(tf.matmul(input_, self.params_dict['decoder_weights_out_mean']), self.params_dict['decoder_biases_out_mean'])
         # x_log_var = tf.add(tf.matmul(input_, weights['out_log_var']), biases['out_log_var'])
 
         return x_mean
@@ -210,18 +231,18 @@ class DKF():
     def transition_net(self, input_):
         # input:[B,Z+A]
 
-        n_layers = len(self.network_weights['trans_weights'])  - 2 #minus 2 for the mean and var outputs
-        weights = self.network_weights['trans_weights']
-        biases = self.network_weights['trans_biases']
+        n_layers = len(self.network_architecture['trans_net'])
+        # weights = self.network_weights['trans_weights']
+        # biases = self.network_weights['trans_biases']
 
         for layer_i in range(n_layers):
 
-            input_ = self.transfer_fct(tf.add(tf.matmul(input_, weights['l'+str(layer_i)]), biases['l'+str(layer_i)])) 
+            input_ = self.transfer_fct(tf.add(tf.matmul(input_, self.params_dict['trans_weights_l'+str(layer_i)]), self.params_dict['trans_biases_l'+str(layer_i)])) 
             #add batch norm here
 
 
-        z_mean = tf.add(tf.matmul(input_, weights['out_mean']), biases['out_mean'])
-        z_log_var = tf.add(tf.matmul(input_, weights['out_log_var']), biases['out_log_var'])
+        z_mean = tf.add(tf.matmul(input_, self.params_dict['trans_weights_out_mean']), self.params_dict['trans_biases_out_mean'])
+        z_log_var = tf.add(tf.matmul(input_, self.params_dict['trans_weights_out_log_var']), self.params_dict['trans_biases_out_log_var'])
 
         return z_mean, z_log_var
 
@@ -379,7 +400,7 @@ class DKF():
 
 
 
-    def predict_future(self, prev_z, actions):
+    def predict_future(self, sess, prev_z, actions):
         '''
         prev_z [B,PZ]
         actions [B,timesteps_left, A]
@@ -404,13 +425,13 @@ class DKF():
                 prev_z_and_current_a = np.concatenate((np.reshape(particle_states[p], [1,self.z_size]), [actions[0][t]]), axis=1) #[B,ZA]
 
                 # [B,Z]
-                prior_mean, prior_log_var = self.sess.run(self.next_state, feed_dict={self.prev_z_and_current_a_: prev_z_and_current_a})
+                prior_mean, prior_log_var = sess.run(self.next_state, feed_dict={self.prev_z_and_current_a_: prev_z_and_current_a})
 
                 #sample new state
-                sample = self.sess.run(self.sample, feed_dict={self.prior_mean_: prior_mean, self.prior_logvar_: prior_log_var})
+                sample = sess.run(self.sample, feed_dict={self.prior_mean_: prior_mean, self.prior_logvar_: prior_log_var})
 
                 #decode state
-                x_mean = self.sess.run(self.current_emission, feed_dict={self.current_z_: sample})
+                x_mean = sess.run(self.current_emission, feed_dict={self.current_z_: sample})
                 this_timestep_obs.append(x_mean)
 
                 #set this sample as previous sample
