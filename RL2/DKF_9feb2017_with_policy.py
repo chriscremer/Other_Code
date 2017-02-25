@@ -443,6 +443,49 @@ class DKF():
 
 
 
+    def predict_future_only_mean(self, sess, prev_z, actions):
+        '''
+        prev_z [B,PZ]
+        actions [B,timesteps_left, A]
+
+        return [timesteps_left, P, X]
+        '''
+
+        #convert prev_z to a list of particle states
+        particle_states = []
+        for p in range(self.n_particles):
+            particle_states.append(prev_z[0][p*self.z_size : p*self.z_size+self.z_size])
+
+
+        #predict future 
+        obs = []
+        for t in range(len(actions[0])):
+
+            this_timestep_obs = []
+            for p in range(self.n_particles):
+
+                #transition state
+                prev_z_and_current_a = np.concatenate((np.reshape(particle_states[p], [1,self.z_size]), [actions[0][t]]), axis=1) #[B,ZA]
+
+                # [B,Z]
+                prior_mean, prior_log_var = sess.run(self.next_state, feed_dict={self.prev_z_and_current_a_: prev_z_and_current_a})
+
+                #sample new state
+                # sample = sess.run(self.sample, feed_dict={self.prior_mean_: prior_mean, self.prior_logvar_: prior_log_var})
+                sample = prior_mean
+
+                #decode state
+                x_mean = sess.run(self.current_emission, feed_dict={self.current_z_: sample})
+                this_timestep_obs.append(x_mean)
+
+                #set this sample as previous sample
+                particle_states[p] = np.reshape(sample, [-1])
+
+            obs.append(this_timestep_obs)
+
+        return np.array(obs) #this will be [TL, P, X]
+
+
                 
 
     # def train(self, get_data, steps=1000, display_step=10, path_to_load_variables='', path_to_save_variables=''):

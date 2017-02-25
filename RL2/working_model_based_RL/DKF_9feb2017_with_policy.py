@@ -1,6 +1,6 @@
 
 
-# adding multiple particles
+# imports policy and trains it too
 
 
 import numpy as np
@@ -16,7 +16,7 @@ class DKF():
 
     def __init__(self, network_architecture, batch_size=5, n_particles=4):
         
-        tf.reset_default_graph()
+        # tf.reset_default_graph()
 
         self.batch_size = batch_size
 
@@ -26,6 +26,7 @@ class DKF():
         # self.n_time_steps = n_time_steps #this shouldnt be used
         self.n_particles = n_particles
 
+        self.network_architecture = network_architecture
         self.z_size = network_architecture["n_z"]
         self.input_size = network_architecture["n_input"]
         self.action_size = network_architecture["n_actions"]
@@ -37,7 +38,7 @@ class DKF():
         self.actions = tf.placeholder(tf.float32, [None, None, self.action_size])
         
         #Variables
-        self.network_weights = self._initialize_weights(network_architecture)
+        self.params_dict, self.params_list = self._initialize_weights(network_architecture)
 
         #Objective
         self.elbo = self.Model(self.x, self.actions)
@@ -47,16 +48,6 @@ class DKF():
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=1e-02).minimize(self.cost)
 
         #Evaluation
-        # self.generate = self.generate(self.x, self.actions)
-        # self.current_z = tf.placeholder(tf.float32, [None, self.z_size])
-        # self.prev_x = tf.placeholder(tf.float32, [None, self.input_size])
-        # self.current_emission = self.observation_net(tf.concat(1, [self.current_z, self.prev_x]), self.network_weights)
-
-        # self.prev_z = tf.placeholder(tf.float32, [None, self.z_size])
-        # self.current_action = tf.placeholder(tf.float32, [None, self.action_size])
-        # apz = tf.concat(1, [tf.concat(1, [self.current_action, self.prev_x]), self.prev_z])
-
-
         self.prev_z_and_current_a_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size+self.action_size])
         self.next_state = self.transition_net(self.prev_z_and_current_a_)
 
@@ -67,6 +58,18 @@ class DKF():
         self.prior_logvar_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
         eps = tf.random_normal((self.batch_size, self.z_size), 0, 1, dtype=tf.float32)
         self.sample = tf.add(self.prior_mean_, tf.mul(tf.sqrt(tf.exp(self.prior_logvar_)), eps))
+
+        #for testing policy
+        #ENCODE
+        self.current_observation = tf.placeholder(tf.float32, [self.batch_size, self.input_size])
+        self.prev_z_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
+        self.current_a_ = tf.placeholder(tf.float32, [self.batch_size, self.action_size])
+        #Concatenate current x, current action, prev_z: [B,XA+Z]
+        concatenate_all = tf.concat(1, [self.current_observation, self.current_a_])
+        concatenate_all = tf.concat(1, [concatenate_all, self.prev_z_])
+        #Predict q(z|z-1,u,x): [B,Z] [B,Z]
+        self.z_mean_, z_log_var = self.recognition_net(concatenate_all)
+
 
 
 
@@ -80,75 +83,86 @@ class DKF():
             return tf.random_uniform((fan_in, fan_out), minval=low, maxval=high, dtype=tf.float32)
 
 
-        all_weights = dict()
+        params_dict = dict()
 
         #Recognition/Inference net q(z|z-1,u,x)
-        all_weights['encoder_weights'] = {}
-        all_weights['encoder_biases'] = {}
+        # all_weights['encoder_weights'] = {}
+        # all_weights['encoder_biases'] = {}
 
         for layer_i in range(len(network_architecture['encoder_net'])):
             if layer_i == 0:
-                all_weights['encoder_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(self.input_size+self.action_size+self.z_size, network_architecture['encoder_net'][layer_i]))
-                all_weights['encoder_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
+                params_dict['encoder_weights_l'+str(layer_i)] = tf.Variable(xavier_init(self.input_size+self.action_size+self.z_size, network_architecture['encoder_net'][layer_i]))
+                params_dict['encoder_biases_l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
             else:
-                all_weights['encoder_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['encoder_net'][layer_i-1], network_architecture['encoder_net'][layer_i]))
-                all_weights['encoder_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
+                params_dict['encoder_weights_l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['encoder_net'][layer_i-1], network_architecture['encoder_net'][layer_i]))
+                params_dict['encoder_biases_l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
 
-        all_weights['encoder_weights']['out_mean'] = tf.Variable(xavier_init(network_architecture['encoder_net'][-1], self.z_size))
-        all_weights['encoder_weights']['out_log_var'] = tf.Variable(xavier_init(network_architecture['encoder_net'][-1], self.z_size))
-        all_weights['encoder_biases']['out_mean'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
-        all_weights['encoder_biases']['out_log_var'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
+        params_dict['encoder_weights_out_mean'] = tf.Variable(xavier_init(network_architecture['encoder_net'][-1], self.z_size))
+        params_dict['encoder_weights_out_log_var'] = tf.Variable(xavier_init(network_architecture['encoder_net'][-1], self.z_size))
+        params_dict['encoder_biases_out_mean'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
+        params_dict['encoder_biases_out_log_var'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
 
 
         #Generator net p(x|z)
-        all_weights['decoder_weights'] = {}
-        all_weights['decoder_biases'] = {}
+        # all_weights['decoder_weights'] = {}
+        # all_weights['decoder_biases'] = {}
 
         for layer_i in range(len(network_architecture['decoder_net'])):
             if layer_i == 0:
-                all_weights['decoder_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(self.z_size, network_architecture['decoder_net'][layer_i]))
-                all_weights['decoder_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['decoder_net'][layer_i]], dtype=tf.float32))
+                params_dict['decoder_weights_l'+str(layer_i)] = tf.Variable(xavier_init(self.z_size, network_architecture['decoder_net'][layer_i]))
+                params_dict['decoder_biases_l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['decoder_net'][layer_i]], dtype=tf.float32))
             else:
-                all_weights['decoder_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['decoder_net'][layer_i-1], network_architecture['decoder_net'][layer_i]))
-                all_weights['decoder_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
+                params_dict['decoder_weights_l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['decoder_net'][layer_i-1], network_architecture['decoder_net'][layer_i]))
+                params_dict['decoder_biases_l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
 
-        all_weights['decoder_weights']['out_mean'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.input_size))
-        all_weights['decoder_biases']['out_mean'] = tf.Variable(tf.zeros([self.input_size], dtype=tf.float32))
+        params_dict['decoder_weights_out_mean'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.input_size))
+        params_dict['decoder_biases_out_mean'] = tf.Variable(tf.zeros([self.input_size], dtype=tf.float32))
         # all_weights['decoder_weights']['out_log_var'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.input_size))
         # all_weights['decoder_biases']['out_log_var'] = tf.Variable(tf.zeros([self.input_size], dtype=tf.float32))
 
 
 
         #Generator/Transition net q(z|z-1,u)
-        all_weights['trans_weights'] = {}
-        all_weights['trans_biases'] = {}
+        # all_weights['trans_weights'] = {}
+        # all_weights['trans_biases'] = {}
 
         for layer_i in range(len(network_architecture['trans_net'])):
             if layer_i == 0:
-                all_weights['trans_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(self.action_size+self.z_size, network_architecture['trans_net'][layer_i]))
-                all_weights['trans_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['trans_net'][layer_i]], dtype=tf.float32))
+                params_dict['trans_weights_l'+str(layer_i)] = tf.Variable(xavier_init(self.action_size+self.z_size, network_architecture['trans_net'][layer_i]))
+                params_dict['trans_biases_l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['trans_net'][layer_i]], dtype=tf.float32))
             else:
-                all_weights['trans_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['trans_net'][layer_i-1], network_architecture['trans_net'][layer_i]))
-                all_weights['trans_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['trans_net'][layer_i]], dtype=tf.float32))
+                params_dict['trans_weights_l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['trans_net'][layer_i-1], network_architecture['trans_net'][layer_i]))
+                params_dict['trans_biases_l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['trans_net'][layer_i]], dtype=tf.float32))
 
-        all_weights['trans_weights']['out_mean'] = tf.Variable(xavier_init(network_architecture['trans_net'][-1], self.z_size))
-        all_weights['trans_weights']['out_log_var'] = tf.Variable(xavier_init(network_architecture['trans_net'][-1], self.z_size))
-        all_weights['trans_biases']['out_mean'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
-        all_weights['trans_biases']['out_log_var'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
+        params_dict['trans_weights_out_mean'] = tf.Variable(xavier_init(network_architecture['trans_net'][-1], self.z_size))
+        params_dict['trans_weights_out_log_var'] = tf.Variable(xavier_init(network_architecture['trans_net'][-1], self.z_size))
+        params_dict['trans_biases_out_mean'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
+        params_dict['trans_biases_out_log_var'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
 
-        return all_weights
+
+
+
+
+        params_list = []
+        for layer in params_dict:
+
+            params_list.append(params_dict[layer])
+
+        return params_dict, params_list
+
+
+
 
 
     def l2_regularization(self):
 
         sum_ = 0
-        for net in self.network_weights:
+        for layer in self.params_dict:
 
-            for weights_biases in self.network_weights[net]:
-
-                sum_ += tf.reduce_sum(tf.square(self.network_weights[net][weights_biases]))
+            sum_ += tf.reduce_sum(tf.square(self.params_dict[layer]))
 
         return sum_
+
 
 
     def log_normal(self, z, mean, log_var):
@@ -177,46 +191,21 @@ class DKF():
         return log_norm
 
 
-    # def log_normal_x(self, x, mean, log_var):
-    #     '''
-    #     Log of normal distribution
-
-    #     z is [B, Z]
-    #     mean is [B, Z]
-    #     log_var is [B, Z]
-    #     output is [B]
-    #     '''
-
-    #     # term1 = tf.log(tf.reduce_prod(tf.exp(log_var_sq), reduction_indices=1))
-    #     term1 = tf.reduce_sum(log_var, reduction_indices=1) #sum over dimensions n_z so now its [B]
-
-    #     # [1]
-    #     term2 = self.input_size * tf.log(2*math.pi)
-
-    #     dif = tf.square(x - mean)
-    #     dif_cov = dif / tf.exp(log_var)
-    #     term3 = tf.reduce_sum(dif_cov, 1) #sum over dimensions so its [B]
-
-    #     all_ = term1 + term2 + term3
-    #     log_norm = -.5 * all_
-
-    #     return log_norm
-
 
     def recognition_net(self, input_):
         # input:[B,X+A+Z]
 
-        n_layers = len(self.network_weights['encoder_weights']) - 2 #minus 2 for the mean and var outputs
-        weights = self.network_weights['encoder_weights']
-        biases = self.network_weights['encoder_biases']
+        n_layers = len(self.network_architecture['encoder_net'])
+        # weights = self.network_weights['encoder_weights']
+        # biases = self.network_weights['encoder_biases']
 
         for layer_i in range(n_layers):
 
-            input_ = self.transfer_fct(tf.add(tf.matmul(input_, weights['l'+str(layer_i)]), biases['l'+str(layer_i)])) 
+            input_ = self.transfer_fct(tf.add(tf.matmul(input_, self.params_dict['encoder_weights_l'+str(layer_i)]), self.params_dict['encoder_biases_l'+str(layer_i)])) 
             #add batch norm here
 
-        z_mean = tf.add(tf.matmul(input_, weights['out_mean']), biases['out_mean'])
-        z_log_var = tf.add(tf.matmul(input_, weights['out_log_var']), biases['out_log_var'])
+        z_mean = tf.add(tf.matmul(input_, self.params_dict['encoder_weights_out_mean']), self.params_dict['encoder_biases_out_mean'])
+        z_log_var = tf.add(tf.matmul(input_, self.params_dict['encoder_weights_out_log_var']), self.params_dict['encoder_biases_out_log_var'])
 
         return z_mean, z_log_var
 
@@ -224,16 +213,16 @@ class DKF():
     def observation_net(self, input_):
         # input:[B,Z]
 
-        n_layers = len(self.network_weights['decoder_weights']) - 1 #minus 2 for the mean and var outputs
-        weights = self.network_weights['decoder_weights']
-        biases = self.network_weights['decoder_biases']
+        n_layers = len(self.network_architecture['decoder_net'])
+        # weights = self.network_weights['decoder_weights']
+        # biases = self.network_weights['decoder_biases']
 
         for layer_i in range(n_layers):
 
-            input_ = self.transfer_fct(tf.add(tf.matmul(input_, weights['l'+str(layer_i)]), biases['l'+str(layer_i)])) 
+            input_ = self.transfer_fct(tf.add(tf.matmul(input_, self.params_dict['decoder_weights_l'+str(layer_i)]), self.params_dict['decoder_biases_l'+str(layer_i)])) 
             #add batch norm here
 
-        x_mean = tf.add(tf.matmul(input_, weights['out_mean']), biases['out_mean'])
+        x_mean = tf.add(tf.matmul(input_, self.params_dict['decoder_weights_out_mean']), self.params_dict['decoder_biases_out_mean'])
         # x_log_var = tf.add(tf.matmul(input_, weights['out_log_var']), biases['out_log_var'])
 
         return x_mean
@@ -242,18 +231,18 @@ class DKF():
     def transition_net(self, input_):
         # input:[B,Z+A]
 
-        n_layers = len(self.network_weights['trans_weights'])  - 2 #minus 2 for the mean and var outputs
-        weights = self.network_weights['trans_weights']
-        biases = self.network_weights['trans_biases']
+        n_layers = len(self.network_architecture['trans_net'])
+        # weights = self.network_weights['trans_weights']
+        # biases = self.network_weights['trans_biases']
 
         for layer_i in range(n_layers):
 
-            input_ = self.transfer_fct(tf.add(tf.matmul(input_, weights['l'+str(layer_i)]), biases['l'+str(layer_i)])) 
+            input_ = self.transfer_fct(tf.add(tf.matmul(input_, self.params_dict['trans_weights_l'+str(layer_i)]), self.params_dict['trans_biases_l'+str(layer_i)])) 
             #add batch norm here
 
 
-        z_mean = tf.add(tf.matmul(input_, weights['out_mean']), biases['out_mean'])
-        z_log_var = tf.add(tf.matmul(input_, weights['out_log_var']), biases['out_log_var'])
+        z_mean = tf.add(tf.matmul(input_, self.params_dict['trans_weights_out_mean']), self.params_dict['trans_biases_out_mean'])
+        z_log_var = tf.add(tf.matmul(input_, self.params_dict['trans_weights_out_log_var']), self.params_dict['trans_biases_out_log_var'])
 
         return z_mean, z_log_var
 
@@ -407,7 +396,11 @@ class DKF():
 
 
 
-    def predict_future(self, prev_z, actions):
+
+
+
+
+    def predict_future(self, sess, prev_z, actions):
         '''
         prev_z [B,PZ]
         actions [B,timesteps_left, A]
@@ -432,13 +425,13 @@ class DKF():
                 prev_z_and_current_a = np.concatenate((np.reshape(particle_states[p], [1,self.z_size]), [actions[0][t]]), axis=1) #[B,ZA]
 
                 # [B,Z]
-                prior_mean, prior_log_var = self.sess.run(self.next_state, feed_dict={self.prev_z_and_current_a_: prev_z_and_current_a})
+                prior_mean, prior_log_var = sess.run(self.next_state, feed_dict={self.prev_z_and_current_a_: prev_z_and_current_a})
 
                 #sample new state
-                sample = self.sess.run(self.sample, feed_dict={self.prior_mean_: prior_mean, self.prior_logvar_: prior_log_var})
+                sample = sess.run(self.sample, feed_dict={self.prior_mean_: prior_mean, self.prior_logvar_: prior_log_var})
 
                 #decode state
-                x_mean = self.sess.run(self.current_emission, feed_dict={self.current_z_: sample})
+                x_mean = sess.run(self.current_emission, feed_dict={self.current_z_: sample})
                 this_timestep_obs.append(x_mean)
 
                 #set this sample as previous sample
@@ -450,175 +443,203 @@ class DKF():
 
 
 
+    def predict_future_only_mean(self, sess, prev_z, actions):
+        '''
+        prev_z [B,PZ]
+        actions [B,timesteps_left, A]
+
+        return [timesteps_left, P, X]
+        '''
+
+        #convert prev_z to a list of particle states
+        particle_states = []
+        for p in range(self.n_particles):
+            particle_states.append(prev_z[0][p*self.z_size : p*self.z_size+self.z_size])
+
+
+        #predict future 
+        obs = []
+        for t in range(len(actions[0])):
+
+            this_timestep_obs = []
+            for p in range(self.n_particles):
+
+                #transition state
+                prev_z_and_current_a = np.concatenate((np.reshape(particle_states[p], [1,self.z_size]), [actions[0][t]]), axis=1) #[B,ZA]
+
+                # [B,Z]
+                prior_mean, prior_log_var = sess.run(self.next_state, feed_dict={self.prev_z_and_current_a_: prev_z_and_current_a})
+
+                #sample new state
+                # sample = sess.run(self.sample, feed_dict={self.prior_mean_: prior_mean, self.prior_logvar_: prior_log_var})
+                sample = prior_mean
+
+                #decode state
+                x_mean = sess.run(self.current_emission, feed_dict={self.current_z_: sample})
+                this_timestep_obs.append(x_mean)
+
+                #set this sample as previous sample
+                particle_states[p] = np.reshape(sample, [-1])
+
+            obs.append(this_timestep_obs)
+
+        return np.array(obs) #this will be [TL, P, X]
+
+
                 
 
-    def train(self, get_data, steps=1000, display_step=10, path_to_load_variables='', path_to_save_variables=''):
+    # def train(self, get_data, steps=1000, display_step=10, path_to_load_variables='', path_to_save_variables=''):
 
 
-        saver = tf.train.Saver()
-        self.sess = tf.Session()
+    #     # saver = tf.train.Saver()
+    #     # self.sess = tf.Session()
 
-        if path_to_load_variables == '':
-            self.sess.run(tf.global_variables_initializer())
-        else:
-            #Load variables
-            saver.restore(self.sess, path_to_load_variables)
-            print 'loaded variables ' + path_to_load_variables
-
-
-        # Training cycle
-        for step in range(steps):
-
-            batch = []
-            batch_actions = []
-            while len(batch) != self.batch_size:
-
-                sequence, actions=get_data()
-                batch.append(sequence)
-                batch_actions.append(actions)
-
-            _ = self.sess.run(self.optimizer, feed_dict={self.x: batch, self.actions: batch_actions})
-
-            # Display
-            if step % display_step == 0:
-
-                cost = self.sess.run(self.elbo, feed_dict={self.x: batch, self.actions: batch_actions})
-                cost = -cost #because I want to see the NLL
-
-                p1,p2,p3 = self.sess.run([self.log_p_x_final, self.log_p_z_final, self.log_q_z_final ], feed_dict={self.x: batch, self.actions: batch_actions})
+    #     # if path_to_load_variables == '':
+    #     #     self.sess.run(tf.global_variables_initializer())
+    #     # else:
+    #     #     #Load variables
+    #     #     saver.restore(self.sess, path_to_load_variables)
+    #     #     print 'loaded variables ' + path_to_load_variables
 
 
-                print "Step:", '%04d' % (step+1), "cost=", "{:.5f}".format(cost), p1, p2, p3
+    #     # Training cycle
+    #     for step in range(steps):
+
+    #         batch = []
+    #         batch_actions = []
+    #         while len(batch) != self.batch_size:
+
+    #             sequence, actions=get_data()
+    #             batch.append(sequence)
+    #             batch_actions.append(actions)
+
+    #         _ = self.sess.run(self.optimizer, feed_dict={self.x: batch, self.actions: batch_actions})
+
+    #         # Display
+    #         if step % display_step == 0:
+
+    #             cost = self.sess.run(self.elbo, feed_dict={self.x: batch, self.actions: batch_actions})
+    #             cost = -cost #because I want to see the NLL
+
+    #             p1,p2,p3 = self.sess.run([self.log_p_x_final, self.log_p_z_final, self.log_q_z_final ], feed_dict={self.x: batch, self.actions: batch_actions})
 
 
-        if path_to_save_variables != '':
-            saver.save(self.sess, path_to_save_variables)
-            print 'Saved variables to ' + path_to_save_variables
-
-        print 'Done training'
+    #             print "Step:", '%04d' % (step+1), "cost=", "{:.5f}".format(cost), p1, p2, p3
 
 
+    #     if path_to_save_variables != '':
+    #         saver.save(self.sess, path_to_save_variables)
+    #         print 'Saved variables to ' + path_to_save_variables
 
+    #     print 'Done training'
 
 
 
-    def test(self, get_data, path_to_load_variables=''):
-
-        #get actions and frames
-        #give model all actions and only some frames
-        # so its two steps, 
-            # run normally while there are given frames, take last state
-            # give last state and generate next states and obs
-        #append gen to real 
-
-        #now im going to add multiple particles
-
-
-        saver = tf.train.Saver()
-        self.sess = tf.Session()
-
-        if path_to_load_variables == '':
-            self.sess.run(tf.global_variables_initializer())
-        else:
-            #Load variables
-            saver.restore(self.sess, path_to_load_variables)
-            print 'loaded variables ' + path_to_load_variables
 
 
 
-        batch = []
-        batch_actions = []
-        while len(batch) != self.batch_size:
+    # def test(self, get_data, path_to_load_variables=''):
 
-            sequence, actions=get_data()
-            batch.append(sequence)
-            batch_actions.append(actions)
+    #     #get actions and frames
+    #     #give model all actions and only some frames
+    #     # so its two steps, 
+    #         # run normally while there are given frames, take last state
+    #         # give last state and generate next states and obs
+    #     #append gen to real 
 
-        #chop up the sequence, only give it first 3 frames
-        n_time_steps_given = 3
-        given_sequence = []
-        given_actions = []
-        hidden_sequence = []
-        hidden_actions = []
-        for b in range(len(batch)):
-            given_sequence.append(batch[b][:n_time_steps_given])
-            given_actions.append(batch_actions[b][:n_time_steps_given])
-            #and the ones that are not used
-            hidden_sequence.append(batch[b][n_time_steps_given:])
-            hidden_actions.append(batch_actions[b][n_time_steps_given:])
+    #     #now im going to add multiple particles
+
+
+    #     saver = tf.train.Saver()
+    #     self.sess = tf.Session()
+
+    #     if path_to_load_variables == '':
+    #         self.sess.run(tf.global_variables_initializer())
+    #     else:
+    #         #Load variables
+    #         saver.restore(self.sess, path_to_load_variables)
+    #         print 'loaded variables ' + path_to_load_variables
+
+
+
+    #     batch = []
+    #     batch_actions = []
+    #     while len(batch) != self.batch_size:
+
+    #         sequence, actions=get_data()
+    #         batch.append(sequence)
+    #         batch_actions.append(actions)
+
+    #     #chop up the sequence, only give it first 3 frames
+    #     n_time_steps_given = 3
+    #     given_sequence = []
+    #     given_actions = []
+    #     hidden_sequence = []
+    #     hidden_actions = []
+    #     for b in range(len(batch)):
+    #         given_sequence.append(batch[b][:n_time_steps_given])
+    #         given_actions.append(batch_actions[b][:n_time_steps_given])
+    #         #and the ones that are not used
+    #         hidden_sequence.append(batch[b][n_time_steps_given:])
+    #         hidden_actions.append(batch_actions[b][n_time_steps_given:])
             
 
 
 
 
-        #Get states [T,B,PZ+3]
-        current_state = self.sess.run(self.particles_and_logprobs, feed_dict={self.x: given_sequence, self.actions: given_actions})
-        # Unpack, get states
-        current_state = current_state[n_time_steps_given-1][0][:self.z_size*self.n_particles]
+    #     #Get states [T,B,PZ+3]
+    #     current_state = self.sess.run(self.particles_and_logprobs, feed_dict={self.x: given_sequence, self.actions: given_actions})
+    #     # Unpack, get states
+    #     current_state = current_state[n_time_steps_given-1][0][:self.z_size*self.n_particles]
 
 
 
 
 
-        #Step 2: Predict future states and decode to frames
+    #     #Step 2: Predict future states and decode to frames
 
-        # print np.array(hidden_actions).shape #[B,leftovertime, A]
-        current_state = [current_state] #so it fits batch
+    #     # print np.array(hidden_actions).shape #[B,leftovertime, A]
+    #     current_state = [current_state] #so it fits batch
         
-        # [TL, P, B, X]
-        obs = self.predict_future(current_state, hidden_actions) 
+    #     # [TL, P, B, X]
+    #     obs = self.predict_future(current_state, hidden_actions) 
 
         
         
-        # [T-TL, X]
-        # given_s = list(given_sequence[0])
-        # [P, T-TL, X]
-        real_and_gen = []
-        for p in range(self.n_particles):
-            real_and_gen.append(list(given_sequence[0]))
+    #     # [T-TL, X]
+    #     # given_s = list(given_sequence[0])
+    #     # [P, T-TL, X]
+    #     real_and_gen = []
+    #     for p in range(self.n_particles):
+    #         real_and_gen.append(list(given_sequence[0]))
 
-        # [P, T-TL, X]
-        # print np.array(real_and_gen).shape
-        # fdsf
+    #     # [P, T-TL, X]
+    #     # print np.array(real_and_gen).shape
+    #     # fdsf
 
-        for obs_t in range(len(obs)):
-            # print 'obs_t', obs_t
-            for p in range(len(obs[obs_t])):
-                # print 'p', p
+    #     for obs_t in range(len(obs)):
+    #         # print 'obs_t', obs_t
+    #         for p in range(len(obs[obs_t])):
+    #             # print 'p', p
 
-                obs_t_p = np.reshape(obs[obs_t][p][0], [-1])
+    #             obs_t_p = np.reshape(obs[obs_t][p][0], [-1])
 
-                real_and_gen[p].append(obs_t_p)
+    #             real_and_gen[p].append(obs_t_p)
 
 
-        #[T,P,X]
-        real_and_gen = np.array(real_and_gen)
-        # print real_and_gen.shape #[T,X]
+    #     #[T,P,X]
+    #     real_and_gen = np.array(real_and_gen)
+    #     # print real_and_gen.shape #[T,X]
         
 
-        real_sequence = np.array(batch[0])
-        actions = np.array(batch_actions[0])
+    #     real_sequence = np.array(batch[0])
+    #     actions = np.array(batch_actions[0])
 
 
 
-        return real_sequence, actions, real_and_gen
+    #     return real_sequence, actions, real_and_gen
 
 
-
-    # def get_current_emission(self, state, prev_emission):
-
-
-    #     current_emission = self.sess.run(self.current_emission, feed_dict={self.current_z: state, self.prev_x: prev_emission})
-
-    #     return current_emission
-
-
-    # def get_next_state(self, prev_z, current_action, prev_x):
-
-
-    #     next_state = self.sess.run(self.next_state, feed_dict={self.prev_z: prev_z, self.prev_x: prev_x, self.current_action: current_action})
-
-    #     return next_state
 
 
 

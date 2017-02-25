@@ -115,6 +115,8 @@ def get_sequence(n_timesteps, obs_height, obs_width):
     # position = int(obs_height / 2)
     position = np.random.randint(0,obs_height)
 
+    stochasticity = .0001
+
 
     sequence_obs =[]
     sequence_actions =[]
@@ -130,10 +132,10 @@ def get_sequence(n_timesteps, obs_height, obs_width):
         #STOCHASTICITY
         val = np.random.rand()
         if direction == 1:
-            if val<.2:
+            if val<stochasticity:
                 direction = -1
         elif direction == -1:
-            if val<.2:
+            if val<stochasticity:
                 direction = 1
 
         position += ball_speed*direction
