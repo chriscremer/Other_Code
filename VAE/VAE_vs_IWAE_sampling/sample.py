@@ -49,7 +49,7 @@ print 'Test', test_x.shape
 
 list_of_models = ['vae','iwae']  #mog vae vs mog iwae
 # list_model_structures = range(4)
-list_of_k_samples = [1,10,50] #[1,5,50] #[1,3,12,60]
+list_of_k_samples = [50]#[1,10,50] #[1,5,50] #[1,3,12,60]
 # list_of_donts = [[]]  #[c,k]
 sampling_type =  'iwae'
 # sampling_type = 'vae'
@@ -65,7 +65,7 @@ batch_size = 5
 n_a0 = \
     dict(n_input=f_height*f_width, # 784 image
          encoder_net=[200,200], 
-         n_z=50,  # dimensionality of latent space
+         n_z=2,  # dimensionality of latent space
          decoder_net=[200,200]) 
 
 
@@ -87,8 +87,10 @@ for k in list_of_k_samples:
 
         for arch in list_of_archs_i:
 
-            saved_parameter_file = m + '_struc' + str(arch) + '_k' + str(k) + '_1000.ckpt' 
+            # saved_parameter_file = m + '_struc' + str(arch) + '_k' + str(k) + '_1000.ckpt' 
             # 60 means the train + validation set
+            saved_parameter_file = m + '_latent' + str(n_a0['n_z']) + '_k' + str(k) + '_epochs'+str(epochs)+'.ckpt' 
+
 
             print 'Current:', saved_parameter_file
 
@@ -131,7 +133,7 @@ for k in list_of_k_samples:
 
             # print k
             # print m
-            if k==1 and m=='vae':
+            if k==50 and m=='vae':
                 # print 'yess'
                 concat3 = concat2
 
@@ -163,8 +165,9 @@ for k in list_of_k_samples:
 
         for arch in list_of_archs_i:
 
-            saved_parameter_file = m + '_struc' + str(arch) + '_k' + str(k) + '_1000.ckpt' 
+            # saved_parameter_file = m + '_struc' + str(arch) + '_k' + str(k) + '_1000.ckpt' 
             # 60 means the train + validation set
+            saved_parameter_file = m + '_latent' + str(n_a0['n_z']) + '_k' + str(k) + '_epochs'+str(epochs)+'.ckpt' 
 
             print 'Current:', saved_parameter_file
 
@@ -207,7 +210,7 @@ for k in list_of_k_samples:
 
             # print k
             # print m
-            if k==1 and m=='vae':
+            if k==50 and m=='vae':
                 # print 'yess'
                 concat3 = concat2
 

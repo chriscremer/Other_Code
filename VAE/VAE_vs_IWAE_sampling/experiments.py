@@ -219,9 +219,9 @@ if __name__ == '__main__':
         print 'saving experiment log to ' +experiment_log
 
 
-        list_of_models = ['iwae', 'vae']  #mog vae vs mog iwae
+        list_of_models = ['vae'] #['iwae', 'vae']  #mog vae vs mog iwae
         # list_model_structures = range(4)
-        list_of_k_samples = [50,10,1] #[1,5,50] #[1,3,12,60]
+        list_of_k_samples = [50] #[50,10,1] #[1,5,50] #[1,3,12,60]
         # list_of_donts = [[]]  #[c,k]
 
         #Define model
@@ -233,7 +233,7 @@ if __name__ == '__main__':
         n_a0 = \
             dict(n_input=f_height*f_width, # 784 image
                  encoder_net=[200,200], 
-                 n_z=50,  # dimensionality of latent space
+                 n_z=2,  # dimensionality of latent space
                  decoder_net=[200,200]) 
 
         # n_a1 = \
@@ -256,6 +256,7 @@ if __name__ == '__main__':
 
         # list_of_archs = [n_a0, n_a1, n_a2]
         # list_of_archs_i = [0,1,2]
+        
     
         list_of_archs = [n_a0]
         list_of_archs_i = [0]
@@ -267,7 +268,9 @@ if __name__ == '__main__':
 
                 for arch in list_of_archs_i:
 
-                    saved_parameter_file = m + '_struc' + str(arch) + '_k' + str(k) + '_1000.ckpt' 
+                    # saved_parameter_file = m + '_struc' + str(arch) + '_k' + str(k) + '_1000.ckpt' 
+                    saved_parameter_file = m + '_latent' + str(n_a0['n_z']) + '_k' + str(k) + '_epochs'+str(epochs)+'.ckpt' 
+
                     # 60 means the train + validation set
 
                     print 'Current:', saved_parameter_file
@@ -276,11 +279,12 @@ if __name__ == '__main__':
 
                     # model = None
 
-                    #See if its already been trained
+                    # See if its already been trained
                     if saved_parameter_file in os.listdir(home+'/data'):
                         print 'Already trained'
                         with open(experiment_log, "a") as myfile:
                             myfile.write('Already trained\n')
+
                     else:
                         print 'Not trained yet'
                         with open(experiment_log, "a") as myfile:
@@ -308,6 +312,8 @@ if __name__ == '__main__':
                         with open(experiment_log, "a") as myfile:
                             myfile.write('time to train '+  str(time.time() - start) + '\n')
 
+                    #just train for now
+                    continue
 
                     #Evaluate
 
