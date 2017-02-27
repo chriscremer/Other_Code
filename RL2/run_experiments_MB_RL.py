@@ -28,9 +28,9 @@ if __name__ == "__main__":
 
 
     #Which task to run
-    train_both = 1
+    train_both = 0
     train_model = 0
-    train_policy = 0
+    train_policy = 1
     visualize = 0
 
 
@@ -45,27 +45,27 @@ if __name__ == "__main__":
     z_size = 20
     n_actions = 3
     reward_size = 1
-    batch_size = 5
+    batch_size = 10
     n_particles = 1
 
 
     #Specify where to save stuff
 
-    # save_to = home + '/data/' #for boltz
-    save_to = home + '/Documents/tmp/' # for mac
+    save_to = home + '/data/' #for boltz
+    # save_to = home + '/Documents/tmp/' # for mac
 
-    # model_path_to_load_variables=save_to + 'mb_rl_model_nosto.ckpt'
-    model_path_to_load_variables=''
+    model_path_to_load_variables=save_to + 'mb_rl_model_nosto.ckpt'
+    # model_path_to_load_variables=''
     model_path_to_save_variables=save_to + 'mb_rl_model_nosto.ckpt'
     # model_path_to_save_variables=''
 
-    # policy_path_to_load_variables=save_to + 'mb_rl_policy_nosto.ckpt'
-    policy_path_to_load_variables=''
+    policy_path_to_load_variables=save_to + 'mb_rl_policy_nosto.ckpt'
+    # policy_path_to_load_variables=''
     policy_path_to_save_variables=save_to + 'mb_rl_policy_nosto.ckpt'
     # path_to_save_variables=''
 
     #Tensorboard path
-    tb_path = policy_path_to_save_variables=save_to + 'tb_info'
+    tb_path =save_to + 'tb_info'
 
 
 
@@ -129,7 +129,8 @@ if __name__ == "__main__":
                         model_path_to_load_variables=model_path_to_load_variables,
                         model_path_to_save_variables=model_path_to_save_variables,
                         policy_path_to_load_variables=policy_path_to_load_variables,
-                        policy_path_to_save_variables=policy_path_to_save_variables)
+                        policy_path_to_save_variables=policy_path_to_save_variables,
+                        tb_path=tb_path)
 
         print 'Training model'
         mb_rl.train_model(get_data=get_data, steps=training_steps, display_step=display_step)
@@ -145,7 +146,8 @@ if __name__ == "__main__":
                         model_path_to_load_variables=model_path_to_load_variables,
                         model_path_to_save_variables=model_path_to_save_variables,
                         policy_path_to_load_variables=policy_path_to_load_variables,
-                        policy_path_to_save_variables=policy_path_to_save_variables)
+                        policy_path_to_save_variables=policy_path_to_save_variables,
+                        tb_path=tb_path)
 
         print 'Training policy'
         mb_rl.train_policy(get_data=get_data, steps=training_steps, display_step=display_step)

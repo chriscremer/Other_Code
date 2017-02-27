@@ -167,7 +167,7 @@ class MB_RL():
 
                 # j_eqn = self.sess.run(self.policy.objective)
 
-                print "Step:", '%04d' % (step), "elbo=", "{:.5f}".format(elbo), 'px', p1, 'pz', p2, 'qz', p3, #'   J', j_eqn
+                print "Step:", '%04d' % (step), "elbo=", "{:.5f}".format(elbo), 'px', p1, 'pz', p2, 'qz', p3 #'   J', j_eqn
 
 
         #Save parameters
