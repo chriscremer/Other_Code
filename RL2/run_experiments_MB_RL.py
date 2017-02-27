@@ -46,13 +46,13 @@ if __name__ == "__main__":
     n_actions = 3
     reward_size = 1
     batch_size = 5
-    n_particles = 10
+    n_particles = 1
 
 
     #Specify where to save stuff
 
-    save_to = home + '/data/' #for boltz
-    # save_to = home + '/Documents/tmp/' # for mac
+    # save_to = home + '/data/' #for boltz
+    save_to = home + '/Documents/tmp/' # for mac
 
     # model_path_to_load_variables=save_to + 'mb_rl_model_nosto.ckpt'
     model_path_to_load_variables=''
@@ -63,6 +63,9 @@ if __name__ == "__main__":
     policy_path_to_load_variables=''
     policy_path_to_save_variables=save_to + 'mb_rl_policy_nosto.ckpt'
     # path_to_save_variables=''
+
+    #Tensorboard path
+    tb_path = policy_path_to_save_variables=save_to + 'tb_info'
 
 
 
@@ -107,7 +110,8 @@ if __name__ == "__main__":
                         model_path_to_load_variables=model_path_to_load_variables,
                         model_path_to_save_variables=model_path_to_save_variables,
                         policy_path_to_load_variables=policy_path_to_load_variables,
-                        policy_path_to_save_variables=policy_path_to_save_variables)
+                        policy_path_to_save_variables=policy_path_to_save_variables,
+                        tb_path=tb_path)
 
         print 'Training both'
         mb_rl.train_both(get_data=get_data, steps=training_steps, display_step=display_step)

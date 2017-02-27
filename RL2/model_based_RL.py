@@ -23,7 +23,8 @@ class MB_RL():
 
     def __init__(self, model_architecture, policy_architecture, batch_size, n_particles, n_timesteps,
                         model_path_to_load_variables, model_path_to_save_variables,
-                        policy_path_to_load_variables, policy_path_to_save_variables):
+                        policy_path_to_load_variables, policy_path_to_save_variables,
+                        tb_path):
 
 
         self.batch_size = batch_size
@@ -46,6 +47,11 @@ class MB_RL():
         self.sess = tf.Session()
 
         
+        #For tensorboard
+        # train_writer = tf.summary.FileWriter(tb_path, self.sess.graph)
+        writer = tf.summary.FileWriter(tb_path, graph=tf.get_default_graph())
+
+
 
         #Init the optimizer params, Im not if this resets all the other params. need to check by loading params
         self.sess.run(tf.global_variables_initializer())
