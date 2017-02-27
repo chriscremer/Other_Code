@@ -17,7 +17,9 @@ from model_based_RL import MB_RL
 
 
 
-
+#now it must learn the reward function
+# so thats a change to the model, ie the observation net outputs the reward prediction
+# and the policy objective is through that net now.
 
 
 
@@ -26,8 +28,9 @@ if __name__ == "__main__":
 
 
     #Which task to run
-    train_both = 0
-    train_policy = 1
+    train_both = 1
+    train_model = 0
+    train_policy = 0
     visualize = 1
 
 
@@ -36,10 +39,12 @@ if __name__ == "__main__":
     n_timesteps = 40
     obs_height = 15
     obs_width = 2
-    training_steps = 8000
+    training_steps = 1000
+    display_step = 20
     n_input = obs_height * obs_width
     z_size = 20
     n_actions = 3
+    reward_size = 1
     batch_size = 5
     n_particles = 10
 
@@ -62,8 +67,8 @@ if __name__ == "__main__":
 
 
     def get_data():
-        sequence_obs, sequence_actions = buda.get_sequence(n_timesteps=n_timesteps, obs_height=obs_height, obs_width=obs_width)
-        return np.array(sequence_obs), np.array(sequence_actions)
+        sequence_obs, sequence_actions, sequence_rewards = buda.get_sequence(n_timesteps=n_timesteps, obs_height=obs_height, obs_width=obs_width)
+        return np.array(sequence_obs), np.array(sequence_actions), np.reshape(np.array(sequence_rewards), [-1,1])
 
 
     model_architecture = \
@@ -72,13 +77,15 @@ if __name__ == "__main__":
                 trans_net=[100,100],
                 n_input=n_input,
                 n_z=z_size,  
-                n_actions=n_actions) 
+                n_actions=n_actions,
+                reward_size=reward_size) 
 
     policy_architecture = \
         dict(   policy_net=[100,100],
                 z_size=z_size, 
                 action_size=n_actions,
-                input_size=n_input) 
+                input_size=n_input,
+                reward_size=reward_size) 
 
 
 
@@ -102,11 +109,26 @@ if __name__ == "__main__":
                         policy_path_to_load_variables=policy_path_to_load_variables,
                         policy_path_to_save_variables=policy_path_to_save_variables)
 
-        print 'Training'
-        mb_rl.train_both(get_data=get_data, steps=training_steps, display_step=20)
+        print 'Training both'
+        mb_rl.train_both(get_data=get_data, steps=training_steps, display_step=display_step)
 
 
 
+
+
+
+    if train_model==1:
+
+        mb_rl = MB_RL(model_architecture=model_architecture, 
+                        policy_architecture=policy_architecture, 
+                        batch_size=batch_size, n_particles=n_particles, n_timesteps=n_timesteps,
+                        model_path_to_load_variables=model_path_to_load_variables,
+                        model_path_to_save_variables=model_path_to_save_variables,
+                        policy_path_to_load_variables=policy_path_to_load_variables,
+                        policy_path_to_save_variables=policy_path_to_save_variables)
+
+        print 'Training model'
+        mb_rl.train_model(get_data=get_data, steps=training_steps, display_step=display_step)
 
 
 
@@ -122,7 +144,7 @@ if __name__ == "__main__":
                         policy_path_to_save_variables=policy_path_to_save_variables)
 
         print 'Training policy'
-        mb_rl.train_policy(get_data=get_data, steps=200, display_step=20)
+        mb_rl.train_policy(get_data=get_data, steps=training_steps, display_step=display_step)
 
 
 
@@ -135,13 +157,13 @@ if __name__ == "__main__":
 
         print 'Testing model and policy'
 
-        viz_timesteps = 40
+        viz_timesteps = n_timesteps
         viz_n_particles = 3
         viz_batch_size = 1
 
         def get_data():
-            sequence_obs, sequence_actions = buda.get_sequence(n_timesteps=viz_timesteps, obs_height=obs_height, obs_width=obs_width)
-            return np.array(sequence_obs), np.array(sequence_actions)
+            sequence_obs, sequence_actions, sequence_rewards = buda.get_sequence(n_timesteps=viz_timesteps, obs_height=obs_height, obs_width=obs_width)
+            return np.array(sequence_obs), np.array(sequence_actions), np.reshape(np.array(sequence_rewards), [-1,1])
 
         mb_rl = MB_RL(model_architecture=model_architecture, 
                 policy_architecture=policy_architecture, 
@@ -174,9 +196,8 @@ if __name__ == "__main__":
         print mean_traj.shape  #[P, T, X]
 
         #Get return for the trajectories
-        real_return = mb_rl.get_return(real_sequence)
+        real_return = buda.get_return(real_sequence)
         print real_return
-
 
 
 
@@ -240,7 +261,7 @@ if __name__ == "__main__":
             plt.ylabel('Traj ' + str(p), size=10)
             plt.yticks([])
             plt.xticks([])
-            return_p = mb_rl.get_return(real_and_gen[p])
+            return_p = buda.get_return(real_and_gen[p])
             axes_p.annotate(str(return_p), xy=(1, 1), xytext=(1.5,.5),size=10, xycoords='axes fraction')
 
             avg_traj += real_and_gen[p].T 
@@ -260,7 +281,7 @@ if __name__ == "__main__":
                 plt.ylabel('Mean Traj ', size=10)
                 plt.yticks([])
                 plt.xticks([])
-                return_p = mb_rl.get_return(mean_traj[0])
+                return_p = buda.get_return(mean_traj[0])
                 axes_mean.annotate(str(return_p), xy=(1, 1), xytext=(1.5,.5),size=10, xycoords='axes fraction')
 
 
@@ -269,7 +290,7 @@ if __name__ == "__main__":
                 plt.ylabel('Policy', size=10)
                 plt.yticks([])                
                 plt.xticks(size=7)
-                return_p = mb_rl.get_return(seq)
+                return_p = buda.get_return(seq)
                 axes_policy.annotate(str(return_p), xy=(1, 1), xytext=(1.5,.5),size=10, xycoords='axes fraction')
 
 
@@ -278,7 +299,7 @@ if __name__ == "__main__":
                 plt.ylabel('Policy View', size=10)
                 plt.yticks([])                
                 plt.xticks(size=7)
-                return_p = mb_rl.get_return(policy_gen_traj)
+                return_p = buda.get_return(policy_gen_traj)
                 axes_policy.annotate(str(return_p), xy=(1, 1), xytext=(1.5,.5),size=10, xycoords='axes fraction')
 
 

@@ -45,7 +45,7 @@ if __name__ == "__main__":
     batch_size = 5
     n_particles = 4
 
-    train = 0
+    train = 1
     visualize=1
 
     network_architecture = \

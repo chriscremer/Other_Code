@@ -32,6 +32,60 @@ home = expanduser("~")
 
 
 
+def reward_func(observation_t):
+    '''
+    observation_t: [X]
+    action_t [B,A], action isnt used for now, but it could be later
+        - some actions could cost more than otehrs for example
+    '''
+
+
+    #new one
+    r_mat = [
+            [0.,0.],
+            [1.,0.],
+            [2.,0],
+            [3.,0.],
+            [4.,0.],
+            [5.,0.],
+            [6.,0.],
+            [7.,0.],
+            [6.,0.],
+            [5.,0.],
+            [4.,0.],
+            [3.,0.],
+            [2.,0.],
+            [1.,0.],
+            [0.,0.],
+            ]
+
+
+    # print r_mat
+    # reward_matrix = tf.pack(r_mat)
+
+    reward_matrix = np.reshape(r_mat, [len(r_mat)*2])
+
+    # rewards = tf.reduce_sum(tf.multiply(tf.sigmoid(observation_t),reward_matrix), axis=1)
+    rewards = np.sum(observation_t*reward_matrix)#, axis=1)
+
+
+    return rewards #of the batch? yes [B]
+
+def get_return(traj):
+    '''
+    traj [T,X]
+    '''
+
+
+    return_ = 0
+
+    for t in range(len(traj)):
+        reward = reward_func(traj[t])
+        # reward = self.sess.run(self.policy.reward, feed_dict={self.policy.obs: [trajectory[t]]})
+        return_ += reward
+
+    return return_
+
 
 # def get_sequence(n_timesteps = 100, vector_height = 30, ball_speed = 1, direction = 1):
 
@@ -120,6 +174,7 @@ def get_sequence(n_timesteps, obs_height, obs_width):
 
     sequence_obs =[]
     sequence_actions =[]
+    sequence_rewards = []
     for t in range(n_timesteps):
 
         action = np.random.randint(0,3)
@@ -159,13 +214,18 @@ def get_sequence(n_timesteps, obs_height, obs_width):
         #     concat_timesteps = np.concatenate((concat_timesteps, obs), axis=1)
         #     concat_actions = np.concatenate((concat_actions, action_mat), axis=1)
 
+        reward = reward_func(obs)
+
         sequence_obs.append(obs)
         sequence_actions.append(action_mat)
+        sequence_rewards.append(reward)
+
+
 
     # print concat_timesteps.shape
     # print concat_actions.shape
 
-    return sequence_obs, sequence_actions
+    return sequence_obs, sequence_actions, sequence_rewards
 
 
 

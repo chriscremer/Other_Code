@@ -30,29 +30,34 @@ class DKF():
         self.z_size = network_architecture["n_z"]
         self.input_size = network_architecture["n_input"]
         self.action_size = network_architecture["n_actions"]
+        self.reward_size = network_architecture["reward_size"]
+
         self.reg_param = .00001
 
 
         # Graph Input: [B,T,X], [B,T,A]
         self.x = tf.placeholder(tf.float32, [None, None, self.input_size])
         self.actions = tf.placeholder(tf.float32, [None, None, self.action_size])
+        self.rewards = tf.placeholder(tf.float32, [None, None, self.reward_size])
+
         
         #Variables
         self.params_dict, self.params_list = self._initialize_weights(network_architecture)
 
         #Objective
-        self.elbo = self.Model(self.x, self.actions)
+        self.elbo = self.Model(self.x, self.actions, self.rewards)
         self.cost = -self.elbo + (self.reg_param * self.l2_regularization())
 
         #Optimize
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=1e-02).minimize(self.cost)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=1e-02).minimize(self.cost, var_list=self.params_list)
 
         #Evaluation
         self.prev_z_and_current_a_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size+self.action_size])
         self.next_state = self.transition_net(self.prev_z_and_current_a_)
 
         self.current_z_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
-        self.current_emission = tf.sigmoid(self.observation_net(self.current_z_))
+        obs, reward_mean, reward_log_var = self.observation_net(self.current_z_)
+        self.current_emission = tf.sigmoid(obs)
 
         self.prior_mean_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
         self.prior_logvar_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
@@ -119,7 +124,11 @@ class DKF():
         params_dict['decoder_biases_out_mean'] = tf.Variable(tf.zeros([self.input_size], dtype=tf.float32))
         # all_weights['decoder_weights']['out_log_var'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.input_size))
         # all_weights['decoder_biases']['out_log_var'] = tf.Variable(tf.zeros([self.input_size], dtype=tf.float32))
+        params_dict['decoder_weights_reward_mean'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.reward_size))
+        params_dict['decoder_biases_reward_mean'] = tf.Variable(tf.zeros([self.reward_size], dtype=tf.float32))
 
+        params_dict['decoder_weights_reward_log_var'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.reward_size))
+        params_dict['decoder_biases_reward_log_var'] = tf.Variable(tf.zeros([self.reward_size], dtype=tf.float32))
 
 
         #Generator/Transition net q(z|z-1,u)
@@ -138,8 +147,6 @@ class DKF():
         params_dict['trans_weights_out_log_var'] = tf.Variable(xavier_init(network_architecture['trans_net'][-1], self.z_size))
         params_dict['trans_biases_out_mean'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
         params_dict['trans_biases_out_log_var'] = tf.Variable(tf.zeros([self.z_size], dtype=tf.float32))
-
-
 
 
 
@@ -192,6 +199,33 @@ class DKF():
 
 
 
+    def log_normal_reward(self, rew, mean, log_var):
+        '''
+        Log of normal distribution
+
+        z is [B, Z]
+        mean is [B, Z]
+        log_var is [B, Z]
+        output is [B]
+        '''
+
+        # term1 = tf.log(tf.reduce_prod(tf.exp(log_var_sq), reduction_indices=1))
+        term1 = tf.reduce_sum(log_var, reduction_indices=1) #sum over dimensions n_z so now its [B]
+
+        # [1]
+        term2 = self.reward_size * tf.log(2*math.pi)
+
+        dif = tf.square(rew - mean)
+        dif_cov = dif / tf.exp(log_var)
+        term3 = tf.reduce_sum(dif_cov, 1) #sum over dimensions so its [B]
+
+        all_ = term1 + term2 + term3
+        log_norm = -.5 * all_
+
+        return log_norm
+
+
+
     def recognition_net(self, input_):
         # input:[B,X+A+Z]
 
@@ -225,7 +259,11 @@ class DKF():
         x_mean = tf.add(tf.matmul(input_, self.params_dict['decoder_weights_out_mean']), self.params_dict['decoder_biases_out_mean'])
         # x_log_var = tf.add(tf.matmul(input_, weights['out_log_var']), biases['out_log_var'])
 
-        return x_mean
+        reward_mean = tf.add(tf.matmul(input_, self.params_dict['decoder_weights_reward_mean']), self.params_dict['decoder_biases_reward_mean'])
+        reward_log_var = tf.add(tf.matmul(input_, self.params_dict['decoder_weights_reward_log_var']), self.params_dict['decoder_biases_reward_log_var'])
+
+
+        return x_mean, reward_mean, reward_log_var
 
 
     def transition_net(self, input_):
@@ -252,20 +290,21 @@ class DKF():
 
 
 
-    def Model(self, x, actions):
+    def Model(self, x, actions, rewards):
         '''
         x: [B,T,X]
         actions: [B,T,A]
+        rewards: [B,T,R]
 
         output: elbo scalar
         '''
 
         #TODO allow for multiple particles
 
-        def fn_over_timesteps(particle_and_logprobs, xa_t):
+        def fn_over_timesteps(particle_and_logprobs, xar):
             '''
             particle_and_logprobs: [B,PZ+3]
-            xa_t: [B,X+A]
+            xa_t: [B,X+A+R]
 
             Steps: encode, sample, decode, calc logprobs
 
@@ -276,9 +315,12 @@ class DKF():
 
             #unpack previous particle_and_logprobs, prev_z:[B,PZ], ignore prev logprobs
             prev_particles = tf.slice(particle_and_logprobs, [0,0], [self.batch_size, self.n_particles*self.z_size])
-            #unpack xa_t
-            current_x = tf.slice(xa_t, [0,0], [self.batch_size, self.input_size]) #[B,X]
-            current_a = tf.slice(xa_t, [0,self.input_size], [self.batch_size, self.action_size]) #[B,A]
+            #unpack xar
+            current_x = tf.slice(xar, [0,0], [self.batch_size, self.input_size]) #[B,X]
+            current_a = tf.slice(xar, [0,self.input_size], [self.batch_size, self.action_size]) #[B,A]
+            current_r = tf.slice(xar, [0,self.input_size+self.action_size], [self.batch_size, self.reward_size]) #[B,A]
+
+            xa = tf.concat(1, [current_x, current_a])
 
             log_pzs = []
             log_qzs = []
@@ -296,7 +338,7 @@ class DKF():
 
                 #ENCODE
                 #Concatenate current x, current action, prev_z: [B,XA+Z]
-                concatenate_all = tf.concat(1, [xa_t, prev_z])
+                concatenate_all = tf.concat(1, [xa, prev_z])
                 #Predict q(z|z-1,u,x): [B,Z] [B,Z]
                 z_mean, z_log_var = self.recognition_net(concatenate_all)
 
@@ -307,7 +349,8 @@ class DKF():
 
 
                 #DECODE  p(x|z): [B,X]
-                x_mean = self.observation_net(this_particle)
+                x_mean, reward_mean, reward_log_var = self.observation_net(this_particle)
+
 
                 #CALC LOGPROBS
 
@@ -327,9 +370,15 @@ class DKF():
                                  1) #sum over dimensions
                 log_p_x = -reconstr_loss
 
+                #Likelihood of reward. Gaussian
+                log_p_r = self.log_normal_reward(current_r, reward_mean, reward_log_var)
+
+                log_p_x_comb = log_p_x + log_p_r
+
+
                 log_pzs.append(log_p_z)
                 log_qzs.append(log_q_z)
-                log_pxs.append(log_p_x)
+                log_pxs.append(log_p_x_comb)
                 new_particles.append(this_particle)
 
 
@@ -356,8 +405,14 @@ class DKF():
 
         # Put obs and actions to together [B,T,X+A]
         x_and_a = tf.concat(2, [x, actions])
-        # Transpose so that timesteps is first [T,B,X+A]
-        x_and_a = tf.transpose(x_and_a, [1,0,2])
+
+        #[B,T,X+A+R]
+        x_a_r = tf.concat(2, [x_and_a, rewards])
+        # print x_a_r
+
+        # Transpose so that timesteps is first [T,B,X+A+R]
+        x_a_r = tf.transpose(x_a_r, [1,0,2])
+        # print x_a_r
 
         #Make initializations for scan
         z_init = tf.zeros([self.batch_size, self.n_particles*self.z_size])
@@ -369,7 +424,7 @@ class DKF():
         # print fn_over_timesteps
         # print x_and_a
         # print initializer
-        self.particles_and_logprobs = tf.scan(fn_over_timesteps, x_and_a, initializer=initializer)
+        self.particles_and_logprobs = tf.scan(fn_over_timesteps, x_a_r, initializer=initializer)
 
 
 

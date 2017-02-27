@@ -85,15 +85,17 @@ class MB_RL():
 
             batch = []
             batch_actions = []
+            batch_rewards = []
             while len(batch) != self.batch_size:
 
-                sequence, actions=get_data()
+                sequence, actions, rewards =get_data()
                 batch.append(sequence)
                 batch_actions.append(actions)
+                batch_rewards.append(rewards)
 
 
             # self.train_model(batch, batch_actions)
-            _ = self.sess.run(self.model.optimizer, feed_dict={self.model.x: batch, self.model.actions: batch_actions})
+            _ = self.sess.run(self.model.optimizer, feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
 
             # self.train_policy()
             _ = self.sess.run(self.policy.optimizer)
@@ -101,7 +103,7 @@ class MB_RL():
             # # Display
             if step % display_step == 0:
 
-                elbo, p1,p2,p3 = self.sess.run([self.model.elbo, self.model.log_p_x_final, self.model.log_p_z_final, self.model.log_q_z_final], feed_dict={self.model.x: batch, self.model.actions: batch_actions})
+                elbo, p1,p2,p3 = self.sess.run([self.model.elbo, self.model.log_p_x_final, self.model.log_p_z_final, self.model.log_q_z_final], feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
 
                 j_eqn = self.sess.run(self.policy.objective)
 
@@ -129,27 +131,33 @@ class MB_RL():
 
     def train_model(self, get_data, steps=1000, display_step=10):
 
+        # print 'aaaaa'
         for step in range(steps):
 
             batch = []
             batch_actions = []
+            batch_rewards = []
             while len(batch) != self.batch_size:
 
-                sequence, actions=get_data()
+                sequence, actions, rewards =get_data()
                 batch.append(sequence)
                 batch_actions.append(actions)
+                batch_rewards.append(rewards)
+                # print 'bbbbb'
 
 
+            # print 'cccccc'
             # self.train_model(batch, batch_actions)
-            _ = self.sess.run(self.model.optimizer, feed_dict={self.model.x: batch, self.model.actions: batch_actions})
+            _ = self.sess.run(self.model.optimizer, feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
 
             # self.train_policy()
             # _ = self.sess.run(self.policy.optimizer)
+            # print 'dddddd'
 
             # # Display
             if step % display_step == 0:
 
-                elbo, p1,p2,p3 = self.sess.run([self.model.elbo, self.model.log_p_x_final, self.model.log_p_z_final, self.model.log_q_z_final], feed_dict={self.model.x: batch, self.model.actions: batch_actions})
+                elbo, p1,p2,p3 = self.sess.run([self.model.elbo, self.model.log_p_x_final, self.model.log_p_z_final, self.model.log_q_z_final], feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
 
                 # j_eqn = self.sess.run(self.policy.objective)
 
@@ -179,13 +187,16 @@ class MB_RL():
 
         for step in range(steps):
 
-            batch = []
-            batch_actions = []
-            while len(batch) != self.batch_size:
 
-                sequence, actions=get_data()
-                batch.append(sequence)
-                batch_actions.append(actions)
+            # batch = []
+            # batch_actions = []
+            # batch_rewards = []
+            # while len(batch) != self.batch_size:
+
+            #     sequence, actions, rewards =get_data()
+            #     batch.append(sequence)
+            #     batch_actions.append(actions)
+            #     batch_rewards.append(rewards)
 
 
             # self.train_model(batch, batch_actions)
@@ -290,27 +301,34 @@ class MB_RL():
 
         batch = []
         batch_actions = []
+        batch_rewards = []
         while len(batch) != self.batch_size:
 
-            sequence, actions=get_data()
+            sequence, actions, rewards=get_data()
             batch.append(sequence)
             batch_actions.append(actions)
+            batch_rewards.append(rewards)
 
         #chop up the sequence, only give it first 3 frames
         n_time_steps_given = 3
         given_sequence = []
         given_actions = []
+        given_rewards = []
         hidden_sequence = []
         hidden_actions = []
+        hidden_rewards = []
         for b in range(len(batch)):
             given_sequence.append(batch[b][:n_time_steps_given])
             given_actions.append(batch_actions[b][:n_time_steps_given])
+            given_rewards.append(batch_rewards[b][:n_time_steps_given])
             #and the ones that are not used
             hidden_sequence.append(batch[b][n_time_steps_given:])
             hidden_actions.append(batch_actions[b][n_time_steps_given:])
+            hidden_rewards.append(batch_rewards[b][n_time_steps_given:])
+
             
         #Get states [T,B,PZ+3]
-        current_state = self.sess.run(self.model.particles_and_logprobs, feed_dict={self.model.x: given_sequence, self.model.actions: given_actions})
+        current_state = self.sess.run(self.model.particles_and_logprobs, feed_dict={self.model.x: given_sequence, self.model.actions: given_actions, self.model.rewards: given_rewards})
         # Unpack, get states
         current_state = current_state[n_time_steps_given-1][0][:self.model.z_size*self.model.n_particles]
 
@@ -416,70 +434,38 @@ class MB_RL():
 
 
 
-    def get_return(self, trajectory):
-        '''
-        traj: [T,X]
-        '''
+    # def get_return(self, trajectory):
+    #     '''
+    #     traj: [T,X]
+    #     '''
 
-        return_ = 0
+    #     return_ = 0
 
-        for t in range(len(trajectory)):
+    #     for t in range(len(trajectory)):
 
-            reward = self.sess.run(self.policy.reward, feed_dict={self.policy.obs: [trajectory[t]]})
+    #         reward = 
 
-            #show frame and reward
-            # print trajectory[t].shape
-            # print reward
-            # print np.reshape(trajectory[t],[15,2])
-            # print
+    #         reward = self.sess.run(self.policy.reward, feed_dict={self.policy.obs: [trajectory[t]]})
 
-            # scipy.misc.imshow(np.reshape(trajectory[t], [15,2]))
+    #         #show frame and reward
+    #         # print trajectory[t].shape
+    #         # print reward
+    #         # print np.reshape(trajectory[t],[15,2])
+    #         # print
 
-            # fig = plt.figure()
-            # plt.imshow(np.reshape(trajectory[t],[15,2]), vmin=0, vmax=1, cmap="gray")
-            # plt.show()
+    #         # scipy.misc.imshow(np.reshape(trajectory[t], [15,2]))
 
-            return_ += reward
+    #         # fig = plt.figure()
+    #         # plt.imshow(np.reshape(trajectory[t],[15,2]), vmin=0, vmax=1, cmap="gray")
+    #         # plt.show()
 
-        return return_[0]
+    #         return_ += reward
+
+    #     return return_[0]
 
 
 
     def viz_traj_of_policy(self, n_timesteps):
-
-
-        # particle_states = []
-        # for p in range(n_particles):
-        #     particle_states.append(prev_z[0][p*self.z_size : p*self.z_size+self.z_size])
-
-
-        # #predict future 
-        # obs = []
-        # for t in range(n_timesteps):
-
-        #     this_timestep_obs = []
-        #     for p in range(self.n_particles):
-
-        #         #transition state
-        #         prev_z_and_current_a = np.concatenate((np.reshape(particle_states[p], [1,self.z_size]), [actions[0][t]]), axis=1) #[B,ZA]
-
-        #         # [B,Z]
-        #         prior_mean, prior_log_var = sess.run(self.next_state, feed_dict={self.prev_z_and_current_a_: prev_z_and_current_a})
-
-        #         #sample new state
-        #         sample = sess.run(self.sample, feed_dict={self.prior_mean_: prior_mean, self.prior_logvar_: prior_log_var})
-
-        #         #decode state
-        #         x_mean = sess.run(self.current_emission, feed_dict={self.current_z_: sample})
-        #         this_timestep_obs.append(x_mean)
-
-        #         #set this sample as previous sample
-        #         particle_states[p] = np.reshape(sample, [-1])
-
-        #     obs.append(this_timestep_obs)
-
-        # return np.array(obs) #this will be [TL, P, X]
-
 
         obs = []
 
@@ -490,16 +476,7 @@ class MB_RL():
             #predict action
             action_ = self.sess.run(self.policy.action_, feed_dict={self.policy.state_: state})
 
-            # print action_
-            
-            # print action_
-            # action = np.reshape(action_, [self.policy.action_size])
-
             prev_z_and_current_a = np.concatenate((state, action_), axis=1) #[B,ZA]
-
-            # print prev_z_and_current_a.shape
-            # fdsf
-
 
             # [B,Z]
             prior_mean, prior_log_var = self.sess.run(self.model.next_state, feed_dict={self.model.prev_z_and_current_a_: prev_z_and_current_a})

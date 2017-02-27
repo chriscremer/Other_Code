@@ -27,6 +27,7 @@ class Policy():
         self.input_size = network_architecture["input_size"]
         self.z_size = network_architecture["z_size"]
         self.action_size = network_architecture["action_size"]
+        self.reward_size = network_architecture["reward_size"]
 
         # Graph Input: [B,T,Z]
         # self.input = tf.placeholder(tf.float32, [None, None, self.z_size])
@@ -47,8 +48,8 @@ class Policy():
         self.state_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
         self.action_ = self.predict_action(self.state_)
 
-        self.obs = tf.placeholder(tf.float32, [self.batch_size, self.input_size])
-        self.reward = self.reward_func(self.obs)
+        # self.obs = tf.placeholder(tf.float32, [self.batch_size, self.input_size])
+        # self.reward = self.reward_func(self.obs)
 
 
     def _initialize_weights(self, network_architecture):
@@ -132,59 +133,59 @@ class Policy():
 
 
 
-    def reward_func(self, observation_t):
-        '''
-        observation_t: [B,X]
-        action_tL [B,A], action isnt used for now, but it could be later
-            - some actions could cost more than otehrs for example
-        '''
+    # def reward_func(self, observation_t):
+    #     '''
+    #     observation_t: [B,X]
+    #     action_tL [B,A], action isnt used for now, but it could be later
+    #         - some actions could cost more than otehrs for example
+    #     '''
 
-        # forw = tf.range(tf.shape(observation_t)[1]/2, dtype='float32') 
-        # #if this doesnt work, can make a tensor of zeros of length X, then call shape on it.
+    #     # forw = tf.range(tf.shape(observation_t)[1]/2, dtype='float32') 
+    #     # #if this doesnt work, can make a tensor of zeros of length X, then call shape on it.
 
-        # # back = tf.reverse_v2(tf.range(tf.shape(observation_t)[1]/2), axis=0)
-        # back = tf.range(tf.shape(observation_t)[1]/2, dtype='float32') 
+    #     # # back = tf.reverse_v2(tf.range(tf.shape(observation_t)[1]/2), axis=0)
+    #     # back = tf.range(tf.shape(observation_t)[1]/2, dtype='float32') 
 
-        # # [X]
-        # reward_matrix = tf.concat(0, [forw, back])
+    #     # # [X]
+    #     # reward_matrix = tf.concat(0, [forw, back])
 
-        #this was previous one
-        # reward_matrix = tf.ones([self.input_size])
-        # range_f = np.array([float(x) for x in range(0,self.input_size/2)], dtype='float32')
-        # range_r = np.array([float(x) for x in range(0,self.input_size/2)], dtype='float32')[::-1]
-        # r_mat = np.concatenate([range_f, range_r], axis=0)
-
-
-        #new one
-        r_mat = [
-                [0.,0.],
-                [1.,0.],
-                [2.,0],
-                [3.,0.],
-                [4.,0.],
-                [5.,0.],
-                [6.,0.],
-                [7.,0.],
-                [6.,0.],
-                [5.,0.],
-                [4.,0.],
-                [3.,0.],
-                [2.,0.],
-                [1.,0.],
-                [0.,0.],
-                ]
+    #     #this was previous one
+    #     # reward_matrix = tf.ones([self.input_size])
+    #     # range_f = np.array([float(x) for x in range(0,self.input_size/2)], dtype='float32')
+    #     # range_r = np.array([float(x) for x in range(0,self.input_size/2)], dtype='float32')[::-1]
+    #     # r_mat = np.concatenate([range_f, range_r], axis=0)
 
 
-        # print r_mat
-        reward_matrix = tf.pack(r_mat)
+    #     #new one
+    #     r_mat = [
+    #             [0.,0.],
+    #             [1.,0.],
+    #             [2.,0],
+    #             [3.,0.],
+    #             [4.,0.],
+    #             [5.,0.],
+    #             [6.,0.],
+    #             [7.,0.],
+    #             [6.,0.],
+    #             [5.,0.],
+    #             [4.,0.],
+    #             [3.,0.],
+    #             [2.,0.],
+    #             [1.,0.],
+    #             [0.,0.],
+    #             ]
 
-        reward_matrix = tf.reshape(reward_matrix, [1, self.input_size])
 
-        # rewards = tf.reduce_sum(tf.multiply(tf.sigmoid(observation_t),reward_matrix), axis=1)
-        rewards = tf.reduce_sum(tf.multiply(observation_t,reward_matrix), axis=1)
+    #     # print r_mat
+    #     reward_matrix = tf.pack(r_mat)
+
+    #     reward_matrix = tf.reshape(reward_matrix, [1, self.input_size])
+
+    #     # rewards = tf.reduce_sum(tf.multiply(tf.sigmoid(observation_t),reward_matrix), axis=1)
+    #     rewards = tf.reduce_sum(tf.multiply(observation_t,reward_matrix), axis=1)
 
 
-        return rewards #of the batch? [B]
+    #     return rewards #of the batch? [B]
 
 
 
@@ -287,10 +288,11 @@ class Policy():
                 z_t = tf.add(z_mean, tf.mul(tf.sqrt(tf.exp(z_log_var)), eps))
 
                 #use model to get emission of state [B,X]
-                x_t = self.model.observation_net(z_t)
+                x_t, r_mean, r_log_var = self.model.observation_net(z_t)
 
                 #calc reward [B]
-                r_t = self.reward_func(tf.sigmoid(x_t))
+                # r_t = self.reward_func(tf.sigmoid(x_t))
+                r_t = r_mean
 
                 #save it 
                 particles.append(z_t)
