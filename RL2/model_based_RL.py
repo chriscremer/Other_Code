@@ -170,11 +170,11 @@ class MB_RL():
         if self.model_path_to_save_variables != '':
             saver.save(self.sess, self.model_path_to_save_variables)
             print 'Saved variables to ' + self.model_path_to_save_variables
-        #Policy
-        # saver = tf.train.Saver(self.policy.params_dict)
-        # if self.policy_path_to_save_variables != '':
-        #     saver.save(self.sess, self.policy_path_to_save_variables)
-        #     print 'Saved variables to ' + self.policy_path_to_save_variables
+        # Policy
+        saver = tf.train.Saver(self.policy.params_dict)
+        if self.policy_path_to_save_variables != '':
+            saver.save(self.sess, self.policy_path_to_save_variables)
+            print 'Saved variables to ' + self.policy_path_to_save_variables
 
         print 'Done training model\n'
         return
@@ -265,10 +265,10 @@ class MB_RL():
 
         #Save parameters
         #Model
-        # saver = tf.train.Saver(self.model.params_dict)
-        # if self.model_path_to_save_variables != '':
-        #     saver.save(self.sess, self.model_path_to_save_variables)
-        #     print 'Saved variables to ' + self.model_path_to_save_variables
+        saver = tf.train.Saver(self.model.params_dict)
+        if self.model_path_to_save_variables != '':
+            saver.save(self.sess, self.model_path_to_save_variables)
+            print 'Saved variables to ' + self.model_path_to_save_variables
         #Policy
         saver = tf.train.Saver(self.policy.params_dict)
         if self.policy_path_to_save_variables != '':

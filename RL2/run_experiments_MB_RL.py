@@ -31,7 +31,7 @@ if __name__ == "__main__":
     train_both = 1
     train_model = 0
     train_policy = 0
-    visualize = 1
+    visualize = 0
 
 
 
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     n_timesteps = 40
     obs_height = 15
     obs_width = 2
-    training_steps = 1000
+    training_steps = 10000
     display_step = 20
     n_input = obs_height * obs_width
     z_size = 20
@@ -51,16 +51,16 @@ if __name__ == "__main__":
 
     #Specify where to save stuff
 
-    # save_to = home + '/data/' #for boltz
-    save_to = home + '/Documents/tmp/' # for mac
+    save_to = home + '/data/' #for boltz
+    # save_to = home + '/Documents/tmp/' # for mac
 
-    model_path_to_load_variables=save_to + 'mb_rl_model_nosto.ckpt'
-    # model_path_to_load_variables=''
+    # model_path_to_load_variables=save_to + 'mb_rl_model_nosto.ckpt'
+    model_path_to_load_variables=''
     model_path_to_save_variables=save_to + 'mb_rl_model_nosto.ckpt'
     # model_path_to_save_variables=''
 
-    policy_path_to_load_variables=save_to + 'mb_rl_policy_nosto.ckpt'
-    # policy_path_to_load_variables=''
+    # policy_path_to_load_variables=save_to + 'mb_rl_policy_nosto.ckpt'
+    policy_path_to_load_variables=''
     policy_path_to_save_variables=save_to + 'mb_rl_policy_nosto.ckpt'
     # path_to_save_variables=''
 
