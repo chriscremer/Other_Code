@@ -46,10 +46,10 @@ class DKF():
         self.params_dict, self.params_list = self._initialize_weights(network_architecture)
 
         #Objective
-        with tf.name_scope('model_elbo'):
-            self.elbo = self.Model(self.x, self.actions, self.rewards)
+        with tf.name_scope('model_objective'):
+            with tf.name_scope('model_elbo'):
+                self.elbo = self.Model(self.x, self.actions, self.rewards)
 
-        with tf.name_scope('model_cost'):
             self.cost = -self.elbo + (self.reg_param * self.l2_regularization())
 
         #Optimize

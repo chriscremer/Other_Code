@@ -30,8 +30,8 @@ if __name__ == "__main__":
     #Which task to run
     train_both = 0
     train_model = 0
-    train_policy = 1
-    visualize = 0
+    train_policy = 0
+    visualize = 1
 
 
 
@@ -51,8 +51,8 @@ if __name__ == "__main__":
 
     #Specify where to save stuff
 
-    save_to = home + '/data/' #for boltz
-    # save_to = home + '/Documents/tmp/' # for mac
+    # save_to = home + '/data/' #for boltz
+    save_to = home + '/Documents/tmp/' # for mac
 
     model_path_to_load_variables=save_to + 'mb_rl_model_nosto.ckpt'
     # model_path_to_load_variables=''
@@ -177,7 +177,8 @@ if __name__ == "__main__":
                 model_path_to_load_variables=model_path_to_save_variables,
                 model_path_to_save_variables='',
                 policy_path_to_load_variables=policy_path_to_save_variables,
-                policy_path_to_save_variables='')
+                policy_path_to_save_variables='',
+                tb_path=tb_path)
 
 
 
