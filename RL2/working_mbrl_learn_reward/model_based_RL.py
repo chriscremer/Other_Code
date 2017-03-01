@@ -145,7 +145,7 @@ class MB_RL():
             batch_rewards = []
             while len(batch) != self.batch_size:
 
-                sequence, actions, rewards = get_data()
+                sequence, actions, rewards =get_data()
                 batch.append(sequence)
                 batch_actions.append(actions)
                 batch_rewards.append(rewards)
@@ -154,10 +154,7 @@ class MB_RL():
 
             # print 'cccccc'
             # self.train_model(batch, batch_actions)
-
-
             _ = self.sess.run(self.model.optimizer, feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
-
 
             # self.train_policy()
             # _ = self.sess.run(self.policy.optimizer)
@@ -189,7 +186,7 @@ class MB_RL():
         return
 
 
-    def train_policy(self, steps=1000, display_step=10):
+    def train_policy(self, get_data, steps=1000, display_step=10):
 
         #will have to call the model
         # _ = self.sess.run(self.policy.optimizer)
@@ -482,14 +479,8 @@ class MB_RL():
 
         for t in range(n_timesteps):
 
-            print t
-
             #predict action
             action_ = self.sess.run(self.policy.action_, feed_dict={self.policy.state_: state})
-
-            print 'action ' + str(action_)
-            print 'state ' + str(state)
-
 
             prev_z_and_current_a = np.concatenate((state, action_), axis=1) #[B,ZA]
 
@@ -499,10 +490,7 @@ class MB_RL():
             #sample new state
             sample = self.sess.run(self.model.sample, feed_dict={self.model.prior_mean_: prior_mean, self.model.prior_logvar_: prior_log_var})
 
-            x_mean, r_mean = self.sess.run(self.model.current_emission, feed_dict={self.model.current_z_: sample})
-            
-            print x_mean, r_mean
-
+            x_mean = self.sess.run(self.model.current_emission, feed_dict={self.model.current_z_: sample})
             obs.append(np.reshape(x_mean, [-1]))
 
             state = sample

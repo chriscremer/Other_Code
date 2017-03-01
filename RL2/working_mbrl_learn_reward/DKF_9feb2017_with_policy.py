@@ -37,9 +37,9 @@ class DKF():
 
         # Graph Input: [B,T,X], [B,T,A]
         with tf.name_scope('model_input'):
-            self.x = tf.placeholder(tf.float32, [None, None, self.input_size], name='Observations_B_T_X')
-            self.actions = tf.placeholder(tf.float32, [None, None, self.action_size], name='Actions_B_T_A')
-            self.rewards = tf.placeholder(tf.float32, [None, None, self.reward_size], name='Rewards_B_T_R')
+            self.x = tf.placeholder(tf.float32, [None, None, self.input_size])
+            self.actions = tf.placeholder(tf.float32, [None, None, self.action_size])
+            self.rewards = tf.placeholder(tf.float32, [None, None, self.reward_size])
 
         
         #Variables
@@ -62,10 +62,8 @@ class DKF():
             self.next_state = self.transition_net(self.prev_z_and_current_a_)
 
             self.current_z_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
-            obs, obs_log_var, reward_mean, reward_log_var = self.observation_net(self.current_z_)
-            # self.current_emission = tf.sigmoid(obs)
-            self.current_emission = obs, reward_mean
-
+            obs, reward_mean, reward_log_var = self.observation_net(self.current_z_)
+            self.current_emission = tf.sigmoid(obs)
 
             self.prior_mean_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
             self.prior_logvar_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
@@ -135,10 +133,8 @@ class DKF():
 
             params_dict['decoder_weights_out_mean'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.input_size))
             params_dict['decoder_biases_out_mean'] = tf.Variable(tf.zeros([self.input_size], dtype=tf.float32))
-            
-            params_dict['decoder_weights_out_log_var'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.input_size))
-            params_dict['decoder_biases_out_log_var'] = tf.Variable(tf.zeros([self.input_size], dtype=tf.float32))
-            
+            # all_weights['decoder_weights']['out_log_var'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.input_size))
+            # all_weights['decoder_biases']['out_log_var'] = tf.Variable(tf.zeros([self.input_size], dtype=tf.float32))
             params_dict['decoder_weights_reward_mean'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.reward_size))
             params_dict['decoder_biases_reward_mean'] = tf.Variable(tf.zeros([self.reward_size], dtype=tf.float32))
 
@@ -192,59 +188,7 @@ class DKF():
 
 
 
-    # def log_normal(self, z, mean, log_var):
-    #     '''
-    #     Log of normal distribution
-
-    #     z is [B, Z]
-    #     mean is [B, Z]
-    #     log_var is [B, Z]
-    #     output is [B]
-    #     '''
-
-    #     # term1 = tf.log(tf.reduce_prod(tf.exp(log_var_sq), reduction_indices=1))
-    #     term1 = tf.reduce_sum(log_var, reduction_indices=1) #sum over dimensions n_z so now its [B]
-
-    #     # [1]
-    #     term2 = self.z_size * tf.log(2*math.pi)
-
-    #     dif = tf.square(z - mean)
-    #     dif_cov = dif / tf.exp(log_var)
-    #     term3 = tf.reduce_sum(dif_cov, 1) #sum over dimensions so its [B]
-
-    #     all_ = term1 + term2 + term3
-    #     log_norm = -.5 * all_
-
-    #     return log_norm
-
-
-
-    # def log_normal_reward(self, rew, mean, log_var):
-    #     '''
-    #     Log of normal distribution
-
-    #     z is [B, Z]
-    #     mean is [B, Z]
-    #     log_var is [B, Z]
-    #     output is [B]
-    #     '''
-
-    #     # term1 = tf.log(tf.reduce_prod(tf.exp(log_var_sq), reduction_indices=1))
-    #     term1 = tf.reduce_sum(log_var, reduction_indices=1) #sum over dimensions n_z so now its [B]
-
-    #     # [1]
-    #     term2 = self.reward_size * tf.log(2*math.pi)
-
-    #     dif = tf.square(rew - mean)
-    #     dif_cov = dif / tf.exp(log_var)
-    #     term3 = tf.reduce_sum(dif_cov, 1) #sum over dimensions so its [B]
-
-    #     all_ = term1 + term2 + term3
-    #     log_norm = -.5 * all_
-
-    #     return log_norm
-
-    def log_normal(self, input_, mean, log_var, dimensions):
+    def log_normal(self, z, mean, log_var):
         '''
         Log of normal distribution
 
@@ -258,9 +202,9 @@ class DKF():
         term1 = tf.reduce_sum(log_var, reduction_indices=1) #sum over dimensions n_z so now its [B]
 
         # [1]
-        term2 = dimensions * tf.log(2*math.pi)
+        term2 = self.z_size * tf.log(2*math.pi)
 
-        dif = tf.square(input_ - mean)
+        dif = tf.square(z - mean)
         dif_cov = dif / tf.exp(log_var)
         term3 = tf.reduce_sum(dif_cov, 1) #sum over dimensions so its [B]
 
@@ -268,6 +212,35 @@ class DKF():
         log_norm = -.5 * all_
 
         return log_norm
+
+
+
+    def log_normal_reward(self, rew, mean, log_var):
+        '''
+        Log of normal distribution
+
+        z is [B, Z]
+        mean is [B, Z]
+        log_var is [B, Z]
+        output is [B]
+        '''
+
+        # term1 = tf.log(tf.reduce_prod(tf.exp(log_var_sq), reduction_indices=1))
+        term1 = tf.reduce_sum(log_var, reduction_indices=1) #sum over dimensions n_z so now its [B]
+
+        # [1]
+        term2 = self.reward_size * tf.log(2*math.pi)
+
+        dif = tf.square(rew - mean)
+        dif_cov = dif / tf.exp(log_var)
+        term3 = tf.reduce_sum(dif_cov, 1) #sum over dimensions so its [B]
+
+        all_ = term1 + term2 + term3
+        log_norm = -.5 * all_
+
+        return log_norm
+
+
 
     def recognition_net(self, input_):
         # input:[B,X+A+Z]
@@ -307,13 +280,13 @@ class DKF():
                 #add batch norm here
 
             x_mean = tf.add(tf.matmul(input_, self.params_dict['decoder_weights_out_mean']), self.params_dict['decoder_biases_out_mean'])
-            x_log_var = tf.add(tf.matmul(input_, self.params_dict['decoder_weights_out_log_var']), self.params_dict['decoder_biases_out_log_var'])
+            # x_log_var = tf.add(tf.matmul(input_, weights['out_log_var']), biases['out_log_var'])
 
             reward_mean = tf.add(tf.matmul(input_, self.params_dict['decoder_weights_reward_mean']), self.params_dict['decoder_biases_reward_mean'])
             reward_log_var = tf.add(tf.matmul(input_, self.params_dict['decoder_weights_reward_log_var']), self.params_dict['decoder_biases_reward_log_var'])
 
 
-        return x_mean, x_log_var, reward_mean, reward_log_var
+        return x_mean, reward_mean, reward_log_var
 
 
     def transition_net(self, input_):
@@ -407,7 +380,7 @@ class DKF():
 
                     with tf.name_scope('decode_sample'):
                         #DECODE  p(x|z): [B,X]
-                        x_mean, x_log_var, reward_mean, reward_log_var = self.observation_net(this_particle)
+                        x_mean, reward_mean, reward_log_var = self.observation_net(this_particle)
 
 
                     #CALC LOGPROBS
@@ -416,23 +389,22 @@ class DKF():
 
                         #Prior p(z|z-1,u) [B,Z]
                         prior_mean, prior_log_var = self.transition_net(prev_z_and_current_a) #[B,Z]
-                        log_p_z = self.log_normal(this_particle, prior_mean, prior_log_var, self.z_size) #[B]
+                        log_p_z = self.log_normal(this_particle, prior_mean, prior_log_var) #[B]
 
                         #Recognition q(z|z-1,x,u)
-                        log_q_z = self.log_normal(this_particle, z_mean, z_log_var, self.z_size)
+                        log_q_z = self.log_normal(this_particle, z_mean, z_log_var)
 
 
                         #Likelihood p(x|z)  Bernoulli
-                        # reconstr_loss = \
-                        #     tf.reduce_sum(tf.maximum(x_mean, 0) 
-                        #                 - x_mean * current_x
-                        #                 + tf.log(1 + tf.exp(-tf.abs(x_mean))),
-                        #                  1) #sum over dimensions
-                        # log_p_x = -reconstr_loss
-                        log_p_x = self.log_normal(current_x, x_mean, x_log_var, self.input_size)
+                        reconstr_loss = \
+                            tf.reduce_sum(tf.maximum(x_mean, 0) 
+                                        - x_mean * current_x
+                                        + tf.log(1 + tf.exp(-tf.abs(x_mean))),
+                                         1) #sum over dimensions
+                        log_p_x = -reconstr_loss
 
                         #Likelihood of reward. Gaussian
-                        log_p_r = self.log_normal(current_r, reward_mean, reward_log_var, self.reward_size)
+                        log_p_r = self.log_normal_reward(current_r, reward_mean, reward_log_var)
 
                         log_p_x_comb = log_p_x + log_p_r
 
