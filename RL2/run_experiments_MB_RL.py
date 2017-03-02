@@ -29,8 +29,8 @@ if __name__ == "__main__":
 
     #Which task to run
     train_both = 0
-    train_model = 0
-    train_policy = 1
+    train_model = 1
+    train_policy = 0
     visualize = 0
 
 
