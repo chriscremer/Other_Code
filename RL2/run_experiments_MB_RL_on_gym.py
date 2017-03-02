@@ -15,6 +15,13 @@ from model_based_RL import MB_RL
 
 import gym
 
+import pickle
+
+from skimage.measure import block_reduce
+from skimage.color import rgb2grey
+
+from PIL import Image
+
 
 #now we'll see if this MB-RL works on Open AI gym
 
@@ -22,117 +29,146 @@ import gym
 if __name__ == "__main__":
 
     #Which task to run
+    make_data = 0
     train_both = 0
-    train_model = 0
+    train_model = 1
     train_policy = 0
     # train_policy_using_policy = 1
     visualize = 0
-    run_gym = 1
+    run_gym = 0
+
+    # save_to = home + '/data/' #for boltz
+    save_to = home + '/Documents/tmp/' # for mac
+
+    if make_data ==1:
+
+        #GYM environment
+
+        env = gym.make('CartPole-v0')
+        # env = gym.make('MountainCar-v0')
+
+        # obs_dim = env.observation_space.shape[0]
+        obs_dim = 24*56
+        print 'obs dims ' + str(obs_dim)
+
+        num_actions = env.action_space.n
+        print 'action dims ' + str(num_actions)
 
 
-    #GYM environment
+        #Make dataset
+        print 'Making dataset'
+        MAX_EPISODES = 100
+        MAX_STEPS    = 200
+        dataset = []
+        lenghts = []
+        for i_episode in xrange(MAX_EPISODES):
+            if i_episode %10==0:
+                print i_episode
 
-    env = gym.make('CartPole-v0')
+            obs = env.reset()
 
+            observations = []
+            actions = []
+            rewards = []
+            for t in xrange(MAX_STEPS):
 
-    # env = gym.make('MountainCar-v0')
+                rgb_array = env.render(mode='rgb_array') 
 
-    
+                # image = rgb_array[150:350,100:500,:] #.shape 200, 400, 3
+                image = rgb_array[180:300,160:440,:]  #200 300 3
 
-    obs_dim = env.observation_space.shape[0]
-    num_actions = env.action_space.n
+                # image = np.reshape(image, [-1])
 
-    print obs_dim
-
-
-
-
-    #Make dataset
-    print 'Making dataset'
-    dataset = []
-    MAX_EPISODES = 100
-    MAX_STEPS    = 200
-
-    # episode_history = deque(maxlen=100)
-    for i_episode in xrange(MAX_EPISODES):
-
-        # if i_episode %10 == 0:
-        #     print i_episode
-
-        # initialize
-        obs = env.reset()
-        # total_rewards = 0
-
-        observations = []
-        actions = []
-        rewards = []
-
-        for t in xrange(MAX_STEPS):
+                # print image.shape
+                image = block_reduce(image, block_size=(5, 5, 1), func=np.max) #now its 40 60 3 = 7200
+                # print image.shape
 
 
-            # env.render()
-            # action = pg_reinforce.sampleAction([state])  
-            action = np.random.randint(num_actions)
-            obs, reward, done, _ = env.step(action)
+                image = Image.fromarray(image, 'RGB').convert('L')
 
-            # print reward
+                image = np.array(image)
+                image_shape = image.shape
+                image = np.reshape(image, [image_shape[0], image_shape[1], 1]) #24, 56, 1
 
-            # total_rewards += reward
+                image = image / 255.
 
-            reward = -10 if done else 0.1
-            one_hot_action = np.zeros((num_actions))
-            one_hot_action[action] = 1.
+                # image = np.array(image)
+                # print image.shape
+                # fasfs
 
-            observations.append(obs)
-            actions.append(one_hot_action)
-            rewards.append(reward)
+                #show pil grey image, dont have the third dimension, image is 2d array
+                # image = Image.fromarray(image, 'L')
+                # image.show()
+                # fsd
 
-            # print obs
+                # show rgb array
+                # plt.imshow(image) 
+                # plt.show()
+                # fsdaf
 
-            # state = next_state
+                action = np.random.randint(num_actions)
+                obs, reward, done, _ = env.step(action)
 
+                reward = -10 if done else 0.1
+                one_hot_action = np.zeros((num_actions))
+                one_hot_action[action] = 1.
+
+                observations.append(image)
+                actions.append(one_hot_action)
+                rewards.append(reward)
+
+                if done: break
+
+
+            for i in range(1, len(rewards)):
+                rewards[-i-1] = rewards[-i-1] + rewards[-i]
+
+            for i in range(len(rewards)):
+                rewards[i] = [rewards[i]]
+            # rewards = np.array(rewards) - np.mean(rewards)
+
+            # print rewards
+            dataset.append([observations, actions, rewards])
+            lenghts.append(len(observations))
+
+        print 'Dataset size:' +str(len(dataset))
+        print 'Average length:' + str(np.mean(lenghts))
+        print 'Min length:' + str(np.min(lenghts))
+        print 'Max length:' + str(np.max(lenghts))
+
+        # print len(dataset[0][0])
+        # print len(dataset[1][0])
 
             
-
-            if done: break
-
-        # print len(observations)
-
-        for i in range(1, len(rewards)):
-            rewards[-i-1] = rewards[-i-1] + rewards[-i]
-
-        for i in range(len(rewards)):
-            rewards[i] = [rewards[i]]
-        # rewards = np.array(rewards) - np.mean(rewards)
-
-        # print rewards
-        dataset.append([observations, actions, rewards])
-
-    print 'Dataset size:' +str(len(dataset))
-    # print len(dataset[0][0])
-    # print len(dataset[1][0])
-
-    
+        with open(save_to+'cartpole_data2.pkl', 'wb') as f:
+            pickle.dump(dataset, f)
+        print 'saved data to: ' +save_to+'cartpole_data2.pkl'
+        fsaf
 
 
 
 
+    #load data
+    print 'loading data'
+    with open(save_to+'cartpole_data2.pkl', 'rb') as f:
+        dataset = pickle.load(f)
+    print 'loaded data from: ' +save_to+'cartpole_data2.pkl'
 
 
-
-
-
+    # for i in range(len(dataset[0][0][0])):#.shape
+    #     print dataset[0][0][0][i]
+    # fadsf
 
 
     #Define the sequence
-    n_timesteps = 40
+    n_timesteps = 40 #for simulated trajs
     # obs_height = 15
     # obs_width = 2
     training_steps = 1000
-    display_step = 20
-    # n_input = obs_height * obs_width
+    display_step = 1
+    n_input = 1344
     z_size = 20
-    n_actions = num_actions
+    n_actions = 2
     reward_size = 1
     batch_size = 1
     n_particles = 1
@@ -143,14 +179,14 @@ if __name__ == "__main__":
     # save_to = home + '/data/' #for boltz
     save_to = home + '/Documents/tmp/' # for mac
 
-    model_path_to_load_variables=save_to + 'mb_rl_model_cartpole.ckpt'
-    # model_path_to_load_variables=''
-    model_path_to_save_variables=save_to + 'mb_rl_model_cartpole.ckpt'
+    # model_path_to_load_variables=save_to + 'mb_rl_model_cartpole.ckpt'
+    model_path_to_load_variables=''
+    model_path_to_save_variables=save_to + 'mb_rl_model_cartpole_pixels.ckpt'
     # model_path_to_save_variables=''
 
-    policy_path_to_load_variables=save_to + 'mb_rl_policy_cartpole.ckpt'
-    # policy_path_to_load_variables=''
-    policy_path_to_save_variables=save_to + 'mb_rl_policy_cartpole.ckpt'
+    # policy_path_to_load_variables=save_to + 'mb_rl_policy_cartpole.ckpt'
+    policy_path_to_load_variables=''
+    policy_path_to_save_variables=save_to + 'mb_rl_policy_cartpole_pixels.ckpt'
     # path_to_save_variables=''
 
     #Tensorboard path
@@ -170,10 +206,10 @@ if __name__ == "__main__":
 
 
     model_architecture = \
-        dict(   encoder_net=[20,20],
-                decoder_net=[20,20],
+        dict(   encoder_net=[100,100],
+                decoder_net=[100,100],
                 trans_net=[20,20],
-                n_input=obs_dim,
+                n_input=n_input,
                 n_z=z_size,  
                 n_actions=n_actions,
                 reward_size=reward_size) 
@@ -182,7 +218,7 @@ if __name__ == "__main__":
         dict(   policy_net=[20,20],
                 z_size=z_size, 
                 action_size=n_actions,
-                input_size=obs_dim,
+                input_size=n_input,
                 reward_size=reward_size) 
 
 
@@ -466,10 +502,13 @@ if __name__ == "__main__":
                 rgb_array = env.render(mode='rgb_array') 
 
 
-                # from matplotlib import pyplot as PLT
-                # PLT.imshow(rgb_array)
+                from matplotlib import pyplot as PLT
+                PLT.imshow(rgb_array[100:500,5:200,:])
+                PLT.show()
+
+                # PLT.imshow(rgb_array[10:50,5:20,:])
                 # PLT.show()
-                
+
                 # print rgb_array.shape
 
                 # fasdfa
@@ -534,6 +573,7 @@ if __name__ == "__main__":
 
 
 
+    print 'Done everything'
 
 
 

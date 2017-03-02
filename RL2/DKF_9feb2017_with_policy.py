@@ -21,7 +21,7 @@ class DKF():
         self.batch_size = batch_size
 
         self.transfer_fct=tf.nn.softplus #tf.tanh
-        self.learning_rate = 0.001
+        self.learning_rate = 0.00001
 
         # self.n_time_steps = n_time_steps #this shouldnt be used
         self.n_particles = n_particles
@@ -34,10 +34,18 @@ class DKF():
 
         self.reg_param = .00001
 
+        self.image_height = 24
+        self.image_width = 56
+        self.n_channels = 1
+
+        self.filter_height = 5
+        self.filter_width = 5
+        self.filter_out_channels1 = 3
+
 
         # Graph Input: [B,T,X], [B,T,A]
         with tf.name_scope('model_input'):
-            self.x = tf.placeholder(tf.float32, [None, None, self.input_size], name='Observations_B_T_X')
+            self.x = tf.placeholder(tf.float32, [None, None, self.image_height, self.image_width, self.n_channels], name='Observations_B_T_X')
             self.actions = tf.placeholder(tf.float32, [None, None, self.action_size], name='Actions_B_T_A')
             self.rewards = tf.placeholder(tf.float32, [None, None, self.reward_size], name='Rewards_B_T_R')
 
@@ -78,8 +86,8 @@ class DKF():
             self.prev_z_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
             self.current_a_ = tf.placeholder(tf.float32, [self.batch_size, self.action_size])
             #Concatenate current x, current action, prev_z: [B,XA+Z]
-            concatenate_all = tf.concat(1, [self.current_observation, self.current_a_])
-            concatenate_all = tf.concat(1, [concatenate_all, self.prev_z_])
+            # concatenate_all = tf.concat(1, [self.current_observation, self.current_a_])
+            concatenate_all = tf.concat(1, [self.current_observation, self.prev_z_])
             #Predict q(z|z-1,u,x): [B,Z] [B,Z]
             self.z_mean_, z_log_var = self.recognition_net(concatenate_all)
 
@@ -105,9 +113,12 @@ class DKF():
 
         with tf.name_scope('encoder_vars'):
 
+            params_dict['conv_weights'] = tf.Variable(tf.truncated_normal([self.filter_height, self.filter_width, self.n_channels, self.filter_out_channels1], stddev=0.1))
+            params_dict['conv_biases'] = tf.Variable(tf.truncated_normal([self.filter_out_channels1], stddev=0.1))
+
             for layer_i in range(len(network_architecture['encoder_net'])):
                 if layer_i == 0:
-                    params_dict['encoder_weights_l'+str(layer_i)] = tf.Variable(xavier_init(self.input_size+self.action_size+self.z_size, network_architecture['encoder_net'][layer_i]))
+                    params_dict['encoder_weights_l'+str(layer_i)] = tf.Variable(xavier_init(29, network_architecture['encoder_net'][layer_i]))
                     params_dict['encoder_biases_l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
                 else:
                     params_dict['encoder_weights_l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['encoder_net'][layer_i-1], network_architecture['encoder_net'][layer_i]))
@@ -192,58 +203,6 @@ class DKF():
 
 
 
-    # def log_normal(self, z, mean, log_var):
-    #     '''
-    #     Log of normal distribution
-
-    #     z is [B, Z]
-    #     mean is [B, Z]
-    #     log_var is [B, Z]
-    #     output is [B]
-    #     '''
-
-    #     # term1 = tf.log(tf.reduce_prod(tf.exp(log_var_sq), reduction_indices=1))
-    #     term1 = tf.reduce_sum(log_var, reduction_indices=1) #sum over dimensions n_z so now its [B]
-
-    #     # [1]
-    #     term2 = self.z_size * tf.log(2*math.pi)
-
-    #     dif = tf.square(z - mean)
-    #     dif_cov = dif / tf.exp(log_var)
-    #     term3 = tf.reduce_sum(dif_cov, 1) #sum over dimensions so its [B]
-
-    #     all_ = term1 + term2 + term3
-    #     log_norm = -.5 * all_
-
-    #     return log_norm
-
-
-
-    # def log_normal_reward(self, rew, mean, log_var):
-    #     '''
-    #     Log of normal distribution
-
-    #     z is [B, Z]
-    #     mean is [B, Z]
-    #     log_var is [B, Z]
-    #     output is [B]
-    #     '''
-
-    #     # term1 = tf.log(tf.reduce_prod(tf.exp(log_var_sq), reduction_indices=1))
-    #     term1 = tf.reduce_sum(log_var, reduction_indices=1) #sum over dimensions n_z so now its [B]
-
-    #     # [1]
-    #     term2 = self.reward_size * tf.log(2*math.pi)
-
-    #     dif = tf.square(rew - mean)
-    #     dif_cov = dif / tf.exp(log_var)
-    #     term3 = tf.reduce_sum(dif_cov, 1) #sum over dimensions so its [B]
-
-    #     all_ = term1 + term2 + term3
-    #     log_norm = -.5 * all_
-
-    #     return log_norm
-
     def log_normal(self, input_, mean, log_var, dimensions):
         '''
         Log of normal distribution
@@ -269,16 +228,38 @@ class DKF():
 
         return log_norm
 
-    def recognition_net(self, input_):
+
+
+    def recognition_net(self, current_frame_prev_state):
         # input:[B,X+A+Z]
 
 
         with tf.name_scope('recognition_net'):
 
+            #get frame 
+            current_frame = tf.slice(current_frame_prev_state, [0, 0], [self.batch_size, self.input_size])
+            prev_state = tf.slice(current_frame_prev_state, [0, self.input_size], [self.batch_size, self.z_size])
+
+            current_frame = tf.reshape(current_frame, [self.batch_size, self.image_height, self.image_width, self.n_channels])
+
+            current_frame = tf.nn.conv2d(current_frame, self.params_dict['conv_weights'], strides=[1, 4, 4, 1], padding='VALID')
+            current_frame = self.transfer_fct(tf.nn.bias_add(current_frame, self.params_dict['conv_biases']))
+            current_frame = tf.nn.max_pool(current_frame,ksize=[1, 4, 4, 1], strides=[1, 4, 4, 1], padding='VALID')
+            current_frame = tf.nn.local_response_normalization(current_frame)
+
+            current_frame = tf.reshape(current_frame, [self.batch_size, -1])
+            # print current_frame #shape is [1, 1056]
+            # fsdf
+
+            #concat
+            input_ = tf.concat(1, [current_frame, prev_state])
+
 
             n_layers = len(self.network_architecture['encoder_net'])
             # weights = self.network_weights['encoder_weights']
             # biases = self.network_weights['encoder_biases']
+
+
 
             for layer_i in range(n_layers):
 
@@ -395,7 +376,7 @@ class DKF():
                     with tf.name_scope('encode'):
                         #ENCODE
                         #Concatenate current x, current action, prev_z: [B,XA+Z]
-                        concatenate_all = tf.concat(1, [xa, prev_z])
+                        concatenate_all = tf.concat(1, [current_x, prev_z])
                         #Predict q(z|z-1,u,x): [B,Z] [B,Z]
                         z_mean, z_log_var = self.recognition_net(concatenate_all)
 
@@ -416,23 +397,24 @@ class DKF():
 
                         #Prior p(z|z-1,u) [B,Z]
                         prior_mean, prior_log_var = self.transition_net(prev_z_and_current_a) #[B,Z]
-                        log_p_z = self.log_normal(this_particle, prior_mean, prior_log_var, self.z_size) #[B]
+
+                        log_p_z = self.log_normal(this_particle, prior_mean, prior_log_var, self.z_size) #/ self.z_size #[B]
 
                         #Recognition q(z|z-1,x,u)
-                        log_q_z = self.log_normal(this_particle, z_mean, z_log_var, self.z_size)
+                        log_q_z = self.log_normal(this_particle, z_mean, z_log_var, self.z_size) #/ self.z_size 
 
 
                         #Likelihood p(x|z)  Bernoulli
-                        # reconstr_loss = \
-                        #     tf.reduce_sum(tf.maximum(x_mean, 0) 
-                        #                 - x_mean * current_x
-                        #                 + tf.log(1 + tf.exp(-tf.abs(x_mean))),
-                        #                  1) #sum over dimensions
-                        # log_p_x = -reconstr_loss
-                        log_p_x = self.log_normal(current_x, x_mean, x_log_var, self.input_size)
+                        reconstr_loss = \
+                            tf.reduce_sum(tf.maximum(x_mean, 0) 
+                                        - x_mean * current_x
+                                        + tf.log(1 + tf.exp(-tf.abs(x_mean))),
+                                         1) #sum over dimensions
+                        log_p_x = -reconstr_loss
+                        # log_p_x = self.log_normal(current_x, x_mean, x_log_var, self.input_size) #/ self.input_size 
 
                         #Likelihood of reward. Gaussian
-                        log_p_r = self.log_normal(current_r, reward_mean, reward_log_var, self.reward_size)
+                        log_p_r = self.log_normal(current_r, reward_mean, reward_log_var, self.reward_size) #/ self.reward_size 
 
                         log_p_x_comb = log_p_x + log_p_r
 
@@ -468,6 +450,9 @@ class DKF():
         with tf.name_scope('Prep_for_scan'):
 
             # Put obs and actions to together [B,T,X+A]
+
+            x = tf.reshape(x, [self.batch_size, -1, self.image_height*self.image_width*self.n_channels])
+
             x_and_a = tf.concat(2, [x, actions])
 
             #[B,T,X+A+R]

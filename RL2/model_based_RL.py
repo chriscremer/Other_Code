@@ -155,8 +155,15 @@ class MB_RL():
             # print 'cccccc'
             # self.train_model(batch, batch_actions)
 
+            # elbo, p1,p2,p3 = self.sess.run([self.model.elbo, self.model.log_p_x_final, self.model.log_p_z_final, self.model.log_q_z_final], feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
+            # print "Step:", '%04d' % (step), "elbo=", "{:.5f}".format(elbo), 'px', p1, 'pz', p2, 'qz', p3 #'   J', j_eqn
+
 
             _ = self.sess.run(self.model.optimizer, feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
+
+
+            # elbo, p1,p2,p3 = self.sess.run([self.model.elbo, self.model.log_p_x_final, self.model.log_p_z_final, self.model.log_q_z_final], feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
+            # print "Step:", '%04d' % (step), "elbo=", "{:.5f}".format(elbo), 'px', p1, 'pz', p2, 'qz', p3 #'   J', j_eqn
 
 
             # self.train_policy()
@@ -212,7 +219,10 @@ class MB_RL():
             # _ = self.sess.run(self.model.optimizer, feed_dict={self.model.x: batch, self.model.actions: batch_actions})
 
             # self.train_policy()
+
+
             _ = self.sess.run(self.policy.optimizer)
+
 
             # # Display
             if step % display_step == 0:
