@@ -296,7 +296,7 @@ class Policy():
                 z_t = tf.add(z_mean, tf.mul(tf.sqrt(tf.exp(z_log_var)), eps))
 
                 #use model to get emission of state [B,X]
-                x_t, x_log_var, r_mean, r_log_var = self.model.observation_net(z_t)
+                x_t, r_mean, r_log_var = self.model.observation_net(z_t)
 
                 #calc reward [B]
                 # r_t = self.reward_func(tf.sigmoid(x_t))
@@ -305,9 +305,7 @@ class Policy():
                 #save it 
                 particles.append(z_t)
                 particle_rewards.append(r_t)
-                # particles_obs.append(tf.sigmoid(x_t))
-                particles_obs.append(x_t)
-
+                particles_obs.append(tf.sigmoid(x_t))
 
             #Average the particles, goest from [P,B] to [B]
             avg_particle_reward = tf.reduce_mean(tf.pack(particle_rewards), axis=0) 

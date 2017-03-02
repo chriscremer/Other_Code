@@ -29,9 +29,15 @@ if __name__ == "__main__":
 
     #Which task to run
     train_both = 0
+<<<<<<< HEAD:RL2/run_experiments_MB_RL.py
     train_model = 1
     train_policy = 0
     visualize = 0
+=======
+    train_model = 0
+    train_policy = 0
+    visualize = 1
+>>>>>>> f9b7e65834ea89e6812100b8d16a6ae749cadf3c:RL2/working_mbrl_learn_reward/run_experiments_MB_RL.py
 
 
 
@@ -51,8 +57,8 @@ if __name__ == "__main__":
 
     #Specify where to save stuff
 
-    save_to = home + '/data/' #for boltz
-    # save_to = home + '/Documents/tmp/' # for mac
+    # save_to = home + '/data/' #for boltz
+    save_to = home + '/Documents/tmp/' # for mac
 
     model_path_to_load_variables=save_to + 'mb_rl_model_nosto.ckpt'
     # model_path_to_load_variables=''
@@ -177,7 +183,8 @@ if __name__ == "__main__":
                 model_path_to_load_variables=model_path_to_save_variables,
                 model_path_to_save_variables='',
                 policy_path_to_load_variables=policy_path_to_save_variables,
-                policy_path_to_save_variables='')
+                policy_path_to_save_variables='',
+                tb_path=tb_path)
 
 
 
