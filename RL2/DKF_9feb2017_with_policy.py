@@ -72,7 +72,7 @@ class DKF():
             self.current_z_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
             obs, obs_log_var, reward_mean, reward_log_var = self.observation_net(self.current_z_)
             # self.current_emission = tf.sigmoid(obs)
-            self.current_emission = obs, reward_mean
+            self.current_emission = tf.sigmoid(obs), reward_mean
 
 
             self.prior_mean_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])

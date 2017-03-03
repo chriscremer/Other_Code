@@ -496,6 +496,7 @@ class MB_RL():
 
             #predict action
             action_ = self.sess.run(self.policy.action_, feed_dict={self.policy.state_: state})
+            # action_ = [[1, 0]]
 
             print 'action ' + str(action_)
             print 'state ' + str(state)
@@ -511,7 +512,10 @@ class MB_RL():
 
             x_mean, r_mean = self.sess.run(self.model.current_emission, feed_dict={self.model.current_z_: sample})
             
-            print x_mean, r_mean
+            print x_mean.shape, r_mean
+
+            
+
 
             obs.append(np.reshape(x_mean, [-1]))
 

@@ -20,7 +20,9 @@ import pickle
 # from skimage.measure import block_reduce
 # from skimage.color import rgb2grey
 
-# from PIL import Image
+from PIL import Image
+
+import cv2
 
 
 #now we'll see if this MB-RL works on Open AI gym
@@ -31,10 +33,10 @@ if __name__ == "__main__":
     #Which task to run
     make_data = 0
     train_both = 0
-    train_model = 1
+    train_model = 0
     train_policy = 0
     # train_policy_using_policy = 1
-    visualize = 0
+    visualize = 1
     run_gym = 0
 
     # save_to = home + '/data/' #for boltz
@@ -311,7 +313,9 @@ if __name__ == "__main__":
 
     if visualize==1:
 
-        print 'Testing model and policy'
+        # print 'Testing model and policy'
+        print 'Viz'
+
 
         viz_timesteps = 10
         viz_n_particles = 1
@@ -337,6 +341,19 @@ if __name__ == "__main__":
 
         # print policy_gen_traj.shape [T,X]
         # fsd
+
+        for frame in policy_gen_traj:
+            print '1'
+            cv2.imshow('Video', np.reshape(frame, [24, 56]))
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+
+
+        # for t in range(len(policy_gen_traj)):
+
+        #     image = np.reshape(policy_gen_traj[t], [24, 56]) * 255.
+        #     image = Image.fromarray(image, 'L')
+        #     image.show()
 
 
         fsadf
