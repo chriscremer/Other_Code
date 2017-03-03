@@ -17,10 +17,10 @@ import gym
 
 import pickle
 
-from skimage.measure import block_reduce
-from skimage.color import rgb2grey
+# from skimage.measure import block_reduce
+# from skimage.color import rgb2grey
 
-from PIL import Image
+# from PIL import Image
 
 
 #now we'll see if this MB-RL works on Open AI gym
@@ -164,8 +164,8 @@ if __name__ == "__main__":
     n_timesteps = 40 #for simulated trajs
     # obs_height = 15
     # obs_width = 2
-    training_steps = 1000
-    display_step = 1
+    training_steps = 50000
+    display_step = 20
     n_input = 1344
     z_size = 20
     n_actions = 2
@@ -179,13 +179,13 @@ if __name__ == "__main__":
     # save_to = home + '/data/' #for boltz
     save_to = home + '/Documents/tmp/' # for mac
 
-    # model_path_to_load_variables=save_to + 'mb_rl_model_cartpole.ckpt'
-    model_path_to_load_variables=''
+    model_path_to_load_variables=save_to + 'mb_rl_model_cartpole_pixels.ckpt'
+    # model_path_to_load_variables=''
     model_path_to_save_variables=save_to + 'mb_rl_model_cartpole_pixels.ckpt'
     # model_path_to_save_variables=''
 
-    # policy_path_to_load_variables=save_to + 'mb_rl_policy_cartpole.ckpt'
-    policy_path_to_load_variables=''
+    policy_path_to_load_variables=save_to + 'mb_rl_policy_cartpole_pixels.ckpt'
+    # policy_path_to_load_variables=''
     policy_path_to_save_variables=save_to + 'mb_rl_policy_cartpole_pixels.ckpt'
     # path_to_save_variables=''
 
