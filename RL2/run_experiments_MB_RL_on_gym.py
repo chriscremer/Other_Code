@@ -22,7 +22,7 @@ import pickle
 
 from PIL import Image
 
-import cv2
+# import cv2  #for viz
 
 
 #now we'll see if this MB-RL works on Open AI gym
@@ -33,14 +33,25 @@ if __name__ == "__main__":
     #Which task to run
     make_data = 0
     train_both = 0
-    train_model = 0
+    train_model = 1
     train_policy = 0
     # train_policy_using_policy = 1
-    visualize = 1
+    visualize = 0
     run_gym = 0
 
     # save_to = home + '/data/' #for boltz
     save_to = home + '/Documents/tmp/' # for mac
+
+
+
+
+
+
+
+
+
+
+
 
     if make_data ==1:
 
@@ -181,14 +192,14 @@ if __name__ == "__main__":
     # save_to = home + '/data/' #for boltz
     save_to = home + '/Documents/tmp/' # for mac
 
-    model_path_to_load_variables=save_to + 'mb_rl_model_cartpole_pixels.ckpt'
+    model_path_to_load_variables=save_to + 'mb_rl_model_cartpole_pixels3.ckpt'
     # model_path_to_load_variables=''
-    model_path_to_save_variables=save_to + 'mb_rl_model_cartpole_pixels.ckpt'
+    model_path_to_save_variables=save_to + 'mb_rl_model_cartpole_pixels3.ckpt'
     # model_path_to_save_variables=''
 
-    policy_path_to_load_variables=save_to + 'mb_rl_policy_cartpole_pixels.ckpt'
+    policy_path_to_load_variables=save_to + 'mb_rl_policy_cartpole_pixels3.ckpt'
     # policy_path_to_load_variables=''
-    policy_path_to_save_variables=save_to + 'mb_rl_policy_cartpole_pixels.ckpt'
+    policy_path_to_save_variables=save_to + 'mb_rl_policy_cartpole_pixels3.ckpt'
     # path_to_save_variables=''
 
     #Tensorboard path

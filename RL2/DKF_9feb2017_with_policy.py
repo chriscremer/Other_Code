@@ -21,7 +21,7 @@ class DKF():
         self.batch_size = batch_size
 
         self.transfer_fct=tf.nn.softplus #tf.tanh
-        self.learning_rate = 0.001
+        self.learning_rate = 0.00001
 
         # self.n_time_steps = n_time_steps #this shouldnt be used
         self.n_particles = n_particles
@@ -32,7 +32,7 @@ class DKF():
         self.action_size = network_architecture["n_actions"]
         self.reward_size = network_architecture["reward_size"]
 
-        self.reg_param = .00001
+        self.reg_param = .000001
 
         self.image_height = 24
         self.image_width = 56
@@ -63,6 +63,18 @@ class DKF():
         #Optimize
         with tf.name_scope('model_optimizer'):
             self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=1e-02).minimize(self.cost, var_list=self.params_list)
+
+            # self.grads = tf.gradients(self.cost, self.params_list)
+            # print self.grads
+            # fdsfa
+            
+            # self.grad_names = []
+            # self.grads = []
+            # for layer in self.params_dict:
+
+            #     self.grad_names.append(layer)
+            #     self.grads.append(tf.gradients(self.cost, [self.params_dict[layer]]))
+
 
         #Evaluation
         with tf.name_scope('for_testing_model'):
@@ -113,12 +125,12 @@ class DKF():
 
         with tf.name_scope('encoder_vars'):
 
-            params_dict['conv_weights'] = tf.Variable(tf.truncated_normal([self.filter_height, self.filter_width, self.n_channels, self.filter_out_channels1], stddev=0.1))
-            params_dict['conv_biases'] = tf.Variable(tf.truncated_normal([self.filter_out_channels1], stddev=0.1))
+            # params_dict['conv_weights'] = tf.Variable(tf.truncated_normal([self.filter_height, self.filter_width, self.n_channels, self.filter_out_channels1], stddev=0.1))
+            # params_dict['conv_biases'] = tf.Variable(tf.truncated_normal([self.filter_out_channels1], stddev=0.1))
 
             for layer_i in range(len(network_architecture['encoder_net'])):
                 if layer_i == 0:
-                    params_dict['encoder_weights_l'+str(layer_i)] = tf.Variable(xavier_init(29, network_architecture['encoder_net'][layer_i]))
+                    params_dict['encoder_weights_l'+str(layer_i)] = tf.Variable(xavier_init(self.input_size+self.z_size, network_architecture['encoder_net'][layer_i]))
                     params_dict['encoder_biases_l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
                 else:
                     params_dict['encoder_weights_l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['encoder_net'][layer_i-1], network_architecture['encoder_net'][layer_i]))
@@ -146,16 +158,16 @@ class DKF():
 
             params_dict['decoder_weights_out_mean'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.input_size))
             params_dict['decoder_biases_out_mean'] = tf.Variable(tf.zeros([self.input_size], dtype=tf.float32))
-            
+
+            params_dict['decoder_weights_reward_mean'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.reward_size))
+            params_dict['decoder_biases_reward_mean'] = tf.Variable(tf.zeros([self.reward_size], dtype=tf.float32))
+            params_dict['decoder_weights_reward_log_var'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.reward_size))
+            params_dict['decoder_biases_reward_log_var'] = tf.Variable(tf.zeros([self.reward_size], dtype=tf.float32))
+         
+            # #dont need this if output is bernoulli mean
             params_dict['decoder_weights_out_log_var'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.input_size))
             params_dict['decoder_biases_out_log_var'] = tf.Variable(tf.zeros([self.input_size], dtype=tf.float32))
             
-            params_dict['decoder_weights_reward_mean'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.reward_size))
-            params_dict['decoder_biases_reward_mean'] = tf.Variable(tf.zeros([self.reward_size], dtype=tf.float32))
-
-            params_dict['decoder_weights_reward_log_var'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.reward_size))
-            params_dict['decoder_biases_reward_log_var'] = tf.Variable(tf.zeros([self.reward_size], dtype=tf.float32))
-
 
         #Generator/Transition net q(z|z-1,u)
         # all_weights['trans_weights'] = {}
@@ -231,28 +243,33 @@ class DKF():
 
 
     def recognition_net(self, current_frame_prev_state):
-        # input:[B,X+A+Z]
+        #encoder
+        # input:[B,X+Z]
 
 
         with tf.name_scope('recognition_net'):
 
-            #get frame 
-            current_frame = tf.slice(current_frame_prev_state, [0, 0], [self.batch_size, self.input_size])
-            prev_state = tf.slice(current_frame_prev_state, [0, self.input_size], [self.batch_size, self.z_size])
+            # #get frame 
+            # current_frame = tf.slice(current_frame_prev_state, [0, 0], [self.batch_size, self.input_size])
+            # prev_state = tf.slice(current_frame_prev_state, [0, self.input_size], [self.batch_size, self.z_size])
 
-            current_frame = tf.reshape(current_frame, [self.batch_size, self.image_height, self.image_width, self.n_channels])
+            # current_frame = tf.reshape(current_frame, [self.batch_size, self.image_height, self.image_width, self.n_channels])
 
-            current_frame = tf.nn.conv2d(current_frame, self.params_dict['conv_weights'], strides=[1, 4, 4, 1], padding='VALID')
-            current_frame = self.transfer_fct(tf.nn.bias_add(current_frame, self.params_dict['conv_biases']))
-            current_frame = tf.nn.max_pool(current_frame,ksize=[1, 4, 4, 1], strides=[1, 4, 4, 1], padding='VALID')
-            current_frame = tf.nn.local_response_normalization(current_frame)
+            # current_frame = tf.nn.conv2d(current_frame, self.params_dict['conv_weights'], strides=[1, 4, 4, 1], padding='VALID')
+            # current_frame = self.transfer_fct(tf.nn.bias_add(current_frame, self.params_dict['conv_biases']))
+            # current_frame = tf.nn.max_pool(current_frame,ksize=[1, 4, 4, 1], strides=[1, 4, 4, 1], padding='VALID')
+            # current_frame = tf.nn.local_response_normalization(current_frame)
 
-            current_frame = tf.reshape(current_frame, [self.batch_size, -1])
-            # print current_frame #shape is [1, 1056]
-            # fsdf
+            # current_frame = tf.reshape(current_frame, [self.batch_size, -1])
+            # # print current_frame #shape is [1, 1056]
+            # # fsdf
 
-            #concat
-            input_ = tf.concat(1, [current_frame, prev_state])
+            # #concat
+            # input_ = tf.concat(1, [current_frame, prev_state])
+
+
+            #skip conv layer
+            input_ = current_frame_prev_state
 
 
             n_layers = len(self.network_architecture['encoder_net'])
@@ -263,8 +280,10 @@ class DKF():
 
             for layer_i in range(n_layers):
 
-                input_ = self.transfer_fct(tf.add(tf.matmul(input_, self.params_dict['encoder_weights_l'+str(layer_i)]), self.params_dict['encoder_biases_l'+str(layer_i)])) 
+                # input_ = tf.contrib.layers.layer_norm(input_)
+                input_ = self.transfer_fct(tf.contrib.layers.layer_norm(tf.add(tf.matmul(input_, self.params_dict['encoder_weights_l'+str(layer_i)]), self.params_dict['encoder_biases_l'+str(layer_i)])))
                 #add batch norm here
+                
 
             z_mean = tf.add(tf.matmul(input_, self.params_dict['encoder_weights_out_mean']), self.params_dict['encoder_biases_out_mean'])
             z_log_var = tf.add(tf.matmul(input_, self.params_dict['encoder_weights_out_log_var']), self.params_dict['encoder_biases_out_log_var'])
@@ -273,6 +292,7 @@ class DKF():
 
 
     def observation_net(self, input_):
+        #decoder
         # input:[B,Z]
 
         with tf.name_scope('observation_net'):
@@ -284,7 +304,10 @@ class DKF():
 
             for layer_i in range(n_layers):
 
-                input_ = self.transfer_fct(tf.add(tf.matmul(input_, self.params_dict['decoder_weights_l'+str(layer_i)]), self.params_dict['decoder_biases_l'+str(layer_i)])) 
+                # input_ = tf.contrib.layers.layer_norm(input_)
+                # input_ = self.transfer_fct(tf.add(tf.matmul(input_, self.params_dict['decoder_weights_l'+str(layer_i)]), self.params_dict['decoder_biases_l'+str(layer_i)]))
+
+                input_ = self.transfer_fct(tf.contrib.layers.layer_norm(tf.add(tf.matmul(input_, self.params_dict['decoder_weights_l'+str(layer_i)]), self.params_dict['decoder_biases_l'+str(layer_i)])))
                 #add batch norm here
 
             x_mean = tf.add(tf.matmul(input_, self.params_dict['decoder_weights_out_mean']), self.params_dict['decoder_biases_out_mean'])
@@ -308,7 +331,8 @@ class DKF():
 
             for layer_i in range(n_layers):
 
-                input_ = self.transfer_fct(tf.add(tf.matmul(input_, self.params_dict['trans_weights_l'+str(layer_i)]), self.params_dict['trans_biases_l'+str(layer_i)])) 
+                # input_ = tf.contrib.layers.layer_norm(input_)
+                input_ = self.transfer_fct(tf.contrib.layers.layer_norm(tf.add(tf.matmul(input_, self.params_dict['trans_weights_l'+str(layer_i)]), self.params_dict['trans_biases_l'+str(layer_i)])))
                 #add batch norm here
 
 
@@ -410,7 +434,7 @@ class DKF():
                                         - x_mean * current_x
                                         + tf.log(1 + tf.exp(-tf.abs(x_mean))),
                                          1) #sum over dimensions
-                        log_p_x = -reconstr_loss
+                        log_p_x = -reconstr_loss #[B]
                         # log_p_x = self.log_normal(current_x, x_mean, x_log_var, self.input_size) #/ self.input_size 
 
                         #Likelihood of reward. Gaussian
@@ -486,10 +510,17 @@ class DKF():
             log_p_z_over_time = particles_and_logprobs_unstacked[self.z_size*self.n_particles+1]
             log_q_z_over_time = particles_and_logprobs_unstacked[self.z_size*self.n_particles+2]
 
+            # # sum over timesteps  [B]
+            # log_q_z_batch = tf.reduce_sum(log_q_z_over_time, axis=0)
+            # log_p_z_batch = tf.reduce_sum(log_p_z_over_time, axis=0)
+            # log_p_x_batch = tf.reduce_sum(log_p_x_over_time, axis=0)
+
+
             # sum over timesteps  [B]
-            log_q_z_batch = tf.reduce_sum(log_q_z_over_time, axis=0)
-            log_p_z_batch = tf.reduce_sum(log_p_z_over_time, axis=0)
-            log_p_x_batch = tf.reduce_sum(log_p_x_over_time, axis=0)
+            log_q_z_batch = tf.reduce_mean(log_q_z_over_time, axis=0)
+            log_p_z_batch = tf.reduce_mean(log_p_z_over_time, axis=0)
+            log_p_x_batch = tf.reduce_mean(log_p_x_over_time, axis=0)
+
             # average over batch  [1]
             self.log_q_z_final = tf.reduce_mean(log_q_z_batch)
             self.log_p_z_final = tf.reduce_mean(log_p_z_batch)

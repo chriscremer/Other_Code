@@ -159,6 +159,48 @@ class MB_RL():
             # print "Step:", '%04d' % (step), "elbo=", "{:.5f}".format(elbo), 'px', p1, 'pz', p2, 'qz', p3 #'   J', j_eqn
 
 
+
+            # grads, vars_ = self.sess.run([self.model.grads, self.model.params_dict], feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
+            # names = self.model.grad_names
+
+            # bins=[.0001, .001, .01, .1, 1., 10.]
+            # print bins
+
+            # for i in range(len(grads)):
+
+            #     grads__ = np.array(grads[i][0]) #100, 1344
+            #     var__ = np.array(vars_[names[i]])  #100, 1344
+
+            #     print grads__.shape
+            #     print var__.shape
+
+            #     # if names[i] == 'decoder_weights_out_mean': 
+
+            #     print names[i]
+            #     print 'grads'
+            #     counts,edges = np.histogram(grads__, bins=bins)
+            #     print counts
+                
+
+            #     print 'vars'
+            #     counts,edges = np.histogram(var__, bins=bins)
+            #     print counts
+            #     # print edges
+            #     print 
+            #         # print np.array(grads[i]).shape 
+            #         # print 'vars grads'
+            #         # print np.array(vars_[names[i]]).shape
+            #         # print np.array(grads[i]).shape
+            #         # for j in range(len(vars_[names[i]])):
+            #         #     print vars_[names[i]][j] , grads[i][j]
+            #         # # print vars_[names[i]]   
+            #         # # print 'grads'
+            #         # # print grads[i]
+            #         # print 
+            # fdsf
+
+
+
             _ = self.sess.run(self.model.optimizer, feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
 
 
