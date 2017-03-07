@@ -22,8 +22,9 @@ import pickle
 
 from PIL import Image
 
-import cv2  #for viz
-from skimage.measure import block_reduce
+# #these wont work on boltz, so just comment out
+# import cv2  #for viz
+# from skimage.measure import block_reduce
 
 
 #now we'll see if this MB-RL works on Open AI gym
@@ -35,11 +36,11 @@ if __name__ == "__main__":
     make_data = 0
     train_both = 0
     train_model = 0
-    train_policy = 0
+    train_policy = 1
     # train_policy_using_policy = 1
     visualize = 0
     run_gym = 0
-    viz2 = 1
+    viz2 = 0
 
     # save_to = home + '/data/' #for boltz
     save_to = home + '/Documents/tmp/' # for mac
@@ -179,7 +180,7 @@ if __name__ == "__main__":
     n_timesteps = 40 #for simulated trajs
     # obs_height = 15
     # obs_width = 2
-    training_steps = 50000
+    training_steps = 10000
     display_step = 20
     n_input = 1344
     z_size = 20
