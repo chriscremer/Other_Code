@@ -78,8 +78,12 @@ class DKF():
 
         #Evaluation
         with tf.name_scope('for_testing_model'):
-            self.prev_z_and_current_a_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size+self.action_size])
-            self.next_state = self.transition_net(self.prev_z_and_current_a_)
+            # self.prev_z_and_current_a_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size+self.action_size])
+            self.prev_z_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
+            self.current_a_ = tf.placeholder(tf.float32, [self.batch_size, self.action_size])
+
+            prev_z_and_current_a_ = tf.concat(1, [self.prev_z_, self.current_a_])
+            self.next_state_mean, self.next_state_logvar = self.transition_net(prev_z_and_current_a_)
 
             self.current_z_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
             obs, obs_log_var, reward_mean, reward_log_var = self.observation_net(self.current_z_)
@@ -95,8 +99,8 @@ class DKF():
             #for testing policy
             #ENCODE
             self.current_observation = tf.placeholder(tf.float32, [self.batch_size, self.input_size])
-            self.prev_z_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
-            self.current_a_ = tf.placeholder(tf.float32, [self.batch_size, self.action_size])
+            # self.prev_z_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
+            # self.current_a_ = tf.placeholder(tf.float32, [self.batch_size, self.action_size])
             #Concatenate current x, current action, prev_z: [B,XA+Z]
             # concatenate_all = tf.concat(1, [self.current_observation, self.current_a_])
             concatenate_all = tf.concat(1, [self.current_observation, self.prev_z_])

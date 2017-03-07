@@ -17,12 +17,13 @@ import gym
 
 import pickle
 
-# from skimage.measure import block_reduce
+
 # from skimage.color import rgb2grey
 
 from PIL import Image
 
-# import cv2  #for viz
+import cv2  #for viz
+from skimage.measure import block_reduce
 
 
 #now we'll see if this MB-RL works on Open AI gym
@@ -33,11 +34,12 @@ if __name__ == "__main__":
     #Which task to run
     make_data = 0
     train_both = 0
-    train_model = 1
+    train_model = 0
     train_policy = 0
     # train_policy_using_policy = 1
     visualize = 0
     run_gym = 0
+    viz2 = 1
 
     # save_to = home + '/data/' #for boltz
     save_to = home + '/Documents/tmp/' # for mac
@@ -323,6 +325,9 @@ if __name__ == "__main__":
 
 
     if visualize==1:
+        #this shows what the generated obs look like
+        # and can help for other debugging
+
 
         # print 'Testing model and policy'
         print 'Viz'
@@ -492,7 +497,45 @@ if __name__ == "__main__":
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     if run_gym == 1:
+        #this shows how well the policy does in the environment
+
+        def convert_image(image):
+            # - crop
+            # - downsample
+            # - greyscale
+            # - bernoulli
+
+            # image = rgb_array[150:350,100:500,:] #.shape 200, 400, 3
+            image = image[180:300,160:440,:]  #200 300 3
+            # image = np.reshape(image, [-1])
+            # print image.shape
+            image = block_reduce(image, block_size=(5, 5, 1), func=np.max) #now its 40 60 3 = 7200
+            # print image.shape
+            image = Image.fromarray(image, 'RGB').convert('L')
+            image = np.array(image)
+            image_shape = image.shape
+            image = np.reshape(image, [image_shape[0], image_shape[1], 1]) #24, 56, 1
+            image = image / 255.
+
+            image = np.reshape(image, [-1]) #1
+
+
+            return image
+
+
 
         mb_rl = MB_RL(model_architecture=model_architecture, 
                 policy_architecture=policy_architecture, 
@@ -504,6 +547,7 @@ if __name__ == "__main__":
                 tb_path=tb_path)
 
 
+        env = gym.make('CartPole-v0')
 
         MAX_EPISODES = 100
         MAX_STEPS    = 200
@@ -516,23 +560,31 @@ if __name__ == "__main__":
 
             # initialize
             obs = env.reset()
+            
+            obs = env.render(mode='rgb_array') 
+            obs = convert_image(obs)
+
+            obs_shape = obs.shape
+            obs_dims = np.prod(obs_shape)
+            # print 'obs dims ' + str(obs_dim)
+            num_actions = env.action_space.n
+            # print 'action dims ' + str(num_actions)
+
 
             # get first state, using recognitino net, given current obs and zero state and random action
             state = mb_rl.sess.run(mb_rl.model.z_mean_, feed_dict={mb_rl.model.current_observation: [obs], mb_rl.model.prev_z_: [np.zeros(z_size)], mb_rl.model.current_a_: [np.zeros((num_actions))]})
 
-
-            # observations = []
-            # actions = []
-            # rewards = []
-
             for t in xrange(MAX_STEPS):
 
-                rgb_array = env.render(mode='rgb_array') 
+                # env.render()
 
 
-                from matplotlib import pyplot as PLT
-                PLT.imshow(rgb_array[100:500,5:200,:])
-                PLT.show()
+                # rgb_array = env.render(mode='rgb_array') 
+                # from matplotlib import pyplot as PLT
+                # PLT.imshow(rgb_array[100:500,5:200,:])
+                # PLT.show()
+
+
 
                 # PLT.imshow(rgb_array[10:50,5:20,:])
                 # PLT.show()
@@ -545,14 +597,26 @@ if __name__ == "__main__":
                 # action = pg_reinforce.sampleAction([state])  
 
 
-                # action_ = np.random.randint(num_actions)
-                action_ = mb_rl.sess.run(mb_rl.policy.action_, feed_dict={mb_rl.policy.state_: state})
+                action_ = np.random.randint(num_actions)
+
+                # action_ = mb_rl.sess.run(mb_rl.policy.action_, feed_dict={mb_rl.policy.state_: state})
 
                 a = np.zeros((num_actions))
-                a[np.argmax(action_)] = 1
+                # print 
+                # print a
+                # print np.argmax(action_)
 
-                obs, reward, done, _ = env.step(np.argmax(action_))
+                a[action_] = 1
+
+                # print a
+                # print np.argmax(action_)
+                # print
+
+                obs, reward, done, _ = env.step(action_)
                 # obs, reward, done, _ = env.step(np.random.randint(num_actions))
+
+                obs = env.render(mode='rgb_array') 
+                obs = convert_image(obs)
 
 
                 state = mb_rl.sess.run(mb_rl.model.z_mean_, feed_dict={mb_rl.model.current_observation: [obs], mb_rl.model.prev_z_: state, mb_rl.model.current_a_: [a]})
@@ -595,6 +659,174 @@ if __name__ == "__main__":
         # # print len(dataset[1][0])
 
         print 'Done'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if viz2 ==1:
+        #this compares the model to the real env by showing the predicted obs
+
+        # so run environment with rand actions, save actions and obs
+        # use actions on simulated model, save obs
+
+        # show the obs
+
+
+
+
+        def convert_image(image):
+            # - crop
+            # - downsample
+            # - greyscale
+            # - bernoulli
+
+            # image = rgb_array[150:350,100:500,:] #.shape 200, 400, 3
+            image = image[180:300,160:440,:]  #200 300 3
+            # image = np.reshape(image, [-1])
+            # print image.shape
+            image = block_reduce(image, block_size=(5, 5, 1), func=np.max) #now its 40 60 3 = 7200
+            # print image.shape
+            image = Image.fromarray(image, 'RGB').convert('L')
+            image = np.array(image)
+            image_shape = image.shape
+            image = np.reshape(image, [image_shape[0], image_shape[1], 1]) #24, 56, 1
+            image = image / 255.
+
+            image = np.reshape(image, [-1]) #1
+
+            return image
+
+
+
+        mb_rl = MB_RL(model_architecture=model_architecture, 
+                policy_architecture=policy_architecture, 
+                batch_size=1, n_particles=1, n_timesteps=1,
+                model_path_to_load_variables=model_path_to_save_variables,
+                model_path_to_save_variables='',
+                policy_path_to_load_variables=policy_path_to_save_variables,
+                policy_path_to_save_variables='',
+                tb_path=tb_path)
+
+
+        env = gym.make('CartPole-v0')
+
+        num_actions = env.action_space.n
+        # print 'action dims ' + str(num_actions)
+
+        MAX_EPISODES = 1
+        MAX_STEPS    = 200
+
+        # episode_history = deque(maxlen=100)
+        for i_episode in xrange(MAX_EPISODES):
+
+            # if i_episode %10 == 0:
+            #     print i_episode
+
+            # initialize
+            obs = env.reset()
+            
+            obs = env.render(mode='rgb_array') 
+            obs = convert_image(obs)
+
+            obs_shape = obs.shape
+            obs_dims = np.prod(obs_shape)
+            # print 'obs dims ' + str(obs_dim)
+
+            # get first state, using recognitino net, given current obs and zero state and random action
+            state = mb_rl.sess.run(mb_rl.model.z_mean_, feed_dict={mb_rl.model.current_observation: [obs], mb_rl.model.prev_z_: [np.zeros(z_size)], mb_rl.model.current_a_: [np.zeros(num_actions)]})
+
+
+            real_obs = []
+            sim_obs = []
+
+            for t in xrange(MAX_STEPS):
+
+                action_ = np.random.randint(num_actions)
+                # action_ = mb_rl.sess.run(mb_rl.policy.action_, feed_dict={mb_rl.policy.state_: state})
+                a = np.zeros((num_actions))
+                a[action_] = 1
+
+                #Apply action to env
+                obs, reward, done, _ = env.step(action_)
+
+                #Apply action to model
+                state = mb_rl.sess.run(mb_rl.model.next_state_mean, feed_dict={mb_rl.model.prev_z_: state, mb_rl.model.current_a_: [a]})
+
+                #Get obs of env
+                obs = env.render(mode='rgb_array') 
+                real_ob = convert_image(obs)
+
+
+                #Get obs from model
+                sim_ob, sim_reward = mb_rl.sess.run(mb_rl.model.current_emission, feed_dict={mb_rl.model.current_z_: state})
+
+
+                real_obs.append(real_ob)
+                sim_obs.append(np.reshape(sim_ob, [-1]))
+
+
+
+                if done: break
+
+            print t
+
+
+        #show what I got
+        print np.array(real_obs).shape
+        print np.array(sim_obs).shape
+
+        for t in range(len(real_obs)):
+
+            frame = np.reshape(real_obs[t], [24, 56])
+
+            if t == 0:
+                all_times = frame
+            else:
+                all_times = np.concatenate([all_times, frame], axis=0)
+
+        for t in range(len(sim_obs)):
+
+            frame = np.reshape(sim_obs[t], [24, 56])
+
+            if t == 0:
+                all_times2 = frame
+            else:
+                all_times2 = np.concatenate([all_times2, frame], axis=0)
+
+        all_frames = np.concatenate([all_times, all_times2], axis=1)
+
+
+        scipy.misc.imsave(save_to +'outfile.jpg', all_frames)
+        print 'saved'
+
+
+
+
+
+        print 'Done'
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
