@@ -138,6 +138,7 @@ class MB_RL():
     def train_model(self, get_data, steps=1000, display_step=10):
 
         # print 'aaaaa'
+        best_mean_elbo=-1
         for step in range(steps):
 
             batch = []
@@ -222,12 +223,76 @@ class MB_RL():
                 print "Step:", '%04d' % (step), "elbo=", "{:.5f}".format(elbo), 'px', p1, 'pz', p2, 'qz', p3 #'   J', j_eqn
 
 
+            #Check validation 
+            if step % 500 == 0:
+                elbos = []
+                #size of validation set
+                for i in range(20):
+
+                    batch = []
+                    batch_actions = []
+                    batch_rewards = []
+                    while len(batch) != self.batch_size:
+                        sequence, actions, rewards = get_data(valid=i)
+                        batch.append(sequence)
+                        batch_actions.append(actions)
+                        batch_rewards.append(rewards)
+
+
+                    elbo, p1,p2,p3 = self.sess.run([self.model.elbo, self.model.log_p_x_final, self.model.log_p_z_final, self.model.log_q_z_final], feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
+
+                    elbos.append(elbo)
+
+                mean_elbo = np.mean(elbos)
+                print 'Validation', mean_elbo, np.std(elbos)
+
+                if mean_elbo > best_mean_elbo or best_mean_elbo==-1:
+                    best_mean_elbo = mean_elbo
+                    #save model
+                    saver = tf.train.Saver(self.model.params_dict)
+                    if self.model_path_to_save_variables != '':
+                        saver.save(self.sess, self.model_path_to_save_variables)
+                        print 'Saved variables to ' + self.model_path_to_save_variables
+                else:
+                    print 'worse, best is', best_mean_elbo
+
+
+
+        elbos = []
+        #size of validation set
+        for i in range(20):
+
+            batch = []
+            batch_actions = []
+            batch_rewards = []
+            while len(batch) != self.batch_size:
+                sequence, actions, rewards = get_data(valid=i)
+                batch.append(sequence)
+                batch_actions.append(actions)
+                batch_rewards.append(rewards)
+
+            elbo, p1,p2,p3 = self.sess.run([self.model.elbo, self.model.log_p_x_final, self.model.log_p_z_final, self.model.log_q_z_final], feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
+            elbos.append(elbo)
+
+        mean_elbo = np.mean(elbos)
+        print 'Validation', mean_elbo, np.std(elbos)
+
+        if mean_elbo > best_mean_elbo or best_mean_elbo==-1:
+            best_mean_elbo = mean_elbo
+            #save model
+            saver = tf.train.Saver(self.model.params_dict)
+            if self.model_path_to_save_variables != '':
+                saver.save(self.sess, self.model_path_to_save_variables)
+                print 'Saved variables to ' + self.model_path_to_save_variables
+        else:
+            print 'worse, best is', best_mean_elbo
+
         #Save parameters
-        #Model
-        saver = tf.train.Saver(self.model.params_dict)
-        if self.model_path_to_save_variables != '':
-            saver.save(self.sess, self.model_path_to_save_variables)
-            print 'Saved variables to ' + self.model_path_to_save_variables
+        # #Model
+        # saver = tf.train.Saver(self.model.params_dict)
+        # if self.model_path_to_save_variables != '':
+        #     saver.save(self.sess, self.model_path_to_save_variables)
+        #     print 'Saved variables to ' + self.model_path_to_save_variables
         # Policy
         saver = tf.train.Saver(self.policy.params_dict)
         if self.policy_path_to_save_variables != '':

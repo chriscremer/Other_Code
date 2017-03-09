@@ -20,7 +20,7 @@ class DKF():
 
         self.batch_size = batch_size
 
-        self.transfer_fct=tf.nn.softplus #tf.tanh
+        self.transfer_fct=  tf.nn.softplus  #tf.nn.relu #tf.nn.softplus #tf.tanh
         self.learning_rate = 0.00001
 
         # self.n_time_steps = n_time_steps #this shouldnt be used
@@ -444,7 +444,8 @@ class DKF():
                         #Likelihood of reward. Gaussian
                         log_p_r = self.log_normal(current_r, reward_mean, reward_log_var, self.reward_size) #/ self.reward_size 
 
-                        log_p_x_comb = log_p_x + log_p_r
+                        #instead of just adding them, im weighting them so the reward is equal to all pixels
+                        log_p_x_comb = ( (1344./((1344.-1)*2)) *log_p_x) + ( (1344./2.) *log_p_r)
 
 
                     log_pzs.append(log_p_z)

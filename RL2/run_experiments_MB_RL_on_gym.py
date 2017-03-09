@@ -22,7 +22,7 @@ import pickle
 
 from PIL import Image
 
-# #these wont work on boltz, so just comment out
+#these wont work on boltz, so just comment out
 # import cv2  #for viz
 # from skimage.measure import block_reduce
 
@@ -35,8 +35,8 @@ if __name__ == "__main__":
     #Which task to run
     make_data = 0
     train_both = 0
-    train_model = 0
-    train_policy = 1
+    train_model = 1
+    train_policy = 0
     # train_policy_using_policy = 1
     visualize = 0
     run_gym = 0
@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
         #Make dataset
         print 'Making dataset'
-        MAX_EPISODES = 100
+        MAX_EPISODES = 20
         MAX_STEPS    = 200
         dataset = []
         lenghts = []
@@ -136,8 +136,8 @@ if __name__ == "__main__":
                 if done: break
 
 
-            for i in range(1, len(rewards)):
-                rewards[-i-1] = rewards[-i-1] + rewards[-i]
+            # for i in range(1, len(rewards)):
+            #     rewards[-i-1] = rewards[-i-1] + rewards[-i]
 
             for i in range(len(rewards)):
                 rewards[i] = [rewards[i]]
@@ -156,9 +156,9 @@ if __name__ == "__main__":
         # print len(dataset[1][0])
 
             
-        with open(save_to+'cartpole_data2.pkl', 'wb') as f:
+        with open(save_to+'cartpole_data_validation.pkl', 'wb') as f:
             pickle.dump(dataset, f)
-        print 'saved data to: ' +save_to+'cartpole_data2.pkl'
+        print 'saved data to: ' +save_to+'cartpole_data_validation.pkl'
         fsaf
 
 
@@ -166,21 +166,27 @@ if __name__ == "__main__":
 
     #load data
     print 'loading data'
-    with open(save_to+'cartpole_data2.pkl', 'rb') as f:
+    with open(save_to+'cartpole_data3.pkl', 'rb') as f:
         dataset = pickle.load(f)
-    print 'loaded data from: ' +save_to+'cartpole_data2.pkl'
+    print 'loaded data from: ' +save_to+'cartpole_data3.pkl', len(dataset)
+
+    with open(save_to+'cartpole_data_validation.pkl', 'rb') as f:
+        validation_set = pickle.load(f)
+    print 'loaded data from: ' +save_to+'cartpole_data_validation.pkl', len(validation_set)
 
 
-    # for i in range(len(dataset[0][0][0])):#.shape
-    #     print dataset[0][0][0][i]
+    # print dataset[0][2]
+    # # for i in range(len(dataset[0][0][0])):#.shape
+    # #     print dataset[0][0][0][i]
+
     # fadsf
 
 
     #Define the sequence
-    n_timesteps = 40 #for simulated trajs
+    n_timesteps = 30 #for simulated trajs
     # obs_height = 15
     # obs_width = 2
-    training_steps = 10000
+    training_steps = 5000
     display_step = 20
     n_input = 1344
     z_size = 20
@@ -214,10 +220,15 @@ if __name__ == "__main__":
     #     sequence_obs, sequence_actions, sequence_rewards = buda.get_sequence(n_timesteps=n_timesteps, obs_height=obs_height, obs_width=obs_width)
     #     return np.array(sequence_obs), np.array(sequence_actions), np.reshape(np.array(sequence_rewards), [-1,1])
 
-    def get_data():
-        ind = np.random.randint(len(dataset))
-        #return a sequence from the dataset. obs, actions, rewards
-        return np.array(dataset[ind][0]), np.array(dataset[ind][1]), np.array(dataset[ind][2]), 
+    def get_data(valid=-1):
+        if valid != -1:
+            ind = valid
+            return np.array(validation_set[ind][0]), np.array(validation_set[ind][1]), np.array(validation_set[ind][2])
+
+        else:
+            ind = np.random.randint(len(dataset))
+            #return a sequence from the dataset. obs, actions, rewards
+            return np.array(dataset[ind][0]), np.array(dataset[ind][1]), np.array(dataset[ind][2])
 
 
 
@@ -553,6 +564,9 @@ if __name__ == "__main__":
         MAX_EPISODES = 100
         MAX_STEPS    = 200
 
+        running_timesteps_mean = 0
+        count = 0
+
         # episode_history = deque(maxlen=100)
         for i_episode in xrange(MAX_EPISODES):
 
@@ -597,30 +611,39 @@ if __name__ == "__main__":
 
                 # action = pg_reinforce.sampleAction([state])  
 
+                #random action
+                # action_vec = np.zeros((num_actions))
+                # action_vec[np.random.randint(num_actions)] = 1
+                # action_vec = [action_vec]
 
-                action_ = np.random.randint(num_actions)
+                action_vec = mb_rl.sess.run(mb_rl.policy.action_, feed_dict={mb_rl.policy.state_: state})
 
-                # action_ = mb_rl.sess.run(mb_rl.policy.action_, feed_dict={mb_rl.policy.state_: state})
+                # print action_
+                # print action_.shape #[1,2]
+                # fadsf
 
-                a = np.zeros((num_actions))
+                action_int = np.argmax(action_vec[0])
+
+                action_one_hot = np.zeros((num_actions))
+                action_one_hot[action_int] = 1
                 # print 
                 # print a
                 # print np.argmax(action_)
 
-                a[action_] = 1
+                
 
                 # print a
                 # print np.argmax(action_)
                 # print
 
-                obs, reward, done, _ = env.step(action_)
+                obs, reward, done, _ = env.step(action_int)
                 # obs, reward, done, _ = env.step(np.random.randint(num_actions))
 
                 obs = env.render(mode='rgb_array') 
                 obs = convert_image(obs)
 
 
-                state = mb_rl.sess.run(mb_rl.model.z_mean_, feed_dict={mb_rl.model.current_observation: [obs], mb_rl.model.prev_z_: state, mb_rl.model.current_a_: [a]})
+                state = mb_rl.sess.run(mb_rl.model.z_mean_, feed_dict={mb_rl.model.current_observation: [obs], mb_rl.model.prev_z_: state, mb_rl.model.current_a_: [action_one_hot]})
 
 
 
@@ -643,7 +666,16 @@ if __name__ == "__main__":
 
                 if done: break
 
-            print t
+            
+
+            if t ==0:
+                count =1.
+                running_timesteps_mean = t
+            else:
+                count += 1.
+                running_timesteps_mean = ((count-1)*running_timesteps_mean + t) / count
+
+            print i_episode, t, running_timesteps_mean
 
             # for i in range(1, len(rewards)):
             #     rewards[-i-1] = rewards[-i-1] + rewards[-i]
@@ -677,6 +709,7 @@ if __name__ == "__main__":
 
     if viz2 ==1:
         #this compares the model to the real env by showing the predicted obs
+        #also prints the reward and predicted reward
 
         # so run environment with rand actions, save actions and obs
         # use actions on simulated model, save obs
@@ -749,7 +782,9 @@ if __name__ == "__main__":
 
 
             real_obs = []
+            real_rewards = []
             sim_obs = []
+            sim_rewards = []
 
             for t in xrange(MAX_STEPS):
 
@@ -760,6 +795,8 @@ if __name__ == "__main__":
 
                 #Apply action to env
                 obs, reward, done, _ = env.step(action_)
+
+                reward = -10 if done else 0.1
 
                 #Apply action to model
                 state = mb_rl.sess.run(mb_rl.model.next_state_mean, feed_dict={mb_rl.model.prev_z_: state, mb_rl.model.current_a_: [a]})
@@ -772,15 +809,30 @@ if __name__ == "__main__":
                 #Get obs from model
                 sim_ob, sim_reward = mb_rl.sess.run(mb_rl.model.current_emission, feed_dict={mb_rl.model.current_z_: state})
 
+                # print reward
+                # print sim_reward
 
                 real_obs.append(real_ob)
+                real_rewards.append(reward)
                 sim_obs.append(np.reshape(sim_ob, [-1]))
+                sim_rewards.append(sim_reward)
 
 
 
                 if done: break
 
             print t
+            # fsdafsd
+
+        # for i in range(1, len(real_rewards)):
+        #     real_rewards[-i-1] = real_rewards[-i-1] + real_rewards[-i]
+
+        # for i in range(len(real_rewards)):
+        #     real_rewards[i] = [real_rewards[i]]
+
+        for i in range(len(real_rewards)):
+            print real_rewards[i], sim_rewards[i]
+
 
 
         #show what I got
