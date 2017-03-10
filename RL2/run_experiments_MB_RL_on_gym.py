@@ -17,6 +17,8 @@ import gym
 
 import pickle
 
+import random
+
 
 # from skimage.color import rgb2grey
 
@@ -168,7 +170,9 @@ if __name__ == "__main__":
     print 'loading data'
     with open(save_to+'cartpole_data3.pkl', 'rb') as f:
         dataset = pickle.load(f)
-    print 'loaded data from: ' +save_to+'cartpole_data3.pkl', len(dataset)
+    len_dataset = len(dataset)
+    # dataset = np.array(dataset) cant because len of seqs are dif
+    print 'loaded data from: ' +save_to+'cartpole_data3.pkl', len_dataset
 
     with open(save_to+'cartpole_data_validation.pkl', 'rb') as f:
         validation_set = pickle.load(f)
@@ -186,7 +190,7 @@ if __name__ == "__main__":
     n_timesteps = 30 #for simulated trajs
     # obs_height = 15
     # obs_width = 2
-    training_steps = 5000
+    training_steps = 100000
     display_step = 20
     n_input = 1344
     z_size = 20
@@ -201,14 +205,14 @@ if __name__ == "__main__":
     # save_to = home + '/data/' #for boltz
     save_to = home + '/Documents/tmp/' # for mac
 
-    model_path_to_load_variables=save_to + 'mb_rl_model_cartpole_pixels3.ckpt'
+    model_path_to_load_variables=save_to + 'mb_rl_model_cartpole_pixels6.ckpt'
     # model_path_to_load_variables=''
-    model_path_to_save_variables=save_to + 'mb_rl_model_cartpole_pixels3.ckpt'
+    model_path_to_save_variables=save_to + 'mb_rl_model_cartpole_pixels7.ckpt'
     # model_path_to_save_variables=''
 
-    policy_path_to_load_variables=save_to + 'mb_rl_policy_cartpole_pixels3.ckpt'
+    policy_path_to_load_variables=save_to + 'mb_rl_policy_cartpole_pixels6.ckpt'
     # policy_path_to_load_variables=''
-    policy_path_to_save_variables=save_to + 'mb_rl_policy_cartpole_pixels3.ckpt'
+    policy_path_to_save_variables=save_to + 'mb_rl_policy_cartpole_pixels7.ckpt'
     # path_to_save_variables=''
 
     #Tensorboard path
@@ -220,10 +224,19 @@ if __name__ == "__main__":
     #     sequence_obs, sequence_actions, sequence_rewards = buda.get_sequence(n_timesteps=n_timesteps, obs_height=obs_height, obs_width=obs_width)
     #     return np.array(sequence_obs), np.array(sequence_actions), np.reshape(np.array(sequence_rewards), [-1,1])
 
-    def get_data(valid=-1):
+    def get_data(valid=-1, step=-1):
+
         if valid != -1:
             ind = valid
             return np.array(validation_set[ind][0]), np.array(validation_set[ind][1]), np.array(validation_set[ind][2])
+        
+        elif step != -1:
+            ind = step % len_dataset
+            if ind == 0:
+                #shuffle
+                random.shuffle(dataset)
+
+            return np.array(dataset[ind][0]), np.array(dataset[ind][1]), np.array(dataset[ind][2])
 
         else:
             ind = np.random.randint(len(dataset))

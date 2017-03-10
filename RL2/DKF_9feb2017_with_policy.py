@@ -21,7 +21,7 @@ class DKF():
         self.batch_size = batch_size
 
         self.transfer_fct=  tf.nn.softplus  #tf.nn.relu #tf.nn.softplus #tf.tanh
-        self.learning_rate = 0.00001
+        self.learning_rate = 0.000001
 
         # self.n_time_steps = n_time_steps #this shouldnt be used
         self.n_particles = n_particles
