@@ -205,14 +205,14 @@ if __name__ == "__main__":
     # save_to = home + '/data/' #for boltz
     save_to = home + '/Documents/tmp/' # for mac
 
-    model_path_to_load_variables=save_to + 'mb_rl_model_cartpole_pixels7.ckpt'
+    model_path_to_load_variables=save_to + 'mb_rl_model_cartpole_pixels9.ckpt'
     # model_path_to_load_variables=''
-    model_path_to_save_variables=save_to + 'mb_rl_model_cartpole_pixels7.ckpt'
+    model_path_to_save_variables=save_to + 'mb_rl_model_cartpole_pixels9.ckpt'
     # model_path_to_save_variables=''
 
-    policy_path_to_load_variables=save_to + 'mb_rl_policy_cartpole_pixels7.ckpt'
+    policy_path_to_load_variables=save_to + 'mb_rl_policy_cartpole_pixels9.ckpt'
     # policy_path_to_load_variables=''
-    policy_path_to_save_variables=save_to + 'mb_rl_policy_cartpole_pixels7.ckpt'
+    policy_path_to_save_variables=save_to + 'mb_rl_policy_cartpole_pixels9.ckpt'
     # path_to_save_variables=''
 
     #Tensorboard path

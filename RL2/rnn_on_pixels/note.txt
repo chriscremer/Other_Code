@@ -1,0 +1,6 @@
+note
+
+
+
+only just started this. never really did it. got caught up with prediction vs filtering. 
+also was trying to decide whether to use tf rnns or not. didnt want to because they are too weak..

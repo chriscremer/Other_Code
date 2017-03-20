@@ -18,7 +18,7 @@ class VAE():
         
         tf.reset_default_graph()
         # self.network_architecture = network_architecture
-        self.transfer_fct = tf.tanh
+        self.transfer_fct = tf.nn.softplus #tf.tanh
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.n_particles = n_particles
