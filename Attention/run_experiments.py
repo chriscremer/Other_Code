@@ -8,7 +8,9 @@ from scipy.misc import imsave
 from os.path import expanduser
 home = expanduser("~")
 
-from VAE_IWAE_attention_labels import VAE
+from VAE_IWAE_attention_labels_concatimage_actuallyuseattention import VAE
+
+
 
 
 
@@ -48,10 +50,12 @@ if __name__ == "__main__":
 
     save_to = home + '/Documents/tmp/'
 
-    # model_path_to_load_variables=save_to + 'attention2.ckpt'
+    # model_path_to_load_variables=save_to + 'attention8.ckpt'
     model_path_to_load_variables=''
-    model_path_to_save_variables=save_to + 'attention3.ckpt'
+    model_path_to_save_variables=save_to + 'attention8.ckpt'
     # model_path_to_save_variables=''
+
+    epochs = 20
 
 
     if train_model ==1:
@@ -73,7 +77,7 @@ if __name__ == "__main__":
         #Train model
         vae.train(train_x=train_x, path_to_load_variables=model_path_to_load_variables, 
                                     path_to_save_variables=model_path_to_save_variables,
-                                    epochs=10,
+                                    epochs=epochs,
                                     train_y=train_y)
 
 
@@ -121,22 +125,28 @@ if __name__ == "__main__":
         # imsave(home+'/Documents/tmp/pic.png', concat2)
         # print 'saved ' + home+'/Documents/tmp/pic.png'
 
+        height = 28
+        width = 28 * 2
 
         #Init model
         vae = VAE(batch_size=3)
         vae.load_parameters(path_to_load_variables=model_path_to_save_variables)
 
+
         #Get a bunch of reconstructions 
-        recons, batch = vae.reconstruct(sampling='vae', data=valid_x)
+        recons, batch, focus = vae.reconstruct(sampling='vae', data=train_x, labels=train_y)
         # recons = recons[0]
         print recons.shape
         print batch.shape
+        focus = np.reshape(focus, [1,height*width])
+        print focus.shape
+
 
         #Put them together
         for i in range(len(batch)):
 
-            real = np.reshape(batch[i], [28,28])
-            recon = np.reshape(recons[i], [28,28])
+            real = np.reshape(batch[i], [height,width])
+            recon = np.reshape(recons[i], [height,width])
             together = np.concatenate((real, recon), axis=1)
 
             if i == 0:
@@ -145,18 +155,29 @@ if __name__ == "__main__":
                 concat2 = np.concatenate((concat2, together), axis=0)
 
 
-        #Get a bunch of generations
-        samps = vae.generate()
-        # samps = samps[0]
-        print samps.shape
+        #Get a bunch of grads
+        for i in range(len(focus)):
 
-        for i in range(len(samps)):
-
-            gen = np.reshape(samps[i], [28,28])
-            other = np.zeros((28,28))
+            gen = np.reshape(focus[i], [height,width])
+            other = np.zeros((height,width))
             together = np.concatenate((other, gen), axis=1)
 
             concat2 = np.concatenate((concat2, together), axis=0)
+
+
+
+        # #Get a bunch of generations
+        # samps = vae.generate()
+        # # samps = samps[0]
+        # print samps.shape
+
+        # for i in range(len(samps)):
+
+        #     gen = np.reshape(samps[i], [height,width])
+        #     other = np.zeros((height,width))
+        #     together = np.concatenate((other, gen), axis=1)
+
+        #     concat2 = np.concatenate((concat2, together), axis=0)
 
 
 
