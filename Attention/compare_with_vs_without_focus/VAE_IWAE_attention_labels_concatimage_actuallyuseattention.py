@@ -23,7 +23,7 @@ class VAE(object):
         
         tf.reset_default_graph()
 
-        self.focus_bool = focus
+        self.focus_bool = focus_bool
 
         self.network_architecture = dict(n_input=784*2, # 784 image
                                          encoder_net=[100, 100], 
@@ -494,7 +494,7 @@ class VAE(object):
 
 
 
-    def train(self, train_x, valid_x=[], display_step=20, path_to_load_variables='', path_to_save_variables='', epochs=10, train_y=[]):
+    def train(self, train_x, valid_x=[], display_step=100, path_to_load_variables='', path_to_save_variables='', epochs=10, train_y=[]):
         '''
         Train.
         Use early stopping, actually no, because I want it to be equal for each model. Time? Epochs? 

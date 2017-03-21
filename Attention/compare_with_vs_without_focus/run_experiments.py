@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     #Which task to run
     train_model_with = 0
-    train_model_without = 0
+    train_model_without = 1
 
     visualize = 0
 
@@ -90,7 +90,8 @@ if __name__ == "__main__":
         vae.train(train_x=train_x, path_to_load_variables=model_path_to_load_variables, 
                                     path_to_save_variables=model_path_to_save_variables,
                                     epochs=epochs,
-                                    train_y=train_y)
+                                    train_y=train_y,
+                                    display_step=200)
 
 
 
@@ -118,7 +119,8 @@ if __name__ == "__main__":
         vae.train(train_x=train_x, path_to_load_variables=model_path_to_load_variables, 
                                     path_to_save_variables=model_path_to_save_variables,
                                     epochs=epochs,
-                                    train_y=train_y)
+                                    train_y=train_y,
+                                    display_step=200)
 
 
 
@@ -126,6 +128,8 @@ if __name__ == "__main__":
 
 
     if visualize ==1:
+
+        #load all the params, get prediction accuracies, viz reconstructions and gradients
 
         #Load data
         # train_x, valid_x, test_x = load_binarized_mnist(location=home+'/data/binarized_mnist.pkl')
