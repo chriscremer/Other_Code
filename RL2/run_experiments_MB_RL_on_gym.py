@@ -25,8 +25,8 @@ import random
 from PIL import Image
 
 #these wont work on boltz, so just comment out
-import cv2  #for viz
-from skimage.measure import block_reduce
+# import cv2  #for viz
+# from skimage.measure import block_reduce
 
 
 #now we'll see if this MB-RL works on Open AI gym
@@ -37,12 +37,12 @@ if __name__ == "__main__":
     #Which task to run
     make_data = 0
     train_both = 0
-    train_model = 0
+    train_model = 1
     train_policy = 0
     # train_policy_using_policy = 1
     visualize = 0
     run_gym = 0
-    viz2 = 1
+    viz2 = 0
 
     # save_to = home + '/data/' #for boltz
     save_to = home + '/Documents/tmp/' # for mac
@@ -190,7 +190,7 @@ if __name__ == "__main__":
     n_timesteps = 30 #for simulated trajs
     # obs_height = 15
     # obs_width = 2
-    training_steps = 100000
+    training_steps = 500000
     display_step = 20
     n_input = 1344
     z_size = 20
@@ -207,12 +207,12 @@ if __name__ == "__main__":
 
     model_path_to_load_variables=save_to + 'mb_rl_model_cartpole_pixels7.ckpt'
     # model_path_to_load_variables=''
-    model_path_to_save_variables=save_to + 'mb_rl_model_cartpole_pixels7.ckpt'
+    model_path_to_save_variables=save_to + 'mb_rl_model_cartpole_pixels8.ckpt'
     # model_path_to_save_variables=''
 
     policy_path_to_load_variables=save_to + 'mb_rl_policy_cartpole_pixels7.ckpt'
     # policy_path_to_load_variables=''
-    policy_path_to_save_variables=save_to + 'mb_rl_policy_cartpole_pixels7.ckpt'
+    policy_path_to_save_variables=save_to + 'mb_rl_policy_cartpole_pixels8.ckpt'
     # path_to_save_variables=''
 
     #Tensorboard path

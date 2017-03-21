@@ -224,7 +224,7 @@ class MB_RL():
 
 
             #Check validation 
-            if step % 500 == 0:
+            if step % 5000 == 0:
                 elbos = []
                 #size of validation set
                 for i in range(20):
