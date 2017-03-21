@@ -1,5 +1,11 @@
 
 
+
+# going to train the model, with and without focus
+# save params every 50 epochs, so can go back and see who learned faster. 
+
+
+
 import numpy as np
 import pickle
 from scipy.misc import imsave
@@ -44,21 +50,27 @@ def load_binarized_mnist(location):
 if __name__ == "__main__":
 
     #Which task to run
-    train_model = 0
-    visualize = 1
+    train_model_with = 0
+    train_model_without = 0
+
+    visualize = 0
 
 
     save_to = home + '/Documents/tmp/'
 
-    model_path_to_load_variables=save_to + 'attention8.ckpt'
-    # model_path_to_load_variables=''
-    model_path_to_save_variables=save_to + 'attention8.ckpt'
+    # model_path_to_load_variables=save_to + 'attention8.ckpt'
+    model_path_to_load_variables=''
+    # model_path_to_save_variables=save_to + 'attention_with.ckpt'
     # model_path_to_save_variables=''
 
-    epochs = 100
+    epochs = 200
 
 
-    if train_model ==1:
+    if train_model_with ==1:
+
+
+        model_path_to_save_variables=save_to + 'focus_with'#.ckpt'
+
 
         #Load data
         # train_x, valid_x, test_x = load_binarized_mnist(location=home+'/data/binarized_mnist.pkl')
@@ -73,12 +85,43 @@ if __name__ == "__main__":
         print 'Test', test_y.shape
 
         #Init model
-        vae = VAE(batch_size=25)
+        vae = VAE(batch_size=25, focus_bool=True)
         #Train model
         vae.train(train_x=train_x, path_to_load_variables=model_path_to_load_variables, 
                                     path_to_save_variables=model_path_to_save_variables,
                                     epochs=epochs,
                                     train_y=train_y)
+
+
+
+    if train_model_without ==1:
+
+
+        model_path_to_save_variables=save_to + 'focus_without'#.ckpt'
+
+
+        #Load data
+        # train_x, valid_x, test_x = load_binarized_mnist(location=home+'/data/binarized_mnist.pkl')
+        # train_x, valid_x, test_x = load_binarized_mnist(location=home+'/Documents/MNIST_Data/binarized_mnist.pkl')
+        train_x, valid_x, test_x, train_y, valid_y, test_y = load_binarized_mnist(location=home+'/Documents/MNIST_Data/mnist.pkl')
+
+        print 'Train', train_x.shape
+        print 'Valid', valid_x.shape
+        print 'Test', test_x.shape
+        print 'Train', train_y.shape
+        print 'Valid', valid_y.shape
+        print 'Test', test_y.shape
+
+        #Init model
+        vae = VAE(batch_size=25, focus_bool=False)
+        #Train model
+        vae.train(train_x=train_x, path_to_load_variables=model_path_to_load_variables, 
+                                    path_to_save_variables=model_path_to_save_variables,
+                                    epochs=epochs,
+                                    train_y=train_y)
+
+
+
 
 
 

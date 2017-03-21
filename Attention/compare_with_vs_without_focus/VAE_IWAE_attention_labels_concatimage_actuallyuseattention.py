@@ -16,17 +16,19 @@ import pickle
 
 
 
+
 class VAE(object):
 
-    def __init__(self, batch_size):
+    def __init__(self, batch_size, focus_bool=False):
         
         tf.reset_default_graph()
+
+        self.focus_bool = focus
 
         self.network_architecture = dict(n_input=784*2, # 784 image
                                          encoder_net=[100, 100], 
                                          n_z=20,  # dimensionality of latent space
-                                         decoder_net=[100, 100],
-                                         attention=[200,200]) 
+                                         decoder_net=[100, 100]) 
 
         self.transfer_fct = tf.nn.relu #tf.nn.softplus #tf.tanh #
         self.learning_rate = 0.0001
@@ -405,7 +407,8 @@ class VAE(object):
         reconstr_loss = tf.maximum(pred_no_sig, 0) - pred_no_sig * t + tf.log(1 + tf.exp(-tf.abs(pred_no_sig)))
 
 
-        reconstr_loss = reconstr_loss * self.focus  #[B,X] * [X]
+        if self.focus_bool:
+            reconstr_loss = reconstr_loss * self.focus  #[B,X] * [X]
         # print reconstr_loss
         # fasdf
 
@@ -584,10 +587,18 @@ class VAE(object):
             print 'time per epoch', time.time()-start
             start = time.time()
 
+            if epoch % 50 == 0 and epoch != 0:
+                if path_to_save_variables != '':
+                    # print 'saving variables to ' + path_to_save_variables
+                    save_to = path_to_save_variables+'_'+str(epoch)+'.ckpt'
+                    saver.save(self.sess, save_to)
+                    print 'Saved variables to ' + save_to
+
         if path_to_save_variables != '':
             # print 'saving variables to ' + path_to_save_variables
-            saver.save(self.sess, path_to_save_variables)
-            print 'Saved variables to ' + path_to_save_variables
+            save_to = path_to_save_variables+'_'+str(epochs)+'.ckpt'
+            saver.save(self.sess, save_to)
+            print 'Saved variables to ' + save_to
 
 
 
