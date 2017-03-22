@@ -5,6 +5,7 @@
 
 #Generative Autoencoder classes
 import numpy as np
+from numpy import random as npr
 import tensorflow as tf
 import random
 import math
@@ -634,7 +635,7 @@ class VAE(object):
 
 
 
-    def reconstruct(self, sampling, data, labels):
+    def reconstruct(self, sampling, data, labels, rs):
 
 
         # batch = []
@@ -647,7 +648,8 @@ class VAE(object):
         batch_y = []
         while len(batch) != self.batch_size:
 
-            ind1 = np.random.randint(0,len(data))
+            ind1 = rs.randint(0,len(data))
+            # ind1 = np.random.randint(0,len(data))
             # ind2 = np.random.randint(0,len(data))
 
             img1 = np.reshape(data[ind1], [28,28])

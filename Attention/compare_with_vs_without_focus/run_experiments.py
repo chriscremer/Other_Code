@@ -7,6 +7,7 @@
 
 
 import numpy as np
+from numpy import random as npr
 import pickle
 from scipy.misc import imsave
 
@@ -51,9 +52,9 @@ if __name__ == "__main__":
 
     #Which task to run
     train_model_with = 0
-    train_model_without = 1
+    train_model_without = 0
 
-    visualize = 0
+    visualize = 1
 
 
     save_to = home + '/Documents/tmp/'
@@ -129,6 +130,10 @@ if __name__ == "__main__":
 
     if visualize ==1:
 
+        rs = npr.RandomState(0)
+
+        model_path_to_save_variables=save_to + 'focus_with_200.ckpt'
+
         #load all the params, get prediction accuracies, viz reconstructions and gradients
 
         #Load data
@@ -176,12 +181,12 @@ if __name__ == "__main__":
         width = 28 * 2
 
         #Init model
-        vae = VAE(batch_size=5)
+        vae = VAE(batch_size=10)
         vae.load_parameters(path_to_load_variables=model_path_to_save_variables)
 
 
         #Get a bunch of reconstructions 
-        recons, batch, focus = vae.reconstruct(sampling='vae', data=train_x, labels=train_y)
+        recons, batch, focus = vae.reconstruct(sampling='vae', data=valid_x, labels=valid_y, rs=rs)
         # recons = recons[0]
         print recons.shape
         print batch.shape
