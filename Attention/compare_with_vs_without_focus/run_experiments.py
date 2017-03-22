@@ -51,10 +51,10 @@ def load_binarized_mnist(location):
 if __name__ == "__main__":
 
     #Which task to run
-    train_model_with = 0
+    train_model_with = 1
     train_model_without = 0
 
-    visualize = 1
+    visualize = 0
 
 
     save_to = home + '/Documents/tmp/'

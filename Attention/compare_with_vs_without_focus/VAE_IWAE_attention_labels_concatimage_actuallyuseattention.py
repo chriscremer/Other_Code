@@ -28,7 +28,7 @@ class VAE(object):
 
         self.network_architecture = dict(n_input=784*2, # 784 image
                                          encoder_net=[100, 100], 
-                                         n_z=20,  # dimensionality of latent space
+                                         n_z=5,  # dimensionality of latent space
                                          decoder_net=[100, 100]) 
 
         self.transfer_fct = tf.nn.relu #tf.nn.softplus #tf.tanh #
@@ -452,13 +452,13 @@ class VAE(object):
 
         # print pred_no_sig
         # print t
-        # reconstr_loss = tf.contrib.losses.softmax_cross_entropy(logits=pred_no_sig, onehot_labels=t)
+        reconstr_loss = tf.contrib.losses.softmax_cross_entropy(logits=pred_no_sig, onehot_labels=t)
 
         # reconstr_loss = tf.reduce_mean(tf.square(tf.nn.sigmoid(pred_no_sig) - t), 1)
         # reconstr_loss = tf.reduce_mean(reconstr_loss)
 
-        cross_entropy = tf.reduce_mean(-tf.reduce_mean(t * tf.log(tf.nn.softmax(pred_no_sig)), 1))
-        reconstr_loss = cross_entropy
+        # cross_entropy = tf.reduce_mean(-tf.reduce_mean(t * tf.log(tf.nn.softmax(pred_no_sig)), 1))
+        # reconstr_loss = cross_entropy
 
         
 
