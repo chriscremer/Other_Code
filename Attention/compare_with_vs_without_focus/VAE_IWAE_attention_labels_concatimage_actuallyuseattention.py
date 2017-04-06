@@ -452,7 +452,10 @@ class VAE(object):
 
         # print pred_no_sig
         # print t
-        reconstr_loss = tf.contrib.losses.softmax_cross_entropy(logits=pred_no_sig, onehot_labels=t)
+        # reconstr_loss = tf.contrib.losses.softmax_cross_entropy(logits=pred_no_sig, onehot_labels=t)
+        reconstr_loss = tf.losses.softmax_cross_entropy(logits=pred_no_sig, onehot_labels=t)
+        
+        
 
         # reconstr_loss = tf.reduce_mean(tf.square(tf.nn.sigmoid(pred_no_sig) - t), 1)
         # reconstr_loss = tf.reduce_mean(reconstr_loss)

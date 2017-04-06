@@ -3,7 +3,7 @@
 # dont train the q. i just wnat to viz the differnece in k
 
 
-
+# THIS WAS USED TO MAKE THE FIGS IN THE PAPER
 
 
 
@@ -81,7 +81,7 @@ class Gaussian_SVI(object):
 
         #Sample
         self.eps = tf.random_normal((self.n_particles, self.D), 0, 1, dtype=tf.float32) #[P,D]
-        self.sample_q = tf.add(self.mean, tf.mul(tf.sqrt(tf.exp(self.log_var)), self.eps)) #[P,D]
+        self.sample_q = tf.add(self.mean, tf.multiply(tf.sqrt(tf.exp(self.log_var)), self.eps)) #[P,D]
 
         #Calc log probs
         self.log_px = self.log_p_z(self.sample_q) #[P]

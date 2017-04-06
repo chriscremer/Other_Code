@@ -51,10 +51,10 @@ def load_binarized_mnist(location):
 if __name__ == "__main__":
 
     #Which task to run
-    train_model_with = 1
+    train_model_with = 0
     train_model_without = 0
 
-    visualize = 0
+    visualize = 1
 
 
     save_to = home + '/Documents/tmp/'
@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
         rs = npr.RandomState(0)
 
-        model_path_to_save_variables=save_to + 'focus_with_200.ckpt'
+        model_path_to_save_variables=save_to + 'focus_with_50.ckpt'
 
         #load all the params, get prediction accuracies, viz reconstructions and gradients
 

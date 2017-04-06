@@ -147,7 +147,7 @@ if __name__ == '__main__':
 
     # Specify an inference problem by its unnormalized log-density.
     D = 2
-    k = 2
+    k = 5
     num_samples = 20
     def log_density(x, t):
         x_, y_ = x[:, 0], x[:, 1]
@@ -155,8 +155,8 @@ if __name__ == '__main__':
         mu_density = norm.logpdf(x_, -0.5, np.exp(y_))
         sigma_density2 = norm.logpdf(y_, 0.1, 1.35)
         mu_density2 = norm.logpdf(x_, 0.5, np.exp(y_))
-        # return np.logaddexp(sigma_density + mu_density, sigma_density2 + mu_density2)
-        return np.logaddexp(norm.logpdf(x_, 0,1)+norm.logpdf(y_, 0,1), norm.logpdf(x_, 0,1)+norm.logpdf(y_, 0,1))
+        return np.logaddexp(sigma_density + mu_density, sigma_density2 + mu_density2)
+        # return np.logaddexp(norm.logpdf(x_, 0,1)+norm.logpdf(y_, 0,1), norm.logpdf(x_, 0,1)+norm.logpdf(y_, 0,1))
 
 
     init_var_params, elbo, variational_log_density, variational_sampler = \
