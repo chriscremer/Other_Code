@@ -10,8 +10,8 @@ from scipy.stats import multivariate_normal as norm
 import time
 import datetime
 
-from IWAE import VAE
-from IWAE import IWAE
+# from IWAE import VAE
+from VAE_IWAE import IWAE
 
 
 
@@ -141,6 +141,7 @@ if __name__ == '__main__':
     path_to_save_variables, path_to_load_variables = user_defined_locations(args)
 
     #Load data
+    print 'loading data'
     train_x, valid_x, test_x = load_binarized_mnist(location=home+'/data/binarized_mnist.pkl')
     print 'Train', train_x.shape
     print 'Valid', valid_x.shape
@@ -197,7 +198,9 @@ if __name__ == '__main__':
 
 
 
-    if args.action == 'combined':
+    # if args.action == 'combined':
+    if 1:
+
 
         # Check for the model variables, if not there train it then eval. 
         #Write results to a file in case something happens
@@ -219,7 +222,9 @@ if __name__ == '__main__':
         print 'saving experiment log to ' +experiment_log
 
 
-        list_of_models = ['vae'] #['iwae', 'vae']  #mog vae vs mog iwae
+        # list_of_models = ['vae'] #['iwae', 'vae']  #mog vae vs mog iwae
+        list_of_models = ['iwae'] #['iwae', 'vae']  #mog vae vs mog iwae
+
         # list_model_structures = range(4)
         list_of_k_samples = [50] #[50,10,1] #[1,5,50] #[1,3,12,60]
         # list_of_donts = [[]]  #[c,k]
