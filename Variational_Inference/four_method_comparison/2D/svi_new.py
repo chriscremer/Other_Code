@@ -1,12 +1,6 @@
 
 
-# dont train the q. i just wnat to viz the differnece in k
-
-
-# THIS WAS USED TO MAKE THE FIGS IN THE PAPER
-
-
-
+# all the boxes have square aspects now
 
 
 import numpy as np
@@ -191,7 +185,7 @@ if __name__ == '__main__':
 
 
     fig = plt.figure(figsize=(12,5), facecolor='white')
-    n_samples = 10000
+    n_samples = 100
 
 
 
@@ -202,6 +196,7 @@ if __name__ == '__main__':
     G_SVI = Gaussian_SVI(n_particles=n_particles)
     target_distribution = lambda x: np.exp(G_SVI.log_density(x))
     plot_isocontours(ax, target_distribution, cmap='Blues')
+    plt.gca().set_aspect('equal', adjustable='box')
 
 
     ax = fig.add_subplot(142, frameon=False)
@@ -233,6 +228,7 @@ if __name__ == '__main__':
     cfset = ax.contourf(xx, yy, f, cmap='Blues', vmin=10**(-10))
     ax.set_yticks([])
     ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
 
 
     # float32fds
@@ -261,6 +257,7 @@ if __name__ == '__main__':
     cfset = ax.contourf(xx, yy, f, cmap='Blues')
     ax.set_yticks([])
     ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
 
 
 
@@ -289,7 +286,7 @@ if __name__ == '__main__':
     ax.set_yticks([])
     ax.set_xticks([])
 
-
+    plt.gca().set_aspect('equal', adjustable='box')
     plt.show()
 
     fdsasd

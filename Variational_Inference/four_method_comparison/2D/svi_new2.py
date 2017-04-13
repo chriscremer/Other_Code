@@ -1,12 +1,5 @@
 
 
-# dont train the q. i just wnat to viz the differnece in k
-
-
-# THIS WAS USED TO MAKE THE FIGS IN THE PAPER
-
-
-
 
 
 import numpy as np
@@ -190,21 +183,22 @@ class Gaussian_SVI(object):
 if __name__ == '__main__':
 
 
-    fig = plt.figure(figsize=(12,5), facecolor='white')
-    n_samples = 10000
+    fig = plt.figure(figsize=(12,12), facecolor='white')
+    n_samples = 100
 
 
 
-    ax = fig.add_subplot(141, frameon=False)
+    ax = fig.add_subplot(341, frameon=False)
     n_particles = 10
     # n_particles_viz = 100
     #for training
     G_SVI = Gaussian_SVI(n_particles=n_particles)
     target_distribution = lambda x: np.exp(G_SVI.log_density(x))
     plot_isocontours(ax, target_distribution, cmap='Blues')
+    plt.gca().set_aspect('equal', adjustable='box')
 
 
-    ax = fig.add_subplot(142, frameon=False)
+    ax = fig.add_subplot(342, frameon=False)
     n_particles_viz = 1
     # mean_, log_var_ = G_SVI.sess.run([G_SVI.mean, G_SVI.log_var])
     G_SVI_for_viz = Gaussian_SVI(n_particles=n_particles_viz, mean=[0.,0.], logvar=[1.,1.])
@@ -233,12 +227,13 @@ if __name__ == '__main__':
     cfset = ax.contourf(xx, yy, f, cmap='Blues', vmin=10**(-10))
     ax.set_yticks([])
     ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
 
 
     # float32fds
 
 
-    ax = fig.add_subplot(143, frameon=False)
+    ax = fig.add_subplot(347, frameon=False)
     n_particles_viz = 10
     # mean_, log_var_ = G_SVI.sess.run([G_SVI.mean, G_SVI.log_var])
     G_SVI_for_viz = Gaussian_SVI(n_particles=n_particles_viz, mean=[0.,0.], logvar=[1.,1.])
@@ -261,11 +256,12 @@ if __name__ == '__main__':
     cfset = ax.contourf(xx, yy, f, cmap='Blues')
     ax.set_yticks([])
     ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
 
 
 
 
-    ax = fig.add_subplot(144, frameon=False)
+    ax = fig.add_subplot(3,4,12, frameon=False)
     n_particles_viz = 100
     # mean_, log_var_ = G_SVI.sess.run([G_SVI.mean, G_SVI.log_var])
     G_SVI_for_viz = Gaussian_SVI(n_particles=n_particles_viz, mean=[0.,0.], logvar=[1.,1.])
@@ -289,7 +285,7 @@ if __name__ == '__main__':
     ax.set_yticks([])
     ax.set_xticks([])
 
-
+    plt.gca().set_aspect('equal', adjustable='box')
     plt.show()
 
     fdsasd

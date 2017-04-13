@@ -1,12 +1,8 @@
 
 
-# dont train the q. i just wnat to viz the differnece in k
 
 
-# THIS WAS USED TO MAKE THE FIGS IN THE PAPER
-
-
-
+# all the boxes have square aspects now
 
 
 import numpy as np
@@ -99,7 +95,7 @@ class Gaussian_SVI(object):
         self.optimizer = tf.train.AdamOptimizer(learning_rate=.01, epsilon=1e-04).minimize(-self.elbo)
 
         self.sess = tf.Session()
-        self.sess.run(tf.initialize_all_variables())
+        self.sess.run(tf.global_variables_initializer())
 
     def log_normal(self, x, mean, log_var):
         '''
@@ -191,20 +187,188 @@ if __name__ == '__main__':
 
 
     fig = plt.figure(figsize=(12,5), facecolor='white')
-    n_samples = 10000
+    n_batches = 100
 
 
 
     ax = fig.add_subplot(141, frameon=False)
-    n_particles = 10
-    # n_particles_viz = 100
-    #for training
-    G_SVI = Gaussian_SVI(n_particles=n_particles)
+    n_particles = 1
+    G_SVI = Gaussian_SVI(n_particles=n_particles, mean=[0.,0.], logvar=[1.,1.])
     target_distribution = lambda x: np.exp(G_SVI.log_density(x))
     plot_isocontours(ax, target_distribution, cmap='Blues')
+    plt.gca().set_aspect('equal', adjustable='box')
+
+
+    xlimits=[-6, 6]
+    ylimits=[-6, 6]
+    numticks=101
+    x = np.linspace(*xlimits, num=numticks)
+    y = np.linspace(*ylimits, num=numticks)
+    X, Y = np.meshgrid(x, y)
+
+    X = X.T
+    Y = Y.T
+
+    # print X
+    # print Y
+
+    # fasdf
+
+
+
+    p_grid_values = np.zeros([101,101])
+    q_grid_values = np.zeros([101,101])
+    w_grid_values = np.zeros([101,101])
+    for i in range(101):
+        for j in range(101):
+            log_p_grid_point, log_q_grid_point, log_w  = G_SVI.sess.run([G_SVI.log_px, G_SVI.log_qz, G_SVI.log_w], feed_dict={G_SVI.sample_q: [[x[i], y[j]]]})
+            p_grid_values[i][j] = log_p_grid_point
+            q_grid_values[i][j] = log_q_grid_point
+            w_grid_values[i][j] = log_w
+
+
+
 
 
     ax = fig.add_subplot(142, frameon=False)
+    print 'k=1'
+
+    k = 1
+    G_SVI_for_viz = Gaussian_SVI(n_particles=k, mean=[0.,0.], logvar=[1.,1.])
+
+    grid_values = np.zeros([101,101])
+
+    for b in range(n_batches):
+        # print b
+
+        if k >1:
+            #sample k samples for this batch
+            samples, log_ws = G_SVI_for_viz.sess.run([G_SVI_for_viz.sample_q, G_SVI_for_viz.log_w])
+            sum_p_q = np.sum(np.exp(log_ws))
+        else:
+            sum_p_q = 0
+
+        for i in range(101):
+            for j in range(101):
+
+                sum_p_q_grid_point = sum_p_q + np.exp(w_grid_values[i][j])
+                avg_ = sum_p_q_grid_point / k
+                grid_values[i][j] += np.exp(p_grid_values[i][j]) / avg_
+
+
+    grid_values = grid_values / n_batches
+
+    # plt.contour(X, Y, grid_values, cmap='Blues')
+    plt.contourf(X, Y, grid_values, cmap='Blues') #, vmin=10**(-10))
+
+    ax.set_yticks([])
+    ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
+
+
+
+
+
+
+    ax = fig.add_subplot(143, frameon=False)
+    print 'k=10'
+
+    k = 10
+    G_SVI_for_viz = Gaussian_SVI(n_particles=k, mean=[0.,0.], logvar=[1.,1.])
+
+    grid_values = np.zeros([101,101])
+
+    for b in range(n_batches):
+        # print b
+
+        if k >1:
+            #sample k samples for this batch
+            samples, log_ws = G_SVI_for_viz.sess.run([G_SVI_for_viz.sample_q, G_SVI_for_viz.log_w])
+            sum_p_q = np.sum(np.exp(log_ws))
+        else:
+            sum_p_q = 0
+
+        for i in range(101):
+            for j in range(101):
+
+                sum_p_q_grid_point = sum_p_q + np.exp(w_grid_values[i][j])
+                avg_ = sum_p_q_grid_point / k
+                grid_values[i][j] += np.exp(p_grid_values[i][j]) / avg_
+
+
+    grid_values = grid_values / n_batches
+
+    plt.contourf(X, Y, grid_values, cmap='Blues')
+    ax.set_yticks([])
+    ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
+
+
+
+
+
+
+    ax = fig.add_subplot(144, frameon=False)
+    print 'k=100'
+
+    k = 100
+    G_SVI_for_viz = Gaussian_SVI(n_particles=k, mean=[0.,0.], logvar=[1.,1.])
+
+    grid_values = np.zeros([101,101])
+
+    for b in range(n_batches):
+        # print b
+
+        if k >1:
+            #sample k samples for this batch
+            samples, log_ws = G_SVI_for_viz.sess.run([G_SVI_for_viz.sample_q, G_SVI_for_viz.log_w])
+            sum_p_q = np.sum(np.exp(log_ws))
+        else:
+            sum_p_q = 0
+
+        for i in range(101):
+            for j in range(101):
+
+                sum_p_q_grid_point = sum_p_q + np.exp(w_grid_values[i][j])
+                avg_ = sum_p_q_grid_point / k
+                grid_values[i][j] += np.exp(p_grid_values[i][j]) / avg_
+
+
+    grid_values = grid_values / n_batches
+
+    plt.contourf(X, Y, grid_values, cmap='Blues')
+    ax.set_yticks([])
+    ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
+
+
+
+
+
+
+    plt.show()
+
+
+
+
+
+
+
+
+
+    fsdaf
+
+
+
+    zs = func(np.concatenate([np.atleast_2d(X.ravel()), np.atleast_2d(Y.ravel())]).T)
+    Z = zs.reshape(X.shape)
+    plt.contour(X, Y, Z, cmap=cmap)
+    ax.set_yticks([])
+    ax.set_xticks([])
+
+
+
+
     n_particles_viz = 1
     # mean_, log_var_ = G_SVI.sess.run([G_SVI.mean, G_SVI.log_var])
     G_SVI_for_viz = Gaussian_SVI(n_particles=n_particles_viz, mean=[0.,0.], logvar=[1.,1.])
@@ -233,6 +397,7 @@ if __name__ == '__main__':
     cfset = ax.contourf(xx, yy, f, cmap='Blues', vmin=10**(-10))
     ax.set_yticks([])
     ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
 
 
     # float32fds
@@ -261,6 +426,7 @@ if __name__ == '__main__':
     cfset = ax.contourf(xx, yy, f, cmap='Blues')
     ax.set_yticks([])
     ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
 
 
 
@@ -289,7 +455,7 @@ if __name__ == '__main__':
     ax.set_yticks([])
     ax.set_xticks([])
 
-
+    plt.gca().set_aspect('equal', adjustable='box')
     plt.show()
 
     fdsasd

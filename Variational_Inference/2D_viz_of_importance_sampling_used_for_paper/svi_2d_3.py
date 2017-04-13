@@ -1,12 +1,5 @@
 
 
-# dont train the q. i just wnat to viz the differnece in k
-
-
-# THIS WAS USED TO MAKE THE FIGS IN THE PAPER
-
-
-
 
 
 import numpy as np
@@ -44,6 +37,10 @@ def iw_sampling(SVI):
 
     #Sample from the recognition model, k times, calculate their weights, sample one from a categorical dist
     samples, log_ws = SVI.sess.run([SVI.sample_q, SVI.log_w])
+    # print 'sa'
+    # print samples
+    # print 'lw'
+    # print log_ws
 
     max_ = np.max(log_ws)
     aaa = np.exp(log_ws - max_)
@@ -55,7 +52,13 @@ def iw_sampling(SVI):
     sampled = np.random.multinomial(1, normalized_ws)#, size=1)
 
     sampled = samples[np.argmax(sampled)]
+    # print sampled
+    # dfsaf
 
+    # weighted_samples = []
+    # for i in range(len(sampled)):
+    #     for j in range(sampled[i]):
+    #         weighted_samples.append(samples[i])
     return sampled
 
 
@@ -81,7 +84,7 @@ class Gaussian_SVI(object):
 
         #Sample
         self.eps = tf.random_normal((self.n_particles, self.D), 0, 1, dtype=tf.float32) #[P,D]
-        self.sample_q = tf.add(self.mean, tf.multiply(tf.sqrt(tf.exp(self.log_var)), self.eps)) #[P,D]
+        self.sample_q = tf.add(self.mean, tf.mul(tf.sqrt(tf.exp(self.log_var)), self.eps)) #[P,D]
 
         #Calc log probs
         self.log_px = self.log_p_z(self.sample_q) #[P]
@@ -125,36 +128,10 @@ class Gaussian_SVI(object):
         return log_q_z
 
 
-    # def log_p_z(self, x):
-
-    #     # return self.log_normal(x, tf.zeros(self.D), tf.ones(self.D))
-    #     return tf.log(  tf.exp(self.log_normal(x, tf.zeros(self.D)-3, tf.ones(self.D))) + tf.exp(self.log_normal(x, tf.zeros(self.D)+2, tf.ones(self.D))))
-
-
     def log_p_z(self, x):
 
         # return self.log_normal(x, tf.zeros(self.D), tf.ones(self.D))
-        return tf.log(  
-                    tf.exp(self.log_normal(x, [1,3], tf.ones(self.D)/100))
-                    # + tf.exp(self.log_normal(x, [0,3], tf.ones(self.D)/100))
-
-                    + tf.exp(self.log_normal(x, [3,0], tf.ones(self.D)/100))
-                    # + tf.exp(self.log_normal(x, [3,-1], tf.ones(self.D)/100))
-
-
-                    + tf.exp(self.log_normal(x, [1,1], tf.ones(self.D)/100))
-                    
-
-                    + tf.exp(self.log_normal(x, [-3,-1], tf.ones(self.D)/100))
-                    + tf.exp(self.log_normal(x, [-1,-3], tf.ones(self.D)/100))
-
-                    + tf.exp(self.log_normal(x, [2,2], tf.ones(self.D)))
-                    + tf.exp(self.log_normal(x, [-2,-2], tf.ones(self.D)))
-                    + tf.exp(self.log_normal(x, [0,0], tf.ones(self.D)))
-
-
-                    )
-
+        return tf.log(  tf.exp(self.log_normal(x, tf.zeros(self.D)-3, tf.ones(self.D))) + tf.exp(self.log_normal(x, tf.zeros(self.D)+2, tf.ones(self.D))))
 
 
 
@@ -189,118 +166,15 @@ class Gaussian_SVI(object):
 
 if __name__ == '__main__':
 
-
-    fig = plt.figure(figsize=(12,5), facecolor='white')
-    n_samples = 10000
-
-
-
-    ax = fig.add_subplot(141, frameon=False)
     n_particles = 10
-    # n_particles_viz = 100
+    n_particles_viz = 100
+
     #for training
     G_SVI = Gaussian_SVI(n_particles=n_particles)
-    target_distribution = lambda x: np.exp(G_SVI.log_density(x))
-    plot_isocontours(ax, target_distribution, cmap='Blues')
 
 
-    ax = fig.add_subplot(142, frameon=False)
-    n_particles_viz = 1
-    # mean_, log_var_ = G_SVI.sess.run([G_SVI.mean, G_SVI.log_var])
-    G_SVI_for_viz = Gaussian_SVI(n_particles=n_particles_viz, mean=[0.,0.], logvar=[1.,1.])
-    # print x.shape
-    w_samples = []
-    for j in range(n_samples):
-        w_samples.append(iw_sampling(G_SVI_for_viz))
-    w_samples = np.array(w_samples)
-    # print np.array(w_samples).shape
-    x_ = w_samples[:, 0]
-    y_ = w_samples[:, 1]
-    # Peform the kernel density estimate
-    xmin, xmax = -6, 6
-    ymin, ymax = -6, 6
-    xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
-    positions = np.vstack([xx.ravel(), yy.ravel()])
-    values = np.vstack([x_, y_])
-    kernel = st.gaussian_kde(values)
-    f = np.reshape(kernel(positions).T, xx.shape)
-
-    # print f[0][0]
-    f[np.abs(f) < 10**(-10)] = 0
-    # print f[0][0]
-    # print f.shape
-    # fdsaf
-    cfset = ax.contourf(xx, yy, f, cmap='Blues', vmin=10**(-10))
-    ax.set_yticks([])
-    ax.set_xticks([])
-
-
-    # float32fds
-
-
-    ax = fig.add_subplot(143, frameon=False)
-    n_particles_viz = 10
-    # mean_, log_var_ = G_SVI.sess.run([G_SVI.mean, G_SVI.log_var])
-    G_SVI_for_viz = Gaussian_SVI(n_particles=n_particles_viz, mean=[0.,0.], logvar=[1.,1.])
-    # print x.shape
-    w_samples = []
-    for j in range(n_samples):
-        w_samples.append(iw_sampling(G_SVI_for_viz))
-    w_samples = np.array(w_samples)
-    # print np.array(w_samples).shape
-    x_ = w_samples[:, 0]
-    y_ = w_samples[:, 1]
-    # Peform the kernel density estimate
-    xmin, xmax = -6, 6
-    ymin, ymax = -6, 6
-    xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
-    positions = np.vstack([xx.ravel(), yy.ravel()])
-    values = np.vstack([x_, y_])
-    kernel = st.gaussian_kde(values)
-    f = np.reshape(kernel(positions).T, xx.shape)
-    cfset = ax.contourf(xx, yy, f, cmap='Blues')
-    ax.set_yticks([])
-    ax.set_xticks([])
-
-
-
-
-    ax = fig.add_subplot(144, frameon=False)
-    n_particles_viz = 100
-    # mean_, log_var_ = G_SVI.sess.run([G_SVI.mean, G_SVI.log_var])
-    G_SVI_for_viz = Gaussian_SVI(n_particles=n_particles_viz, mean=[0.,0.], logvar=[1.,1.])
-    # print x.shape
-    w_samples = []
-    for j in range(n_samples):
-        w_samples.append(iw_sampling(G_SVI_for_viz))
-    w_samples = np.array(w_samples)
-    # print np.array(w_samples).shape
-    x_ = w_samples[:, 0]
-    y_ = w_samples[:, 1]
-    # Peform the kernel density estimate
-    xmin, xmax = -6, 6
-    ymin, ymax = -6, 6
-    xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
-    positions = np.vstack([xx.ravel(), yy.ravel()])
-    values = np.vstack([x_, y_])
-    kernel = st.gaussian_kde(values)
-    f = np.reshape(kernel(positions).T, xx.shape)
-    cfset = ax.contourf(xx, yy, f, cmap='Blues')
-    ax.set_yticks([])
-    ax.set_xticks([])
-
-
-    plt.show()
-
-    fdsasd
-
-
-
-
-
-
-
-
+    fig = plt.figure(figsize=(8,8), facecolor='white')
+    ax = fig.add_subplot(111, frameon=False)
 
     plt.ion()
     plt.show(block=False)
@@ -371,9 +245,6 @@ if __name__ == '__main__':
 
     target_distribution = lambda x: np.exp(G_SVI.log_density(x))
     plot_isocontours(ax, target_distribution, cmap='Blues')
-    plt.show()
-
-
     var_distribution    = lambda x: np.exp(log_variational(x, mean, logvar))
     plot_isocontours(ax, var_distribution, cmap='Reds')
     plt.show()
