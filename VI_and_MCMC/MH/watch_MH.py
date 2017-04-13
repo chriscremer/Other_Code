@@ -204,7 +204,7 @@ if __name__ == '__main__':
 
 
 
-        if iters % 5 == 1:
+        if iters % 5 == 2:
 
             # samples = infmet.sess.run(infmet.sample_q)
             # while len(samples)<100:

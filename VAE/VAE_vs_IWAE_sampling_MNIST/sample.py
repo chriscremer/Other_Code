@@ -9,8 +9,8 @@ from scipy.stats import multivariate_normal as norm
 import time
 import datetime
 
-from IWAE import VAE
-from IWAE import IWAE
+from VAE_IWAE import VAE
+from VAE_IWAE import IWAE
 
 # import matplotlib.pyplot as plt
 import scipy 
@@ -39,8 +39,12 @@ def load_binarized_mnist(location):
 # path_to_save_variables = home+'/data/'+args.save_to+'.ckpt'
 # path_to_load_variables = home+'/data/'+args.load_from+'.ckpt'
 
+
+data_location = home + '/Documents/MNIST_data/'
+parameter_location = home + '/Documents/tmp/'
+
 #Load data
-train_x, valid_x, test_x = load_binarized_mnist(location=home+'/data/binarized_mnist.pkl')
+train_x, valid_x, test_x = load_binarized_mnist(location=data_location+'binarized_mnist.pkl')
 print 'Train', train_x.shape
 print 'Valid', valid_x.shape
 print 'Test', test_x.shape
@@ -100,7 +104,7 @@ for k in list_of_k_samples:
             elif m == 'iwae':
                 model = IWAE(list_of_archs[arch], batch_size=batch_size, n_particles=k)
 
-            model.load_parameters(path_to_load_variables=home+'/data/'+saved_parameter_file)
+            model.load_parameters(path_to_load_variables=parameter_location+saved_parameter_file)
 
 
             reconstructions, batch = model.reconstruct(sampling=sampling_type, data=batch)
@@ -147,8 +151,8 @@ for k in list_of_k_samples:
             # scipy.misc.imsave(home+'/data/recon_'+str(m)+'_k'+str(k)+'.png', concat2)
             # print 'saved ' + home+'/data/recon_'+str(m)+'_k'+str(k)+'.png'
 
-scipy.misc.imsave(home+'/data/recon_sampling'+str(sampling_type)+'.png', concat3)
-print 'saved ' + home+'/data/recon_'+str(sampling_type)+'.png'
+scipy.misc.imsave(parameter_location+'recon_sampling'+str(sampling_type)+'.png', concat3)
+print 'saved ' + parameter_location+ 'recon_'+str(sampling_type)+'.png'
 
 
 

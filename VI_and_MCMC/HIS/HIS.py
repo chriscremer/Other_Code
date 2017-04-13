@@ -2,7 +2,15 @@
 
 
 
-# Metropolis-Hastings
+
+
+
+
+
+
+
+
+#Hamiltonian Importance Sampling
 
 
 import numpy as np
@@ -34,7 +42,7 @@ def log_normal(x, mean, log_var, x_dim):
 
 
 
-class MH(object):
+class HIS(object):
 
     def __init__(self, log_p_true):
 
@@ -43,18 +51,17 @@ class MH(object):
         self.n_particles = 1
         self.D = 2
 
-        #Proposal distribution
-        # self.mean = tf.Variable([0.,0.])
-        self.mean = tf.placeholder(tf.float32, [self.D])
-
+        #Momentum distribution
+        self.mean = tf.Variable([0.,0.])
+        # self.mean = tf.placeholder(tf.float32, [self.D])
         self.log_var = tf.Variable([.5,.5])
 
-        #Sample
+        #Sample momentum
         self.eps = tf.random_normal((self.n_particles, self.D), 0, 1, dtype=tf.float32) #[P,D]
         self.sample_q = tf.add(self.mean, tf.multiply(tf.sqrt(tf.exp(self.log_var)), self.eps)) #[P,D]
 
         # #ELBO Objective
-        # self.log_p = log_p_true(self.sample_q, self.D) #[P]
+         #[P]
         # self.log_q = log_normal(self.sample_q, self.mean, self.log_var, self.D)  #[P]
         # self.log_w = self.log_p - self.log_q #[P]
 
@@ -64,10 +71,24 @@ class MH(object):
         # # Optimize
         # self.optimizer = tf.train.AdamOptimizer(learning_rate=.1, epsilon=1e-04).minimize(-self.elbo)
 
+        self.pos = tf.placeholder(tf.float32, [self.n_particles, self.D])
+        self.log_p = log_p_true(self.pos, self.D)
+        self.log_p_grad = tf.gradients(self.log_p, [self.pos])
+
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
 
-        # print self.sess.run(tf.gradients(self.elbo, [self.mean]))
+        
+
+
+
+
+
+
+
+
+
+
 
 
 
