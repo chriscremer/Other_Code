@@ -1,7 +1,4 @@
 
-
-
-
 #Generative Autoencoder classes
 import numpy as np
 import tensorflow as tf
@@ -15,13 +12,12 @@ import pickle
 
 
 
-class BVAE(object):
+class VAE():
 
     def __init__(self, network_architecture, learning_rate=0.0001, batch_size=5, n_particles=3):
         
         tf.reset_default_graph()
-
-        self.network_architecture = network_architecture
+        # self.network_architecture = network_architecture
         self.transfer_fct = tf.nn.softplus #tf.tanh
         self.learning_rate = learning_rate
         self.batch_size = batch_size
@@ -33,23 +29,20 @@ class BVAE(object):
         self.x = tf.placeholder(tf.float32, [None, self.n_input])
         
         #Variables
-        self.network_weights, self.n_decoder_weights = self._initialize_weights(network_architecture)
-
-        #Sample weights
-        self.sampled_theta, log_p_theta_, log_q_theta_ = self.sample_weights(self.network_weights['decoder_weights'])
-
-        #Encoder - Recognition model - q(z|x): recog_mean,z_log_std_sq=[batch_size, n_z]
-        self.recog_means, self.recog_log_vars = self._recognition_network(self.x, self.network_weights['encoder_weights']) #, self.network_weights['encoder_biases'])
+        self.network_weights = self._initialize_weights(network_architecture)
         
-        #Sample z
+        #Encoder - Recognition model - q(z|x): recog_mean,z_log_std_sq=[batch_size, n_z]
+        self.recog_means, self.recog_log_vars = self._recognition_network(self.x, self.network_weights['encoder_weights'], self.network_weights['encoder_biases'])
+        
+        #Sample
         eps = tf.random_normal((self.n_particles, self.batch_size, self.n_z), 0, 1, dtype=tf.float32)
         self.z = tf.add(self.recog_means, tf.multiply(tf.sqrt(tf.exp(self.recog_log_vars)), eps)) #uses broadcasting, z=[n_parts, n_batches, n_z]
         
         #Decoder - Generative model - p(x|z)
-        self.x_reconstr_mean_no_sigmoid = self._generator_network(self.z, self.sampled_theta)#, self.network_weights['decoder_biases']) #no sigmoid
+        self.x_reconstr_mean_no_sigmoid = self._generator_network(self.z, self.network_weights['decoder_weights'], self.network_weights['decoder_biases']) #no sigmoid
 
         #Objective
-        self.elbo = self.elbo(self.x, self.x_reconstr_mean_no_sigmoid, self.z, self.recog_means, self.recog_log_vars, log_p_theta_, log_q_theta_)
+        self.elbo = self.elbo(self.x, self.x_reconstr_mean_no_sigmoid, self.z, self.recog_means, self.recog_log_vars)
 
         # Use ADAM optimizer
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=1e-02).minimize(-self.elbo)
@@ -73,145 +66,69 @@ class BVAE(object):
 
         #Recognition net
         all_weights['encoder_weights'] = {}
-        # all_weights['encoder_biases'] = {}
+        all_weights['encoder_biases'] = {}
 
         for layer_i in range(len(network_architecture['encoder_net'])):
             if layer_i == 0:
-                all_weights['encoder_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(self.n_input+1, network_architecture['encoder_net'][layer_i]))
-                # all_weights['encoder_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
+                all_weights['encoder_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(self.n_input, network_architecture['encoder_net'][layer_i]))
+                all_weights['encoder_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
             else:
-                all_weights['encoder_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['encoder_net'][layer_i-1]+1, network_architecture['encoder_net'][layer_i]))
-                # all_weights['encoder_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
+                all_weights['encoder_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['encoder_net'][layer_i-1], network_architecture['encoder_net'][layer_i]))
+                all_weights['encoder_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
 
-        all_weights['encoder_weights']['out_mean'] = tf.Variable(xavier_init(network_architecture['encoder_net'][-1]+1, self.n_z))
-        all_weights['encoder_weights']['out_log_var'] = tf.Variable(xavier_init(network_architecture['encoder_net'][-1]+1, self.n_z))
-        # all_weights['encoder_biases']['out_mean'] = tf.Variable(tf.zeros([self.n_z], dtype=tf.float32))
-        # all_weights['encoder_biases']['out_log_var'] = tf.Variable(tf.zeros([self.n_z], dtype=tf.float32))
+        all_weights['encoder_weights']['out_mean'] = tf.Variable(xavier_init(network_architecture['encoder_net'][-1], self.n_z))
+        all_weights['encoder_weights']['out_log_var'] = tf.Variable(xavier_init(network_architecture['encoder_net'][-1], self.n_z))
+        all_weights['encoder_biases']['out_mean'] = tf.Variable(tf.zeros([self.n_z], dtype=tf.float32))
+        all_weights['encoder_biases']['out_log_var'] = tf.Variable(tf.zeros([self.n_z], dtype=tf.float32))
 
 
         #Generator net
         all_weights['decoder_weights'] = {}
-        # all_weights['decoder_biases'] = {}
-
-        n_decoder_weights = 0
+        all_weights['decoder_biases'] = {}
 
         for layer_i in range(len(network_architecture['decoder_net'])):
             if layer_i == 0:
-                all_weights['decoder_weights']['l'+str(layer_i)+'mean'] = tf.Variable(xavier_init(self.n_z+1, network_architecture['decoder_net'][layer_i]))
-                all_weights['decoder_weights']['l'+str(layer_i)+'logvar'] = tf.Variable(xavier_init(self.n_z+1, network_architecture['decoder_net'][layer_i]))
-                n_decoder_weights += (self.n_z+1) * network_architecture['decoder_net'][layer_i]
-                # all_weights['decoder_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['decoder_net'][layer_i]], dtype=tf.float32))
+                all_weights['decoder_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(self.n_z, network_architecture['decoder_net'][layer_i]))
+                all_weights['decoder_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['decoder_net'][layer_i]], dtype=tf.float32))
             else:
-                all_weights['decoder_weights']['l'+str(layer_i)+'mean'] = tf.Variable(xavier_init(network_architecture['decoder_net'][layer_i-1]+1, network_architecture['decoder_net'][layer_i]))
-                all_weights['decoder_weights']['l'+str(layer_i)+'logvar'] = tf.Variable(xavier_init(network_architecture['decoder_net'][layer_i-1]+1, network_architecture['decoder_net'][layer_i]))
-                n_decoder_weights += network_architecture['decoder_net'][layer_i-1]+1 * network_architecture['decoder_net'][layer_i]
-                # all_weights['decoder_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
+                all_weights['decoder_weights']['l'+str(layer_i)] = tf.Variable(xavier_init(network_architecture['decoder_net'][layer_i-1], network_architecture['decoder_net'][layer_i]))
+                all_weights['decoder_biases']['l'+str(layer_i)] = tf.Variable(tf.zeros([network_architecture['encoder_net'][layer_i]], dtype=tf.float32))
 
-        all_weights['decoder_weights']['out_mean_mean'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1]+1, self.n_input))
-        all_weights['decoder_weights']['out_mean_logvar'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1]+1, self.n_input))
-        n_decoder_weights += network_architecture['decoder_net'][-1]+1 * self.n_input
-
+        all_weights['decoder_weights']['out_mean'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.n_input))
         # all_weights['decoder_weights']['out_log_var'] = tf.Variable(xavier_init(network_architecture['decoder_net'][-1], self.n_input))
-        # all_weights['decoder_biases']['out_mean'] = tf.Variable(tf.zeros([self.n_input], dtype=tf.float32))
+        all_weights['decoder_biases']['out_mean'] = tf.Variable(tf.zeros([self.n_input], dtype=tf.float32))
         # all_weights['decoder_biases']['out_log_var'] = tf.Variable(tf.zeros([sefl.n_input], dtype=tf.float32))
 
-        return all_weights, n_decoder_weights
+        return all_weights
 
 
-    def _recognition_network(self, x, weights):
-        '''
-        x: [B,D]
-        '''
+    def _recognition_network(self, x, weights, biases):
 
         n_layers = len(weights) - 2 #minus 2 for the mean and var outputs
         for layer_i in range(n_layers):
 
-            #concat 1 to input for biases
-            x = tf.concat([x,tf.ones([self.batch_size,1])], axis=1)
+            x = self.transfer_fct(tf.add(tf.matmul(x, weights['l'+str(layer_i)]), biases['l'+str(layer_i)])) 
 
-            # x = self.transfer_fct(tf.add(tf.matmul(x, weights['l'+str(layer_i)]), biases['l'+str(layer_i)])) 
-            x = self.transfer_fct(tf.matmul(x, weights['l'+str(layer_i)])) #, biases['l'+str(layer_i)])) 
-
-        x = tf.concat([x,tf.ones([self.batch_size,1])], axis=1)
-
-        z_mean = tf.matmul(x, weights['out_mean'])#, biases['out_mean'])
-        z_log_var = tf.matmul(x, weights['out_log_var'])#, biases['out_log_var'])
+        z_mean = tf.add(tf.matmul(x, weights['out_mean']), biases['out_mean'])
+        z_log_var = tf.add(tf.matmul(x, weights['out_log_var']), biases['out_log_var'])
 
         return z_mean, z_log_var
 
-    def sample_weights(self, weights):
 
-        log_p = 0
-        log_q = 0
-
-        sampled_weights = []
-        for layer_i in range(len(self.network_architecture['decoder_net'])):
-
-            if layer_i == 0:
-                eps = tf.random_normal((self.n_z+1, self.network_architecture['decoder_net'][layer_i]), 0, 1, dtype=tf.float32)
-                weights_ = tf.add(weights['l'+str(layer_i)+'mean'], tf.multiply(tf.sqrt(tf.exp(weights['l'+str(layer_i)+'logvar'])), eps))
-                n_decoder_weights = (self.n_z+1) * self.network_architecture['decoder_net'][layer_i]
-                log_p += self.log_p_theta(weights_, n_decoder_weights)
-                log_q += self.log_q_theta(weights_, weights['l'+str(layer_i)+'mean'], weights['l'+str(layer_i)+'logvar'], n_decoder_weights)
-            else:
-                eps = tf.random_normal((self.network_architecture['decoder_net'][layer_i-1]+1, self.network_architecture['decoder_net'][layer_i]), 0, 1, dtype=tf.float32)
-                weights_ = tf.add(weights['l'+str(layer_i)+'mean'], tf.multiply(tf.sqrt(tf.exp(weights['l'+str(layer_i)+'logvar'])), eps))
-                n_decoder_weights = self.network_architecture['decoder_net'][layer_i-1]+1 * self.network_architecture['decoder_net'][layer_i]
-                log_p += self.log_p_theta(weights_, n_decoder_weights)
-                log_q += self.log_q_theta(weights_, weights['l'+str(layer_i)+'mean'], weights['l'+str(layer_i)+'logvar'], n_decoder_weights)
-
-            sampled_weights.append(weights_)
-
-        eps = tf.random_normal((self.network_architecture['decoder_net'][-1]+1, self.n_input), 0, 1, dtype=tf.float32)
-        weights_ = tf.add(weights['out_mean_mean'], tf.multiply(tf.sqrt(tf.exp(weights['out_mean_logvar'])), eps))
-        sampled_weights.append(weights_)
-        n_decoder_weights = self.network_architecture['decoder_net'][-1]+1 * self.n_input
-        log_p += self.log_p_theta(weights_, n_decoder_weights)
-        log_q += self.log_q_theta(weights_, weights['out_mean_mean'], weights['out_mean_logvar'], n_decoder_weights)
-
-        # print log_p
-        # print log_q
-        # fasdf
-
-        return sampled_weights, log_p, log_q
-
-
-    def _generator_network(self, z, weights):
+    def _generator_network(self, z, weights, biases):
 
         z = tf.reshape(z, [self.n_particles*self.batch_size, self.n_z])
 
-        # n_layers = len(weights) - 1 #minus 1 for the mean output
-        # for layer_i in range(n_layers):
-
-        for layer_i in range(len(self.network_architecture['decoder_net'])):
+        n_layers = len(weights) - 1 #minus 1 for the mean output
+        for layer_i in range(n_layers):
 
             # print z
             # print weights['l'+str(layer_i)]
 
-            #concat 1 to input for biases
-            z = tf.concat([z,tf.ones([self.n_particles*self.batch_size,1])], axis=1)
+            z = self.transfer_fct(tf.add(tf.matmul(z, weights['l'+str(layer_i)]), biases['l'+str(layer_i)])) 
 
-            if layer_i == 0:
-
-                #sample weights
-                # eps = tf.random_normal((self.n_z+1, self.network_architecture['decoder_net'][layer_i]), 0, 1, dtype=tf.float32)
-                # weights_ = tf.add(weights['l'+str(layer_i)+'mean'], tf.multiply(tf.sqrt(tf.exp(weights['l'+str(layer_i)+'logvar'])), eps))
-                z = self.transfer_fct(tf.matmul(z, weights[layer_i]))#, biases['l'+str(layer_i)]))
-
-            else:
-
-                #sample weights
-                # eps = tf.random_normal((self.network_architecture['decoder_net'][layer_i-1]+1, self.network_architecture['decoder_net'][layer_i]), 0, 1, dtype=tf.float32)
-                # weights_ = tf.add(weights['l'+str(layer_i)+'mean'], tf.multiply(tf.sqrt(tf.exp(weights['l'+str(layer_i)+'logvar'])), eps))
-                z = self.transfer_fct(tf.matmul(z, weights[layer_i]))#, biases['l'+str(layer_i)]))
-
-
-        z = tf.concat([z,tf.ones([self.n_particles*self.batch_size,1])], axis=1)
-
-        #notice no sigmoid
-        # x_mean = tf.matmul(z, weights['out_mean'])#, biases['out_mean'])
-        x_mean = tf.matmul(z, weights[-1])#, biases['out_mean'])
-
+        #notive no sigmoid
+        x_mean = tf.add(tf.matmul(z, weights['out_mean']), biases['out_mean'])
 
         x_reconstr_mean = tf.reshape(x_mean, [self.n_particles, self.batch_size, self.n_input])
 
@@ -282,49 +199,13 @@ class BVAE(object):
         return -reconstr_loss
 
 
-    def log_q_theta(self, theta, mean, log_var, size):
-        '''
-        theta: [input, ouput]
-        '''
 
-        term1 = tf.reduce_sum(log_var)#, reduction_indices=1) #sum over dimensions,[batch]
+    def elbo(self, x, x_recon, z, mean, log_var):
 
-        term2 = size * tf.log(2*math.pi)
-        dif = tf.square(theta - mean)
-        dif_cov = dif / tf.exp(log_var)
-        # term3 = tf.reduce_sum(dif_cov * dif, 1) 
-        term3 = tf.reduce_sum(dif_cov)#, 2) #sum over dimensions n_z so now its [particles, batch]
-
-        all_ = term1 + term2 + term3
-        log_p_z_given_x = -.5 * all_
-
-        return log_p_z_given_x
-
-
-
-
-    def log_p_theta(self, theta, size):
-        '''
-        theta: [input, ouput]
-        '''
-        # term1 = 0
-        term2 = size * tf.log(2*math.pi)
-        term3 = tf.reduce_sum(tf.square(theta))#, 2) #sum over dimensions n_z so now its [particles, batch]
-        all_ = term2 + term3
-        log_p_z = -.5 * all_
-
-        return log_p_z
-
-
-
-    def elbo(self, x, x_recon, z, mean, log_var, log_p_theta, log_q_theta):
-
-        elbo = self._log_likelihood(x, x_recon) + self._log_p_z(z) - self._log_q_z_given_x(z, mean, log_var)#+ self.log_p_theta(theta) - self.log_q_theta(theta, theta_mean, theta_logvar))
+        elbo = self._log_likelihood(x, x_recon) + self._log_p_z(z) - self._log_q_z_given_x(z, mean, log_var)
 
         elbo = tf.reduce_mean(elbo, 1) #average over batch
         elbo = tf.reduce_mean(elbo) #average over particles
-
-        elbo = elbo + (log_p_theta -  log_q_theta)*(1./50000.)
 
         return elbo
 
@@ -343,8 +224,7 @@ class BVAE(object):
         self.sess = tf.Session()
 
         if path_to_load_variables == '':
-            self.sess.run(tf.global_variables_initializer())
-
+            self.sess.run(tf.initialize_all_variables())
         else:
             #Load variables
             saver.restore(self.sess, path_to_load_variables)
@@ -505,20 +385,20 @@ class BVAE(object):
 
 
 
-# class IWAE(VAE):
+class IWAE(VAE):
 
-#     def elbo(self, x, x_recon, z, mean, log_var):
+    def elbo(self, x, x_recon, z, mean, log_var):
 
-#         # [P, B]
-#         temp_elbo = self._log_likelihood(x, x_recon) + self._log_p_z(z) - self._log_q_z_given_x(z, mean, log_var)
+        # [P, B]
+        temp_elbo = self._log_likelihood(x, x_recon) + self._log_p_z(z) - self._log_q_z_given_x(z, mean, log_var)
 
-#         max_ = tf.reduce_max(temp_elbo, reduction_indices=0) #over particles? so its [B]
+        max_ = tf.reduce_max(temp_elbo, reduction_indices=0) #over particles? so its [B]
 
-#         elbo = tf.log(tf.reduce_mean(tf.exp(temp_elbo-max_), 0)) + max_  #mean over particles so its [B]
+        elbo = tf.log(tf.reduce_mean(tf.exp(temp_elbo-max_), 0)) + max_  #mean over particles so its [B]
 
-#         elbo = tf.reduce_mean(elbo) #over batch
+        elbo = tf.reduce_mean(elbo) #over batch
 
-#         return elbo
+        return elbo
 
 
 
@@ -592,18 +472,6 @@ class BVAE(object):
     #         print 'Saved variables to ' + path_to_save_variables
 
 
-
-
-if __name__ == '__main__':
-
-    n_a0 = \
-        dict(n_input=784, # 784 image
-             encoder_net=[200,200], 
-             n_z=5,  # dimensionality of latent space
-             decoder_net=[200,200]) 
-
-    model = BVAE(n_a0, batch_size=5, n_particles=3)
-    fsaf
 
 
 
