@@ -29,7 +29,9 @@ if __name__ == "__main__":
     #Specify where to save stuff
 
     # save_to = home + '/data/' #for boltz
-    save_to = home + '/Documents/tmp/' # for mac
+    # save_to = home + '/Documents/tmp/' # for mac
+    save_to = './' # for other systems
+
     # path_to_load_variables=save_to + 'dkf_ball_vars.ckpt'
     path_to_load_variables=''
     path_to_save_variables=save_to + 'bouncy_ball.ckpt'
@@ -39,7 +41,7 @@ if __name__ == "__main__":
 
     #Define the model setup
 
-    training_steps = 8000
+    training_steps = 4000
     n_input = obs_height * obs_width
     n_time_steps = n_timesteps
     batch_size = 5

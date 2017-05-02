@@ -2,6 +2,12 @@
 
 # adding multiple particles
 
+# update May 2 2017: updated code for TF r1.0
+    # tf.concat
+    # tf.multiply
+    # tf.pack to tf.stack
+
+
 
 import numpy as np
 import tensorflow as tf
@@ -66,8 +72,10 @@ class DKF():
         self.prior_mean_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
         self.prior_logvar_ = tf.placeholder(tf.float32, [self.batch_size, self.z_size])
         eps = tf.random_normal((self.batch_size, self.z_size), 0, 1, dtype=tf.float32)
-        self.sample = tf.add(self.prior_mean_, tf.mul(tf.sqrt(tf.exp(self.prior_logvar_)), eps))
+        self.sample = tf.add(self.prior_mean_, tf.multiply(tf.sqrt(tf.exp(self.prior_logvar_)), eps))
 
+        #to make sure im not adding nodes to the graph
+        # tf.get_default_graph().finalize()
 
 
     def _initialize_weights(self, network_architecture):
@@ -302,19 +310,23 @@ class DKF():
                 prev_z = tf.slice(prev_particles, [0,i*self.z_size], [self.batch_size, self.z_size])
 
                 #combine prez and current a (used for prior)
-                prev_z_and_current_a = tf.concat(1, [prev_z, current_a]) #[B,ZA]
+                # prev_z_and_current_a = tf.concat(1, [prev_z, current_a]) #[B,ZA]
+                prev_z_and_current_a = tf.concat([prev_z, current_a], axis=1) #[B,ZA]
+
 
 
                 #ENCODE
                 #Concatenate current x, current action, prev_z: [B,XA+Z]
-                concatenate_all = tf.concat(1, [xa_t, prev_z])
+                # concatenate_all = tf.concat(1, [xa_t, prev_z])
+                concatenate_all = tf.concat([xa_t, prev_z], axis=1)
+
                 #Predict q(z|z-1,u,x): [B,Z] [B,Z]
                 z_mean, z_log_var = self.recognition_net(concatenate_all)
 
 
                 #SAMPLE from q(z|z-1,u,x)  [B,Z]
                 eps = tf.random_normal((self.batch_size, self.z_size), 0, 1, dtype=tf.float32)
-                this_particle = tf.add(z_mean, tf.mul(tf.sqrt(tf.exp(z_log_var)), eps))
+                this_particle = tf.add(z_mean, tf.multiply(tf.sqrt(tf.exp(z_log_var)), eps))
 
 
                 #DECODE  p(x|z): [B,X]
@@ -345,17 +357,21 @@ class DKF():
 
 
             #Average the log probs
-            log_p_z = tf.reduce_mean(tf.pack(log_pzs), axis=0) #over particles so its [B]
-            log_q_z = tf.reduce_mean(tf.pack(log_qzs), axis=0) 
-            log_p_x = tf.reduce_mean(tf.pack(log_pxs), axis=0) 
+            # log_p_z = tf.reduce_mean(tf.pack(log_pzs), axis=0) #over particles so its [B]
+            log_p_z = tf.reduce_mean(tf.stack(log_pzs), axis=0) #over particles so its [B]
+
+            log_q_z = tf.reduce_mean(tf.stack(log_qzs), axis=0) 
+            log_p_x = tf.reduce_mean(tf.stack(log_pxs), axis=0) 
             #Organize output
-            logprobs = tf.pack([log_p_x, log_p_z, log_q_z], axis=1) # [B,3]
+            logprobs = tf.stack([log_p_x, log_p_z, log_q_z], axis=1) # [B,3]
 
             #Reshape particles
-            new_particles = tf.pack(new_particles, axis=1) #[B,P,Z]
+            new_particles = tf.stack(new_particles, axis=1) #[B,P,Z]
             new_particles = tf.reshape(new_particles, [self.batch_size, self.n_particles*self.z_size])
 
-            output = tf.concat(1, [new_particles, logprobs])# [B,Z+3]
+            # output = tf.concat(1, [new_particles, logprobs])# [B,Z+3]
+            output = tf.concat([new_particles, logprobs], axis=1)# [B,Z+3]
+
 
             return output
 
@@ -366,7 +382,9 @@ class DKF():
 
 
         # Put obs and actions to together [B,T,X+A]
-        x_and_a = tf.concat(2, [x, actions])
+        # x_and_a = tf.concat(2, [x, actions])
+        x_and_a = tf.concat([x, actions], axis=2)
+
         # Transpose so that timesteps is first [T,B,X+A]
         x_and_a = tf.transpose(x_and_a, [1,0,2])
 
@@ -374,7 +392,9 @@ class DKF():
         z_init = tf.zeros([self.batch_size, self.n_particles*self.z_size])
         logprobs_init = tf.zeros([self.batch_size, 3])
         # Put z and logprobs together [B,PZ+3]
-        initializer = tf.concat(1, [z_init, logprobs_init])
+        # initializer = tf.concat(1, [z_init, logprobs_init])
+        initializer = tf.concat([z_init, logprobs_init], axis=1)
+
 
         # Scan over timesteps, returning particles and logprobs [T,B,Z+3]
         # print fn_over_timesteps
@@ -488,7 +508,7 @@ class DKF():
                 p1,p2,p3 = self.sess.run([self.log_p_x_final, self.log_p_z_final, self.log_q_z_final ], feed_dict={self.x: batch, self.actions: batch_actions})
 
 
-                print "Step:", '%04d' % (step+1), "cost=", "{:.5f}".format(cost), p1, p2, p3
+                print "Step:", '%04d' % (step+1), "cost=", "{:.5f}".format(cost), 'logpx', p1, 'logpz', p2, 'logqz', p3
 
 
         if path_to_save_variables != '':
