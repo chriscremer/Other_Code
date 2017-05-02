@@ -18,7 +18,7 @@ home = expanduser("~")
 
 
 
-class DKF():
+class DKF(object):
 
     def __init__(self, network_architecture, batch_size=5, n_particles=4):
         
@@ -226,9 +226,6 @@ class DKF():
             
 
 
-
-
-
     def Model(self, x, actions):
         '''
         x: [B,T,X]
@@ -307,7 +304,6 @@ class DKF():
 
 
             #Average the log probs
-            # log_p_z = tf.reduce_mean(tf.pack(log_pzs), axis=0) #over particles so its [B]
             log_p_z = tf.reduce_mean(tf.stack(log_pzs), axis=0) #over particles so its [B]
 
             log_q_z = tf.reduce_mean(tf.stack(log_qzs), axis=0) 
@@ -484,7 +480,6 @@ class DKF():
             print 'loaded variables ' + path_to_load_variables
 
 
-
         batch = []
         batch_actions = []
         while len(batch) != self.batch_size:
@@ -505,8 +500,6 @@ class DKF():
             #and the ones that are not used
             hidden_sequence.append(batch[b][n_time_steps_given:])
             hidden_actions.append(batch_actions[b][n_time_steps_given:])
-            
-
 
         #Get states [T,B,PZ+3]
         current_state = self.sess.run(self.particles_and_logprobs, feed_dict={self.x: given_sequence, self.actions: given_actions})
@@ -522,18 +515,10 @@ class DKF():
         # [TL, P, B, X]
         obs = self.predict_future(current_state, hidden_actions) 
 
-        
-        
-        # [T-TL, X]
-        # given_s = list(given_sequence[0])
         # [P, T-TL, X]
         real_and_gen = []
         for p in range(self.n_particles):
             real_and_gen.append(list(given_sequence[0]))
-
-        # [P, T-TL, X]
-        # print np.array(real_and_gen).shape
-        # fdsf
 
         for obs_t in range(len(obs)):
             # print 'obs_t', obs_t
@@ -544,16 +529,12 @@ class DKF():
 
                 real_and_gen[p].append(obs_t_p)
 
-
         #[T,P,X]
         real_and_gen = np.array(real_and_gen)
         # print real_and_gen.shape #[T,X]
         
-
         real_sequence = np.array(batch[0])
         actions = np.array(batch_actions[0])
-
-
 
         return real_sequence, actions, real_and_gen
 
