@@ -244,11 +244,11 @@ class BNN(object):
                                                         self.batch_fraction_of_dataset: batch_size/float(n_datapoints)})
                     # cost = -cost #because I want to see the NLL
                     print "Epoch", str(epoch+1)+'/'+str(epochs), 'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), "elbo=", "{:.6f}".format(float(cost)),logpy,logpW,logqW #, 'time', time.time() - start
-                    print 'target'
-                    print batch_y[0]
-                    print 'prediciton'
+                    # print 'target'
+                    print ["{:.2f}".format(float(x)) for x in batch_y[0]] 
+                    # print 'prediciton'
                     # print pred.shape
-                    print pred[0][0]
+                    print ["{:.2f}".format(float(x)) for x in pred[0][0]]  
                     print
 
         if path_to_save_variables != '':
@@ -279,14 +279,23 @@ if __name__ == '__main__':
     test_x = mnist_data[2][0]
     test_y = mnist_data[2][1]
 
+    path_to_save_variables=home+'/Documents/tmp/vars.ckpt'
+    path_to_load_variables=home+'/Documents/tmp/vars.ckpt'
+    # path_to_load_variables=''
+
+
     print 'Training'
-    model.train(train_x=train_x, train_y=train_y, epochs=10, batch_size=50, n_particles=2, display_step=100)
+    model.train(train_x=train_x, train_y=train_y, 
+                epochs=10, batch_size=20, n_particles=2, display_step=1000,
+                path_to_load_variables=path_to_load_variables,
+                path_to_save_variables=path_to_save_variables)
 
     #LOOK AT PREDICTION DIFFERNECE BETWEEN 20 vs 200 hidden layer size . why is error so different
         #because 200 has more extreme values, like close to 0
 
 
     # is the cross entropy the correct log likelihood??
+        #yes
 
 
     print 'Done.'
