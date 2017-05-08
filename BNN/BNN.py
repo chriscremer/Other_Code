@@ -269,20 +269,20 @@ class BNN(object):
                     # print debugpw
 
 
-                    grads = self.sess.run((self.grads), feed_dict={self.x: batch, self.y: batch_y, 
-                                                        self.batch_size: batch_size, 
-                                                        self.n_particles:n_particles, 
-                                                        self.batch_fraction_of_dataset: batch_size/float(n_datapoints)})
-                    print len(grads)
-                    print grads[0].shape
-                    print grads[0]
-                    # print vars_[0]
-                    print grads[1].shape
-                    print grads[1]
-                    print grads[2].shape
-                    print grads[2]
-                    print grads[3].shape
-                    print grads[3]
+                    # grads = self.sess.run((self.grads), feed_dict={self.x: batch, self.y: batch_y, 
+                    #                                     self.batch_size: batch_size, 
+                    #                                     self.n_particles:n_particles, 
+                    #                                     self.batch_fraction_of_dataset: batch_size/float(n_datapoints)})
+                    # print len(grads)
+                    # print grads[0].shape
+                    # print grads[0]
+                    # # print vars_[0]
+                    # print grads[1].shape
+                    # print grads[1]
+                    # print grads[2].shape
+                    # print grads[2]
+                    # print grads[3].shape
+                    # print grads[3]
 
 
                     # vars_ = self.sess.run((self.vars), feed_dict={self.x: batch, self.y: batch_y, 
