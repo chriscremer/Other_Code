@@ -474,12 +474,14 @@ def reverse_hamiltonian_sampling(n_samples, log_posterior, z_init, v_init, n_ste
 if __name__ == '__main__':
 
 
-    for n_steps in range(40,50,3):
+    for n_steps in range(1,3,1):
         
         print 'Initializing graph'
         print n_steps
         # n_steps = 6
-        friction = .9
+        # friction = .9
+        friction = 1.
+
 
         tf.reset_default_graph()
 
