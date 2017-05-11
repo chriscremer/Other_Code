@@ -48,6 +48,7 @@ class BVAE(object):
         #Define endocer and decoder
         with tf.variable_scope("encoder"):
             encoder = NN(self.encoder_net, self.encoder_act_func, self.batch_size)
+
         with tf.variable_scope("decoder"):
             decoder = BNN(self.decoder_net, self.decoder_act_func, self.batch_size)
         
@@ -62,6 +63,11 @@ class BVAE(object):
         with tf.variable_scope("adam_scope"):
             self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, 
                                                 epsilon=1e-02).minimize(-self.elbo)
+
+
+        # for var in tf.global_variables():
+        #     print var
+
 
         #Finalize Initilization
         self.init_vars = tf.global_variables_initializer()
@@ -84,28 +90,21 @@ class BVAE(object):
 
         for W_i in range(self.n_W_particles):
 
-            with tf.variable_scope("first"):
+            # Sample decoder weights  __, [1], [1]
+            W, log_pW, log_qW = decoder.sample_weights()
 
-                # Sample decoder weights  __, [1], [1]
-                W, log_pW, log_qW = decoder.sample_weights()
+            # Sample z   [P,B,Z], [P,B], [P,B]
+            z, log_pz, log_qz = self.sample_z(x, encoder, decoder, W)
+            # z: [PB,Z]
+            z = tf.reshape(z, [self.n_z_particles*self.batch_size, self.z_size])
 
+            # Decode [PB,X]
+            y = decoder.feedforward(W, z)
+            # y: [P,B,X]
+            y = tf.reshape(y, [self.n_z_particles, self.batch_size, self.x_size])
 
-
-                # Sample z   [P,B,Z], [P,B], [P,B]
-                z, log_pz, log_qz = self.sample_z(x, encoder, decoder, W)
-            with tf.variable_scope("second"):
-                # z: [PB,Z]
-                z = tf.reshape(z, [self.n_z_particles*self.batch_size, self.z_size])
-
-
-            
-                # Decode [PB,X]
-                y = decoder.feedforward(W, z)
-                # y: [P,B,X]
-                y = tf.reshape(y, [self.n_z_particles, self.batch_size, self.x_size])
-
-                # Likelihood p(x|z)  [P,B]
-                log_px = log_bern(x,y)
+            # Likelihood p(x|z)  [P,B]
+            log_px = log_bern(x,y)
 
             #Store for later
             log_px_list.append(log_px)
@@ -269,7 +268,7 @@ class BVAE(object):
                                                             self.batch_frac: 1./float(n_datapoints)})
                     # Display logs per epoch step
                     if step % display_step == 0:
-                        elbo,z_elbo,log_px,log_pz,log_qz,log_pW,log_qW = self.sess.run((self.elbo, self.z_elbo, 
+                        elbo,log_px,log_pz,log_qz,log_pW,log_qW = self.sess.run((self.elbo, 
                                                                                     self.log_px, self.log_pz, 
                                                                                     self.log_qz, self.log_pW, 
                                                                                     self.log_qW), 
@@ -279,7 +278,7 @@ class BVAE(object):
                         print ("Epoch", str(epoch+1)+'/'+str(epochs), 
                                 'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
                                 "elbo={:.4f}".format(float(elbo)),
-                                z_elbo,log_px,log_pz,log_qz,log_pW,log_qW)
+                                log_px,log_pz,log_qz,log_pW,log_qW)
 
             if path_to_save_variables != '':
                 self.saver.save(self.sess, path_to_save_variables)
@@ -364,6 +363,9 @@ class BIWAE(BVAE):
         self.elbo = self.iwae_objective(self.x, encoder, decoder)
         self.iwae_elbo = self.iwae_objective(self.x, encoder, decoder)
 
+        #for printing
+        stuff = self.objective(self.x, encoder, decoder)
+
 
         # Minimize negative ELBO
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, 
@@ -415,11 +417,11 @@ if __name__ == '__main__':
     path_to_load_variables=''
     path_to_save_variables=home+'/Documents/tmp/vars2.ckpt'
 
-    # print 'Training'
-    # model.train(train_x=train_x,
-    #             epochs=50, batch_size=20, n_W_particles=2, n_z_particles=3, display_step=1000,
-    #             path_to_load_variables=path_to_load_variables,
-    #             path_to_save_variables=path_to_save_variables)
+    print 'Training'
+    model.train(train_x=train_x,
+                epochs=50, batch_size=20, n_W_particles=2, n_z_particles=3, display_step=1000,
+                path_to_load_variables=path_to_load_variables,
+                path_to_save_variables=path_to_save_variables)
 
     print 'Eval'
     iwae_elbo = model.eval(data=test_x, batch_size=20, n_W_particles=2, n_z_particles=3, display_step=10,
