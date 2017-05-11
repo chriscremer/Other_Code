@@ -25,6 +25,8 @@ class BVAE(object):
 
     def __init__(self, hyperparams):
 
+        tf.reset_default_graph()
+
         #Model hyperparameters
         self.learning_rate = hyperparams['learning_rate']
         self.encoder_act_func = tf.nn.elu #tf.nn.softplus #tf.tanh
@@ -34,8 +36,6 @@ class BVAE(object):
         self.z_size = hyperparams['z_size']  #Z
         self.x_size = hyperparams['x_size']  #X
         self.rs = 0
-
-
         self.n_W_particles = hyperparams['n_W_particles']  #S
         # self.n_W_particles = tf.placeholder(tf.int32, None)  #S
 
@@ -43,34 +43,38 @@ class BVAE(object):
         self.x = tf.placeholder(tf.float32, [None, self.x_size])
         self.n_z_particles = tf.placeholder(tf.int32, None)  #P
         self.batch_frac = tf.placeholder(tf.float32, None)
-
         self.batch_size = tf.shape(self.x)[0]   #B
+
+        #Define endocer and decoder
+        with tf.variable_scope("encoder"):
+            encoder = NN(self.encoder_net, self.encoder_act_func, self.batch_size)
+        with tf.variable_scope("decoder"):
+            decoder = BNN(self.decoder_net, self.decoder_act_func, self.batch_size)
         
         #Objective
-        self.elbo = self.objective(self.x)
-        self.iwae_elbo = self.iwae_objective(self.x)
+        with tf.variable_scope("elbo"):
+            self.elbo = self.objective(self.x, encoder, decoder)
+        with tf.variable_scope("iwae"):
+            self.iwae_elbo = self.iwae_objective(self.x, encoder, decoder)
 
 
         # Minimize negative ELBO
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, 
+        with tf.variable_scope("adam_scope"):
+            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, 
                                                 epsilon=1e-02).minimize(-self.elbo)
 
         #Finalize Initilization
         self.init_vars = tf.global_variables_initializer()
         self.saver = tf.train.Saver()
         tf.get_default_graph().finalize()
-        self.sess = tf.Session()
+        # self.sess = tf.Session()
 
 
 
-    def objective(self, x):
+    def objective(self, x, encoder, decoder):
         '''
         Returns scalar to maximize
         '''
-
-
-        encoder = NN(self.encoder_net, self.encoder_act_func, self.batch_size)
-        decoder = BNN(self.decoder_net, self.decoder_act_func, self.batch_size)
 
         log_px_list = []
         log_pz_list = []
@@ -80,21 +84,28 @@ class BVAE(object):
 
         for W_i in range(self.n_W_particles):
 
-            # Sample decoder weights  __, [1], [1]
-            W, log_pW, log_qW = decoder.sample_weights()
+            with tf.variable_scope("first"):
 
-            # Sample z   [P,B,Z], [P,B], [P,B]
-            z, log_pz, log_qz = self.sample_z(x, encoder, decoder, W)
-            # z: [PB,Z]
-            z = tf.reshape(z, [self.n_z_particles*self.batch_size, self.z_size])
+                # Sample decoder weights  __, [1], [1]
+                W, log_pW, log_qW = decoder.sample_weights()
 
-            # Decode [PB,X]
-            y = decoder.feedforward(W, z)
-            # y: [P,B,X]
-            y = tf.reshape(y, [self.n_z_particles, self.batch_size, self.x_size])
 
-            # Likelihood p(x|z)  [P,B]
-            log_px = log_bern(x,y)
+
+                # Sample z   [P,B,Z], [P,B], [P,B]
+                z, log_pz, log_qz = self.sample_z(x, encoder, decoder, W)
+            with tf.variable_scope("second"):
+                # z: [PB,Z]
+                z = tf.reshape(z, [self.n_z_particles*self.batch_size, self.z_size])
+
+
+            
+                # Decode [PB,X]
+                y = decoder.feedforward(W, z)
+                # y: [P,B,X]
+                y = tf.reshape(y, [self.n_z_particles, self.batch_size, self.x_size])
+
+                # Likelihood p(x|z)  [P,B]
+                log_px = log_bern(x,y)
 
             #Store for later
             log_px_list.append(log_px)
@@ -126,14 +137,14 @@ class BVAE(object):
 
 
 
-    def iwae_objective(self, x):
+    def iwae_objective(self, x, encoder, decoder):
         '''
         Returns scalar to maximize
         x: [B,X]
         '''
 
-        encoder = NN(self.encoder_net, self.encoder_act_func, self.batch_size)
-        decoder = BNN(self.decoder_net, self.decoder_act_func, self.batch_size)
+        # encoder = NN(self.encoder_net, self.encoder_act_func, self.batch_size)
+        # decoder = BNN(self.decoder_net, self.decoder_act_func, self.batch_size)
 
         log_px_list = []
         log_pz_list = []
@@ -173,13 +184,13 @@ class BVAE(object):
         log_pW = tf.stack(log_pW_list) #[S]
         log_qW = tf.stack(log_qW_list) #[S]
 
-        # Calculte log probs for printing
-        self.log_px = tf.reduce_mean(log_px)
-        self.log_pz = tf.reduce_mean(log_pz)
-        self.log_qz = tf.reduce_mean(log_qz)
-        self.log_pW = tf.reduce_mean(log_pW)
-        self.log_qW = tf.reduce_mean(log_qW)
-        self.z_elbo = self.log_px + self.log_pz - self.log_qz 
+        # # Calculte log probs for printing
+        # self.log_px = tf.reduce_mean(log_px)
+        # self.log_pz = tf.reduce_mean(log_pz)
+        # self.log_qz = tf.reduce_mean(log_qz)
+        # self.log_pW = tf.reduce_mean(log_pW)
+        # self.log_qW = tf.reduce_mean(log_qW)
+        # self.z_elbo = self.log_px + self.log_pz - self.log_qz 
 
         # Log mean exp over S and P, mean over B
         temp_elbo = tf.reduce_mean(log_px + log_pz - log_qz, axis=2)   #[S,P]
@@ -224,53 +235,55 @@ class BVAE(object):
         '''
         Train.
         '''
-        random_seed=1
-        rs=np.random.RandomState(random_seed)
-        n_datapoints = len(train_x)
-        arr = np.arange(n_datapoints)
+        with tf.Session() as self.sess:
+            # self.sess = tf.Session()
+            random_seed=1
+            rs=np.random.RandomState(random_seed)
+            n_datapoints = len(train_x)
+            arr = np.arange(n_datapoints)
 
-        if path_to_load_variables == '':
-            self.sess.run(self.init_vars)
-        else:
-            #Load variables
-            self.saver.restore(self.sess, path_to_load_variables)
-            print 'loaded variables ' + path_to_load_variables
+            if path_to_load_variables == '':
+                self.sess.run(self.init_vars)
+            else:
+                #Load variables
+                self.saver.restore(self.sess, path_to_load_variables)
+                print 'loaded variables ' + path_to_load_variables
 
-        #start = time.time()
-        for epoch in range(epochs):
+            #start = time.time()
+            for epoch in range(epochs):
 
-            #shuffle the data
-            rs.shuffle(arr)
-            train_x = train_x[arr]
+                #shuffle the data
+                rs.shuffle(arr)
+                train_x = train_x[arr]
 
-            data_index = 0
-            for step in range(n_datapoints/batch_size):
-                #Make batch
-                batch = []
-                while len(batch) != batch_size:
-                    batch.append(train_x[data_index]) 
-                    data_index +=1
-                # Fit training using batch data
-                _ = self.sess.run((self.optimizer), feed_dict={self.x: batch, 
-                                                        self.n_z_particles: n_z_particles, 
-                                                        self.batch_frac: 1./float(n_datapoints)})
-                # Display logs per epoch step
-                if step % display_step == 0:
-                    elbo,z_elbo,log_px,log_pz,log_qz,log_pW,log_qW = self.sess.run((self.elbo, self.z_elbo, 
-                                                                                self.log_px, self.log_pz, 
-                                                                                self.log_qz, self.log_pW, 
-                                                                                self.log_qW), 
-                                                    feed_dict={self.x: batch, 
-                                                        self.n_z_particles: n_z_particles, 
-                                                        self.batch_frac: 1./float(n_datapoints)})
-                    print ("Epoch", str(epoch+1)+'/'+str(epochs), 
-                            'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
-                            "elbo={:.4f}".format(float(elbo)),
-                            z_elbo,log_px,log_pz,log_qz,log_pW,log_qW)
+                data_index = 0
+                for step in range(n_datapoints/batch_size):
+                    #Make batch
+                    batch = []
+                    while len(batch) != batch_size:
+                        batch.append(train_x[data_index]) 
+                        data_index +=1
+                    # Fit training using batch data
+                    _ = self.sess.run((self.optimizer), feed_dict={self.x: batch, 
+                                                            self.n_z_particles: n_z_particles, 
+                                                            self.batch_frac: 1./float(n_datapoints)})
+                    # Display logs per epoch step
+                    if step % display_step == 0:
+                        elbo,z_elbo,log_px,log_pz,log_qz,log_pW,log_qW = self.sess.run((self.elbo, self.z_elbo, 
+                                                                                    self.log_px, self.log_pz, 
+                                                                                    self.log_qz, self.log_pW, 
+                                                                                    self.log_qW), 
+                                                        feed_dict={self.x: batch, 
+                                                            self.n_z_particles: n_z_particles, 
+                                                            self.batch_frac: 1./float(n_datapoints)})
+                        print ("Epoch", str(epoch+1)+'/'+str(epochs), 
+                                'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
+                                "elbo={:.4f}".format(float(elbo)),
+                                z_elbo,log_px,log_pz,log_qz,log_pW,log_qW)
 
-        if path_to_save_variables != '':
-            self.saver.save(self.sess, path_to_save_variables)
-            print 'Saved variables to ' + path_to_save_variables
+            if path_to_save_variables != '':
+                self.saver.save(self.sess, path_to_save_variables)
+                print 'Saved variables to ' + path_to_save_variables
 
 
 
@@ -280,37 +293,93 @@ class BVAE(object):
         '''
         Evaluate.
         '''
+        with tf.Session() as self.sess:
 
-        n_datapoints = len(data)
+            n_datapoints = len(data)
 
-        if path_to_load_variables == '':
-            self.sess.run(self.init_vars)
-        else:
-            #Load variables
-            self.saver.restore(self.sess, path_to_load_variables)
-            print 'loaded variables ' + path_to_load_variables
+            if path_to_load_variables == '':
+                self.sess.run(self.init_vars)
+            else:
+                #Load variables
+                self.saver.restore(self.sess, path_to_load_variables)
+                print 'loaded variables ' + path_to_load_variables
 
-        iwae_elbos = []
+            iwae_elbos = []
 
-        data_index = 0
-        for step in range(n_datapoints/batch_size):
-            #Make batch
-            batch = []
-            while len(batch) != batch_size:
-                batch.append(data[data_index]) 
-                data_index +=1
-            # Calc iwae elbo on test set
-            iwae_elbo = self.sess.run((self.iwae_elbo), feed_dict={self.x: batch, 
-                                                    self.n_z_particles: n_z_particles, 
-                                                    self.batch_frac: 1./float(n_datapoints)})
-            iwae_elbos.append(iwae_elbo)
+            data_index = 0
+            for step in range(n_datapoints/batch_size):
+                #Make batch
+                batch = []
+                while len(batch) != batch_size:
+                    batch.append(data[data_index]) 
+                    data_index +=1
+                # Calc iwae elbo on test set
+                iwae_elbo = self.sess.run((self.iwae_elbo), feed_dict={self.x: batch, 
+                                                        self.n_z_particles: n_z_particles, 
+                                                        self.batch_frac: 1./float(n_datapoints)})
+                iwae_elbos.append(iwae_elbo)
 
-            # Display logs per epoch step
-            if step % display_step == 0:
-                print step
+                # Display logs per epoch step
+                if step % display_step == 0:
+                    print step
 
 
         return np.mean(iwae_elbos)
+
+
+
+class BIWAE(BVAE):
+
+
+    def __init__(self, hyperparams):
+
+
+        tf.reset_default_graph()
+
+        #Model hyperparameters
+        self.learning_rate = hyperparams['learning_rate']
+        self.encoder_act_func = tf.nn.elu #tf.nn.softplus #tf.tanh
+        self.decoder_act_func = tf.tanh
+        self.encoder_net = hyperparams['encoder_net']
+        self.decoder_net = hyperparams['decoder_net']
+        self.z_size = hyperparams['z_size']  #Z
+        self.x_size = hyperparams['x_size']  #X
+        self.rs = 0
+
+
+        self.n_W_particles = hyperparams['n_W_particles']  #S
+        # self.n_W_particles = tf.placeholder(tf.int32, None)  #S
+
+        #Placeholders - Inputs/Targets
+        self.x = tf.placeholder(tf.float32, [None, self.x_size])
+        self.n_z_particles = tf.placeholder(tf.int32, None)  #P
+        self.batch_frac = tf.placeholder(tf.float32, None)
+
+        self.batch_size = tf.shape(self.x)[0]   #B
+
+        encoder = NN(self.encoder_net, self.encoder_act_func, self.batch_size)
+        decoder = BNN(self.decoder_net, self.decoder_act_func, self.batch_size)
+        
+        #Objective
+        self.elbo = self.iwae_objective(self.x, encoder, decoder)
+        self.iwae_elbo = self.iwae_objective(self.x, encoder, decoder)
+
+
+        # Minimize negative ELBO
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, 
+                                                epsilon=1e-02).minimize(-self.elbo)
+
+        #Finalize Initilization
+        self.init_vars = tf.global_variables_initializer()
+        self.saver = tf.train.Saver()
+        tf.get_default_graph().finalize()
+        self.sess = tf.Session()
+
+
+
+
+
+
 
 
 

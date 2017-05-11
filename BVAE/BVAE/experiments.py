@@ -14,7 +14,7 @@ sys.path.insert(0, './BVAE_adding_eval_use_this')
 # from scipy.stats import multivariate_normal as norm
 
 from BVAE import BVAE
-from BIWAE import BIWAE
+from BVAE import BIWAE
 
 
 
@@ -60,16 +60,16 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     z_size = 10
     n_batch = 20
-    epochs = 100
-    S_training = 2  #number of weight samples
+    epochs = 1
+    S_training = 1  #number of weight samples
 
     #Experimental Variables
     list_of_models = ['bvae', 'biwae']
-    list_of_k_samples = [1,50]
+    list_of_k_samples = [1,20]
 
     # Test settings
-    S_evaluation = 5
-    k_evaluation = 100
+    S_evaluation = 2
+    k_evaluation = 20
 
     #Experiment log
     dt = datetime.datetime.now()
@@ -110,7 +110,7 @@ if __name__ == '__main__':
 
             model.train(train_x=train_x,
                         epochs=epochs, batch_size=n_batch, n_W_particles='notImplemented', n_z_particles=k_training, 
-                        display_step=1000,
+                        display_step=5000,
                         path_to_load_variables='',
                         path_to_save_variables=parameter_path+saved_parameter_file)
 
@@ -141,7 +141,7 @@ if __name__ == '__main__':
 
             iwae_elbo = model.eval(data=test_x, batch_size=n_batch, n_W_particles='notImplemented', 
                                     n_z_particles=k_evaluation, display_step=100,
-                                    path_to_load_variables=path_to_load_variables)
+                                    path_to_load_variables=parameter_path+saved_parameter_file)
 
             time_to_eval = time.time() - start
             print 'Model Log Likelihood is ' + str(iwae_elbo) + ' for ' + saved_parameter_file
