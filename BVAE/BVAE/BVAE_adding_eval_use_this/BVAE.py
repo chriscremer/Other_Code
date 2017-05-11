@@ -423,6 +423,8 @@ if __name__ == '__main__':
                 path_to_load_variables=path_to_load_variables,
                 path_to_save_variables=path_to_save_variables)
 
+
+
     print 'Eval'
     iwae_elbo = model.eval(data=test_x, batch_size=20, n_W_particles=2, n_z_particles=3, display_step=10,
                 path_to_load_variables=path_to_load_variables)
