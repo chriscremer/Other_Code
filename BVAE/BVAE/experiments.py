@@ -3,18 +3,18 @@
 
 import numpy as np
 import tensorflow as tf
-import pickle
-import time
-import datetime
+import pickle, time, datetime
 from os.path import expanduser
 home = expanduser("~")
+import sys
+sys.path.insert(0, './BVAE_adding_eval_use_this')
 
 # import argparse
 # import os
 # from scipy.stats import multivariate_normal as norm
 
-from IWAE import VAE
-from IWAE import IWAE
+from BVAE import BVAE
+from BIWAE import BIWAE
 
 
 
@@ -57,23 +57,18 @@ if __name__ == '__main__':
 
 
     # Training settings
-    f_height=28
-    f_width=28
-    n_batch = 100
-    epochs = 1000
-    list_of_models = ['bvae', 'biwae']
-    list_of_k_samples = [1,10,50]
-    n_a0 = \
-        dict(n_input=f_height*f_width, # 784 image
-             encoder_net=[200,200], 
-             n_z=50,  # dimensionality of latent space
-             decoder_net=[200,200]) 
-    list_of_archs = [n_a0]
-    list_of_archs_i = [0]
+    x_size = 784   #f_height=28f_width=28
+    z_size = 10
+    n_batch = 20
+    epochs = 100
+    S_training = 2  #number of weight samples
 
+    #Experimental Variables
+    list_of_models = ['bvae', 'biwae']
+    list_of_k_samples = [1,50]
 
     # Test settings
-    m_evaluation = 5
+    S_evaluation = 5
     k_evaluation = 100
 
     #Experiment log
@@ -85,68 +80,78 @@ if __name__ == '__main__':
     print 'Saving experiment log to ' + experiment_log
 
 
-    for k in list_of_k_samples:
+    for k_training in list_of_k_samples:
 
         for m in list_of_models:
 
-            for arch in list_of_archs_i:
+            saved_parameter_file = m + '_k' + str(k_training) + '_S'+str(S_training) + '_epochs'+str(epochs)+'.ckpt' 
+            print 'Current:', saved_parameter_file
+            with open(experiment_log, "a") as myfile:
+                myfile.write('\nCurrent:' + saved_parameter_file +'\n')
 
-                saved_parameter_file = m + '_struc' + str(arch) + '_k' + str(k) + '_1000.ckpt' 
-                print 'Current:', saved_parameter_file
-                with open(experiment_log, "a") as myfile:
-                    myfile.write('\nCurrent:' + saved_parameter_file +'\n')
+            #Train 
+            print 'Training'
 
-                #Train 
+            hyperparams = {
+                'learning_rate': .0001,
+                'x_size': x_size,
+                'z_size': z_size,
+                'encoder_net': [x_size, 20, z_size*2],
+                'decoder_net': [z_size, 20, x_size],
+                'n_W_particles': S_training}
 
-                #Initialize model
-                if m == 'bvae':
-                    model = VAE(list_of_archs[arch], batch_size=n_batch, n_particles=k)
-                elif m == 'biwae':
-                    model = IWAE(list_of_archs[arch], batch_size=n_batch, n_particles=k)
+            #Initialize model
+            if m == 'bvae':
+                model = BVAE(hyperparams)
+            elif m == 'biwae':
+                model = BIWAE(hyperparams)
 
-                start = time.time()
+            start = time.time()
 
-                model.train(train_x=train_x, valid_x=valid_x, display_step=9000, 
-                            path_to_load_variables='', 
-                            path_to_save_variables=home+'/data/'+saved_parameter_file, 
-                            epochs=epochs)
+            model.train(train_x=train_x,
+                        epochs=epochs, batch_size=n_batch, n_W_particles='notImplemented', n_z_particles=k_training, 
+                        display_step=1000,
+                        path_to_load_variables='',
+                        path_to_save_variables=parameter_path+saved_parameter_file)
 
-                time_to_train = time.time() - start
-                print 'Time to train', time_to_train
-                with open(experiment_log, "a") as f:
-                    f.write('Time to train '+  str(time_to_train) + '\n')
-
-
-                #Evaluate
-
-                #Initialize model
-                if m == 'vae':
-                    model = VAE(list_of_archs[arch], batch_size=1, n_particles=k_evaluation)
-                elif m == 'iwae':
-                    model = IWAE(list_of_archs[arch], batch_size=1, n_particles=k_evaluation)
+            time_to_train = time.time() - start
+            print 'Time to train', time_to_train
+            with open(experiment_log, "a") as f:
+                f.write('Time to train '+  str(time_to_train) + '\n')
 
 
-                # time.sleep(10) # delays for 5 seconds
-                
+            #Evaluate
+            print 'Evaluating'
 
-                #Load parameters
-                model.load_parameters(path_to_load_variables=home+'/data/'+saved_parameter_file)
+            hyperparams = {
+                'learning_rate': .0001,
+                'x_size': x_size,
+                'z_size': z_size,
+                'encoder_net': [x_size, 20, z_size*2],
+                'decoder_net': [z_size, 20, x_size],
+                'n_W_particles': S_evaluation}
 
-                start = time.time()
+            #Initialize model
+            if m == 'bvae':
+                model = BVAE(hyperparams)
+            elif m == 'biwae':
+                model = BIWAE(hyperparams)            
 
-                #Log Likelihood Lower Bound
-                IS_ELBO = model.IS_ELBO(data=test_x, n_z_samples=k_evaluation, n_W_samples=m_evaluation)
+            start = time.time()
 
-                print 'Model Log Likelihood is ' + str(IS_ELBO) + ' for ' + saved_parameter_file
-                with open(experiment_log, "a") as myfile:
-                    myfile.write('Model Log Likelihood is ' + str(IS_ELBO) + ' for ' + saved_parameter_file 
-                        +'\n')
+            iwae_elbo = model.eval(data=test_x, batch_size=n_batch, n_W_particles='notImplemented', 
+                                    n_z_particles=k_evaluation, display_step=100,
+                                    path_to_load_variables=path_to_load_variables)
 
-                time_to_eval = time.time() - start
-                print 'time to evaluate', time_to_eval
-                with open(experiment_log, "a") as myfile:
-                    myfile.write('time to evaluate '+  str(time_to_eval) +'\n\n')
-                print 
+            time_to_eval = time.time() - start
+            print 'Model Log Likelihood is ' + str(iwae_elbo) + ' for ' + saved_parameter_file
+            print 'time to evaluate', time_to_eval
+            with open(experiment_log, "a") as myfile:
+                myfile.write('Model Log Likelihood is ' + str(iwae_elbo) + ' for ' 
+                    + saved_parameter_file +'\n')
+                myfile.write('time to evaluate '+  str(time_to_eval) +'\n\n')
+
+            print 
 
 
 
