@@ -59,7 +59,7 @@ if __name__ == '__main__':
     # Training settings
     x_size = 784   #f_height=28f_width=28
     n_batch = 20
-    epochs = 200
+    epochs = 4
     S_training = 1  #number of weight samples
 
     #Experimental Variables

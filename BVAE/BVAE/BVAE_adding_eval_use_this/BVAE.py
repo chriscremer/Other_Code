@@ -313,10 +313,12 @@ class BVAE(object):
                     batch.append(data[data_index]) 
                     data_index +=1
                 # Calc iwae elbo on test set
-                iwae_elbo = self.sess.run((self.iwae_elbo), feed_dict={self.x: batch, 
+                iwae_elbo, elbo = self.sess.run((self.iwae_elbo, self.elbo), feed_dict={self.x: batch, 
                                                         self.n_z_particles: n_z_particles, 
                                                         self.batch_frac: 1./float(n_datapoints)})
                 iwae_elbos.append(iwae_elbo)
+
+                print iwae_elbo, elbo
 
                 # Display logs per epoch step
                 if step % display_step == 0:
