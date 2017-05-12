@@ -86,8 +86,7 @@ if __name__ == '__main__':
 
             for z_size in z_sizes:
 
-                saved_parameter_file = m + '_k' + str(k_training) + '_S'+str(S_training) 
-                                            + '_z'+str(z_size) + '_epochs'+str(epochs)+'.ckpt' 
+                saved_parameter_file = m + '_k' + str(k_training) + '_S'+str(S_training) + '_z'+str(z_size) + '_epochs'+str(epochs)+'.ckpt' 
                 print 'Current:', saved_parameter_file
                 with open(experiment_log, "a") as myfile:
                     myfile.write('\nCurrent:' + saved_parameter_file +'\n')
