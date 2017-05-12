@@ -268,17 +268,17 @@ class BVAE(object):
                                                             self.batch_frac: 1./float(n_datapoints)})
                     # Display logs per epoch step
                     if step % display_step == 0:
-                        elbo,log_px,log_pz,log_qz,log_pW,log_qW = self.sess.run((self.elbo, 
+                        elbo,log_px,log_pz,log_qz,log_pW,log_qW, i_elbo = self.sess.run((self.elbo, 
                                                                                     self.log_px, self.log_pz, 
                                                                                     self.log_qz, self.log_pW, 
-                                                                                    self.log_qW), 
+                                                                                    self.log_qW, self.iwae_elbo), 
                                                         feed_dict={self.x: batch, 
                                                             self.n_z_particles: n_z_particles, 
                                                             self.batch_frac: 1./float(n_datapoints)})
                         print ("Epoch", str(epoch+1)+'/'+str(epochs), 
                                 'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
                                 "elbo={:.4f}".format(float(elbo)),
-                                log_px,log_pz,log_qz,log_pW,log_qW)
+                                log_px,log_pz,log_qz,log_pW,log_qW, i_elbo)
 
             if path_to_save_variables != '':
                 self.saver.save(self.sess, path_to_save_variables)

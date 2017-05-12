@@ -59,7 +59,7 @@ if __name__ == '__main__':
     # Training settings
     x_size = 784   #f_height=28f_width=28
     n_batch = 20
-    epochs = 1
+    epochs = 200
     S_training = 1  #number of weight samples
 
     #Experimental Variables
@@ -70,6 +70,7 @@ if __name__ == '__main__':
     # Test settings
     S_evaluation = 2
     k_evaluation = 500
+    n_batch_eval = 2
 
     #Experiment log
     dt = datetime.datetime.now()
@@ -98,8 +99,8 @@ if __name__ == '__main__':
                     'learning_rate': .0001,
                     'x_size': x_size,
                     'z_size': z_size,
-                    'encoder_net': [x_size, 20, z_size*2],
-                    'decoder_net': [z_size, 20, x_size],
+                    'encoder_net': [x_size, 200, z_size*2],
+                    'decoder_net': [z_size, 200, x_size],
                     'n_W_particles': S_training}
 
                 #Initialize model
@@ -129,8 +130,8 @@ if __name__ == '__main__':
                     'learning_rate': .0001,
                     'x_size': x_size,
                     'z_size': z_size,
-                    'encoder_net': [x_size, 20, z_size*2],
-                    'decoder_net': [z_size, 20, x_size],
+                    'encoder_net': [x_size, 200, z_size*2],
+                    'decoder_net': [z_size, 200, x_size],
                     'n_W_particles': S_evaluation}
 
                 #Initialize model
@@ -141,7 +142,7 @@ if __name__ == '__main__':
 
                 start = time.time()
 
-                iwae_elbo = model.eval(data=test_x, batch_size=n_batch, n_W_particles='notImplemented', 
+                iwae_elbo = model.eval(data=test_x, batch_size=n_batch_eval, n_W_particles='notImplemented', 
                                         n_z_particles=k_evaluation, display_step=100,
                                         path_to_load_variables=parameter_path+saved_parameter_file)
 
