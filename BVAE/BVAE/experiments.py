@@ -142,7 +142,7 @@ if __name__ == '__main__':
 
                 start = time.time()
 
-                iwae_elbo = model.eval(data=test_x, batch_size=n_batch_eval, n_W_particles='notImplemented', 
+                iwae_elbo = model.eval(data=train_x, batch_size=n_batch_eval, n_W_particles='notImplemented', 
                                         n_z_particles=k_evaluation, display_step=100,
                                         path_to_load_variables=parameter_path+saved_parameter_file)
 
