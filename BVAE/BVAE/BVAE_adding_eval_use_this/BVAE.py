@@ -280,6 +280,24 @@ class BVAE(object):
                                 "elbo={:.4f}".format(float(elbo)),
                                 log_px,log_pz,log_qz,log_pW,log_qW, i_elbo)
 
+                        # #Validation set
+                        # batch2 = []
+                        # while len(batch2) != batch_size:
+                        #     batch2.append(valid_x[np.random.randint(len(valid_x))])
+
+                        # elbo,log_px,log_pz,log_qz,log_pW,log_qW, i_elbo = self.sess.run((self.elbo, 
+                        #                                                             self.log_px, self.log_pz, 
+                        #                                                             self.log_qz, self.log_pW, 
+                        #                                                             self.log_qW, self.iwae_elbo), 
+                        #                                 feed_dict={self.x: batch2, 
+                        #                                     self.n_z_particles: n_z_particles, 
+                        #                                     self.batch_frac: 1./float(n_datapoints)})
+                        # print ("Epoch", str(epoch+1)+'/'+str(epochs), 
+                        #         'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
+                        #         "elbo={:.4f}".format(float(elbo)),
+                        #         log_px,log_pz,log_qz,log_pW,log_qW, i_elbo, 'valid')
+
+
             if path_to_save_variables != '':
                 self.saver.save(self.sess, path_to_save_variables)
                 print 'Saved variables to ' + path_to_save_variables
@@ -288,13 +306,14 @@ class BVAE(object):
 
 
     def eval(self, data, display_step=5, path_to_load_variables='',
-             batch_size=20, n_W_particles=2, n_z_particles=3):
+             batch_size=20, n_W_particles=2, n_z_particles=3, data2=[]):
         '''
         Evaluate.
         '''
         with tf.Session() as self.sess:
 
             n_datapoints = len(data)
+            n_datapoints_for_frac = len(data2)
 
             if path_to_load_variables == '':
                 self.sess.run(self.init_vars)
@@ -307,6 +326,9 @@ class BVAE(object):
 
             data_index = 0
             for step in range(n_datapoints/batch_size):
+
+
+
                 #Make batch
                 batch = []
                 while len(batch) != batch_size:
@@ -315,10 +337,53 @@ class BVAE(object):
                 # Calc iwae elbo on test set
                 iwae_elbo, elbo = self.sess.run((self.iwae_elbo, self.elbo), feed_dict={self.x: batch, 
                                                         self.n_z_particles: n_z_particles, 
-                                                        self.batch_frac: 1./float(n_datapoints)})
+                                                        self.batch_frac: 1./float(n_datapoints_for_frac)})
                 iwae_elbos.append(iwae_elbo)
 
-                print iwae_elbo, elbo
+                # print iwae_elbo, elbo
+
+
+
+
+                # elbo,log_px,log_pz,log_qz,log_pW,log_qW, i_elbo = self.sess.run((self.elbo, 
+                #                                                             self.log_px, self.log_pz, 
+                #                                                             self.log_qz, self.log_pW, 
+                #                                                             self.log_qW, self.iwae_elbo), 
+                #                                 feed_dict={self.x: batch, 
+                #                                     self.n_z_particles: n_z_particles, 
+                #                                     self.batch_frac: 1./float(n_datapoints)})
+                # print (
+                #         'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
+                #         "elbo={:.4f}".format(float(elbo)),
+                #         log_px,log_pz,log_qz,log_pW,log_qW, i_elbo)
+
+
+
+
+
+                # #Validation set
+                # batch2 = []
+                # while len(batch2) != batch_size:
+                #     batch2.append(data2[np.random.randint(len(data2))])
+
+                # elbo,log_px,log_pz,log_qz,log_pW,log_qW, i_elbo = self.sess.run((self.elbo, 
+                #                                                             self.log_px, self.log_pz, 
+                #                                                             self.log_qz, self.log_pW, 
+                #                                                             self.log_qW, self.iwae_elbo), 
+                #                                 feed_dict={self.x: batch2, 
+                #                                     self.n_z_particles: n_z_particles, 
+                #                                     self.batch_frac: 1./float(n_datapoints)})
+
+                # print (log_pW -log_qW) / float(n_datapoints)
+
+                # print (
+                #         'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
+                #         "elbo={:.4f}".format(float(elbo)),
+                #         log_px,log_pz,log_qz,log_pW,log_qW, i_elbo, 'train')
+
+
+
+
 
                 # Display logs per epoch step
                 if step % display_step == 0:

@@ -59,7 +59,7 @@ if __name__ == '__main__':
     # Training settings
     x_size = 784   #f_height=28f_width=28
     n_batch = 20
-    epochs = 4
+    epochs = 2
     S_training = 1  #number of weight samples
 
     #Experimental Variables
@@ -68,9 +68,9 @@ if __name__ == '__main__':
     z_sizes = [10,50,100]
 
     # Test settings
-    S_evaluation = 2
-    k_evaluation = 500
-    n_batch_eval = 2
+    S_evaluation = 2 #2
+    k_evaluation = 500 #500
+    n_batch_eval = 2 #2
 
     #Experiment log
     dt = datetime.datetime.now()
@@ -111,9 +111,9 @@ if __name__ == '__main__':
 
                 start = time.time()
 
-                model.train(train_x=train_x,
+                model.train(train_x=train_x, valid_x=valid_x,
                             epochs=epochs, batch_size=n_batch, n_W_particles='notImplemented', n_z_particles=k_training, 
-                            display_step=5000,
+                            display_step=3000,
                             path_to_load_variables='',
                             path_to_save_variables=parameter_path+saved_parameter_file)
 
@@ -121,6 +121,43 @@ if __name__ == '__main__':
                 print 'Time to train', time_to_train
                 with open(experiment_log, "a") as f:
                     f.write('Time to train '+  str(time_to_train) + '\n')
+
+
+
+
+
+
+
+
+                # #Initialize model
+                # if m == 'bvae':
+                #     model = BVAE(hyperparams)
+                # elif m == 'biwae':
+                #     model = BIWAE(hyperparams)
+
+                # start = time.time()
+
+                # model.train(train_x=train_x, valid_x=valid_x,
+                #             epochs=epochs, batch_size=n_batch, n_W_particles='notImplemented', n_z_particles=k_training, 
+                #             display_step=2400,
+                #             path_to_load_variables=parameter_path+saved_parameter_file,
+                #             path_to_save_variables=parameter_path+saved_parameter_file)
+
+                # time_to_train = time.time() - start
+                # print 'Time to train', time_to_train
+                # with open(experiment_log, "a") as f:
+                #     f.write('Time to train '+  str(time_to_train) + '\n')
+
+
+
+
+
+
+
+
+
+
+
 
 
                 #Evaluate
@@ -142,9 +179,9 @@ if __name__ == '__main__':
 
                 start = time.time()
 
-                iwae_elbo = model.eval(data=train_x, batch_size=n_batch_eval, n_W_particles='notImplemented', 
+                iwae_elbo = model.eval(data=test_x, batch_size=n_batch_eval, n_W_particles='notImplemented', 
                                         n_z_particles=k_evaluation, display_step=100,
-                                        path_to_load_variables=parameter_path+saved_parameter_file)
+                                        path_to_load_variables=parameter_path+saved_parameter_file, data2=train_x)
 
                 time_to_eval = time.time() - start
                 print 'Model Log Likelihood is ' + str(iwae_elbo) + ' for ' + saved_parameter_file
