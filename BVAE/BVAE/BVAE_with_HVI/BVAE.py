@@ -20,6 +20,10 @@ from NN import NN
 from BNN import BNN
 
 
+
+
+
+
 class BVAE(object):
 
 
@@ -38,10 +42,12 @@ class BVAE(object):
         self.rs = 0
         self.n_W_particles = hyperparams['n_W_particles']  #S
         # self.n_W_particles = tf.placeholder(tf.int32, None)  #S
+        self.n_z_particles = hyperparams['n_z_particles']  #P
+        # self.n_z_particles = tf.placeholder(tf.int32, None)  #P
 
         #Placeholders - Inputs/Targets
         self.x = tf.placeholder(tf.float32, [None, self.x_size])
-        self.n_z_particles = tf.placeholder(tf.int32, None)  #P
+
         self.batch_frac = tf.placeholder(tf.float32, None)
         self.batch_size = tf.shape(self.x)[0]   #B
 
@@ -57,7 +63,6 @@ class BVAE(object):
         log_probs = self.log_probs(self.x, encoder, decoder)
 
         self.elbo = self.objective(*log_probs)
-
         self.iwae_elbo = self.iwae_objective(*log_probs)
 
 
@@ -75,6 +80,33 @@ class BVAE(object):
         self.saver = tf.train.Saver()
         tf.get_default_graph().finalize()
         # self.sess = tf.Session()
+
+
+
+    def sample_z(self, x, encoder, decoder, W):
+        '''
+        z: [P,B,Z]
+        log_pz: [P,B]
+        log_qz: [P,B]
+        '''
+
+        #Encode
+        z_mean_logvar = encoder.feedforward(x) #[B,Z*2]
+        z_mean = tf.slice(z_mean_logvar, [0,0], [self.batch_size, self.z_size]) #[B,Z] 
+        z_logvar = tf.slice(z_mean_logvar, [0,self.z_size], [self.batch_size, self.z_size]) #[B,Z]
+
+        #Sample z  [P,B,Z]
+        eps = tf.random_normal((self.n_z_particles, self.batch_size, self.z_size), 0, 1, seed=self.rs) 
+        z = tf.add(z_mean, tf.multiply(tf.sqrt(tf.exp(z_logvar)), eps)) #broadcast, [P,B,Z]
+
+        # Calc log probs [P,B]
+        log_pz = log_norm(z, tf.zeros([self.batch_size, self.z_size]), 
+                                tf.log(tf.ones([self.batch_size, self.z_size])))
+        log_qz = log_norm(z, z_mean, z_logvar)
+
+        return z, log_pz, log_qz
+
+
 
 
     def log_probs(self, x, encoder, decoder):
@@ -160,31 +192,6 @@ class BVAE(object):
 
 
 
-    def sample_z(self, x, encoder, decoder, W):
-        '''
-        z: [P,B,Z]
-        log_pz: [P,B]
-        log_qz: [P,B]
-        '''
-
-        #Encode
-        z_mean_logvar = encoder.feedforward(x) #[B,Z*2]
-        z_mean = tf.slice(z_mean_logvar, [0,0], [self.batch_size, self.z_size]) #[B,Z] 
-        z_logvar = tf.slice(z_mean_logvar, [0,self.z_size], [self.batch_size, self.z_size]) #[B,Z]
-
-        #Sample z  [P,B,Z]
-        eps = tf.random_normal((self.n_z_particles, self.batch_size, self.z_size), 0, 1, seed=self.rs) 
-        z = tf.add(z_mean, tf.multiply(tf.sqrt(tf.exp(z_logvar)), eps)) #broadcast, [P,B,Z]
-
-        # Calc log probs [P,B]
-        log_pz = log_norm(z, tf.zeros([self.batch_size, self.z_size]), 
-                                tf.log(tf.ones([self.batch_size, self.z_size])))
-        log_qz = log_norm(z, z_mean, z_logvar)
-
-        return z, log_pz, log_qz
-
-
-
 
 
 
@@ -225,7 +232,6 @@ class BVAE(object):
                         data_index +=1
                     # Fit training using batch data
                     _ = self.sess.run((self.optimizer), feed_dict={self.x: batch, 
-                                                            self.n_z_particles: n_z_particles, 
                                                             self.batch_frac: 1./float(n_datapoints)})
                     # Display logs per epoch step
                     if step % display_step == 0:
@@ -234,7 +240,6 @@ class BVAE(object):
                                                                                     self.log_qz, self.log_pW, 
                                                                                     self.log_qW, self.iwae_elbo), 
                                                         feed_dict={self.x: batch, 
-                                                            self.n_z_particles: n_z_particles, 
                                                             self.batch_frac: 1./float(n_datapoints)})
                         print ("Epoch", str(epoch+1)+'/'+str(epochs), 
                                 'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
@@ -287,7 +292,6 @@ class BVAE(object):
                                                                             self.log_qz, self.log_pW, 
                                                                             self.log_qW), 
                                                         feed_dict={self.x: batch, 
-                                                        self.n_z_particles: n_z_particles, 
                                                         self.batch_frac: 1./float(n_datapoints_for_frac)})
                 iwae_elbos.append(iwae_elbo)
                 elbos.append(elbo)
@@ -321,16 +325,15 @@ class BIWAE(BVAE):
         self.z_size = hyperparams['z_size']  #Z
         self.x_size = hyperparams['x_size']  #X
         self.rs = 0
-
-
         self.n_W_particles = hyperparams['n_W_particles']  #S
         # self.n_W_particles = tf.placeholder(tf.int32, None)  #S
+        self.n_z_particles = hyperparams['n_z_particles']  #P
+        # self.n_z_particles = tf.placeholder(tf.int32, None)  #P
 
         #Placeholders - Inputs/Targets
         self.x = tf.placeholder(tf.float32, [None, self.x_size])
-        self.n_z_particles = tf.placeholder(tf.int32, None)  #P
-        self.batch_frac = tf.placeholder(tf.float32, None)
 
+        self.batch_frac = tf.placeholder(tf.float32, None)
         self.batch_size = tf.shape(self.x)[0]   #B
 
         #Define endocer and decoder
@@ -367,6 +370,182 @@ class BIWAE(BVAE):
 
 
 
+class HBVAE(BVAE):
+
+
+
+    def _log_pz(self, z):
+        '''
+        z:[P,B,Z]
+        output:[P,B]
+        '''
+
+        return log_norm(z, tf.zeros([self.batch_size, self.z_size]), tf.log(tf.ones([self.batch_size, self.z_size])))
+
+    def _log_px(self, z, decoder, W, x):
+        '''
+        z: [P,B,Z]
+        '''
+
+        # z: [PB,Z]
+        z = tf.reshape(z, [self.n_z_particles*self.batch_size, self.z_size])
+        # Decode [PB,X]
+        y = decoder.feedforward(W, z)
+        # y: [P,B,X]
+        y = tf.reshape(y, [self.n_z_particles, self.batch_size, self.x_size])
+        # Likelihood p(x|z)  [P,B]
+        log_px = log_bern(x,y)
+
+        return log_px
+
+
+    def leapfrogs(self, z0, decoder, W, x):
+        '''
+        z0: [B,Z]
+        '''
+
+        #HERE, nend to get it to output the right things.
+
+        # I should have a network to output momentum and __ given x
+        # and antoher for final momentum given final z
+
+        zs = []
+        log_pxs = []
+        log_pzs = []
+        log_qzs = []
+
+        zs.append(z0)
+
+        v0 = tf.random_normal((self.batch_size, self.n_z), 0, 1, dtype=tf.float32)
+
+        for t in range(self.n_z_particles-1):
+
+            z_intermediate = z0 + ((.5*step_size) * v)
+
+            log_p = self._log_px(z0, decoder, W, x) + self._log_pz(z)
+            grad = -tf.gradients(log_p, [z0])[0]
+            v = v0 + (step_size * grad)
+
+            z = z_intermediate + ((.5*step_size) * v)
+
+
+
+
+
+        # for t in range(T-1):
+
+        #     log_p = self._log_likelihood(x, self._generator_network(z, self.network_weights['decoder_weights'], self.network_weights['decoder_biases'])) + self._log_p_z(z)
+        #     grad = -tf.gradients(log_p, [z])[0]
+
+        #     v = v - (step_size * grad)
+        #     z = z + (step_size * v)
+
+        #     v = friction * v
+
+        # log_p = self._log_likelihood(x, self._generator_network(z, self.network_weights['decoder_weights'], self.network_weights['decoder_biases'])) + self._log_p_z(z)
+        # grad = -tf.gradients(log_p, [z])[0]
+
+        # v = v - ((.5*step_size) * grad)
+
+        return zs, log_px, log_pz, log_qz, log_alphas
+
+
+
+    # def leap_frogs(self, z0, decoder, W):
+
+    #     return zs, stuff
+
+
+    def sample_z(self, x, encoder, decoder, W):
+        '''
+        z: [P,B,Z]
+        log_pz: [P,B]
+        log_qz: [P,B]
+        '''
+
+        #Encode
+        z_mean_logvar = encoder.feedforward(x) #[B,Z*2]
+        z_mean = tf.slice(z_mean_logvar, [0,0], [self.batch_size, self.z_size]) #[B,Z] 
+        z_logvar = tf.slice(z_mean_logvar, [0,self.z_size], [self.batch_size, self.z_size]) #[B,Z]
+
+        #Instead of sampling P times, we'll take P LF steps
+        #Sample z  [B,Z]
+        eps = tf.random_normal((self.batch_size, self.z_size), 0, 1, seed=self.rs) 
+        z0 = tf.add(z_mean, tf.multiply(tf.sqrt(tf.exp(z_logvar)), eps)) #[B,Z]
+        # z0 = tf.reshape(z0, [1,self.batch_size, self.z_size]) #[1,B,Z]
+
+        # # Calc log probs [1,B]
+        # log_pz0 = log_norm(z, tf.zeros([self.batch_size, self.z_size]), 
+        #                         tf.log(tf.ones([self.batch_size, self.z_size])))
+        # log_qz0 = log_norm(z, z_mean, z_logvar)
+
+
+        # Leap frogs [P,B,Z], [P,B], [P,B], [P,B]
+        zs, log_px, log_pz, log_qz, log_alphas = self.leap_frogs(z0, decoder, W, x)
+
+
+
+        return zs, log_px, log_pz, log_qz
+
+
+
+
+
+    def log_probs(self, x, encoder, decoder):
+
+        log_px_list = []
+        log_pz_list = []
+        log_qz_list = []
+        log_pW_list = []
+        log_qW_list = []
+
+        for W_i in range(self.n_W_particles):
+
+            # Sample decoder weights  __, [1], [1]
+            W, log_pW, log_qW = decoder.sample_weights()
+
+            # Sample z   [P,B,Z],   [P,B], [P,B],[P,B]
+            z, log_px, log_pz, log_qz = self.sample_z(x, encoder, decoder, W)
+
+            # # z: [PB,Z]
+            # z = tf.reshape(z, [self.n_z_particles*self.batch_size, self.z_size])
+            # # Decode [PB,X]
+            # y = decoder.feedforward(W, z)
+            # # y: [P,B,X]
+            # y = tf.reshape(y, [self.n_z_particles, self.batch_size, self.x_size])
+            # # Likelihood p(x|z)  [P,B]
+            # log_px = log_bern(x,y)
+
+            #Store for later
+            log_px_list.append(log_px)
+            log_pz_list.append(log_pz)
+            log_qz_list.append(log_qz)
+            log_pW_list.append(log_pW)
+            log_qW_list.append(log_qW)
+
+
+        log_px = tf.stack(log_px_list) #[S,P,B]
+        log_pz = tf.stack(log_pz_list) #[S,P,B]
+        log_qz = tf.stack(log_qz_list) #[S,P,B]
+        log_pW = tf.stack(log_pW_list) #[S]
+        log_qW = tf.stack(log_qW_list) #[S]
+
+        return [log_px, log_pz, log_qz, log_pW, log_qW]  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -382,7 +561,8 @@ if __name__ == '__main__':
         'z_size': z_size,
         'encoder_net': [x_size, 20, z_size*2],
         'decoder_net': [z_size, 20, x_size],
-        'n_W_particles': 1}
+        'n_W_particles': 1,
+        'n_z_particles': 1}
 
     model = BVAE(hyperparams)
 

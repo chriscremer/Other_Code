@@ -59,7 +59,7 @@ if __name__ == '__main__':
     # Training settings
     x_size = 784   #f_height=28f_width=28
     n_batch = 20
-    epochs = 2
+    epochs = 200
     S_training = 1  #number of weight samples
 
     #Experimental Variables
@@ -179,17 +179,20 @@ if __name__ == '__main__':
 
                 start = time.time()
 
-                iwae_elbo = model.eval(data=test_x, batch_size=n_batch_eval, n_W_particles='notImplemented', 
+                info = model.eval(data=test_x, batch_size=n_batch_eval, n_W_particles='notImplemented', 
                                         n_z_particles=k_evaluation, display_step=100,
                                         path_to_load_variables=parameter_path+saved_parameter_file, data2=train_x)
 
                 time_to_eval = time.time() - start
-                print 'Model Log Likelihood is ' + str(iwae_elbo) + ' for ' + saved_parameter_file
                 print 'time to evaluate', time_to_eval
+                print 'Model Log Likelihood is ' + str(info) + ' for ' + saved_parameter_file
+                
                 with open(experiment_log, "a") as myfile:
-                    myfile.write('Model Log Likelihood is ' + str(iwae_elbo) + ' for ' 
+                    myfile.write('time to evaluate '+  str(time_to_eval) +'\n')
+                    myfile.write('Model Log Likelihood is ' + str(info) + ' for ' 
                         + saved_parameter_file +'\n')
-                    myfile.write('time to evaluate '+  str(time_to_eval) +'\n\n')
+                    myfile.write('z_elbo '+  str(info[2]+info[3]-info[4]) +'\n\n')
+                    
 
                 print 
 
