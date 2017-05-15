@@ -36,7 +36,7 @@ class VAE():
         
         #Sample
         eps = tf.random_normal((self.n_particles, self.batch_size, self.n_z), 0, 1, dtype=tf.float32)
-        self.z = tf.add(self.recog_means, tf.mul(tf.sqrt(tf.exp(self.recog_log_vars)), eps)) #uses broadcasting, z=[n_parts, n_batches, n_z]
+        self.z = tf.add(self.recog_means, tf.multiply(tf.sqrt(tf.exp(self.recog_log_vars)), eps)) #uses broadcasting, z=[n_parts, n_batches, n_z]
         
         #Decoder - Generative model - p(x|z)
         self.x_reconstr_mean_no_sigmoid = self._generator_network(self.z, self.network_weights['decoder_weights'], self.network_weights['decoder_biases']) #no sigmoid

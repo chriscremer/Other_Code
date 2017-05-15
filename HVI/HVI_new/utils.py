@@ -14,7 +14,7 @@ def split_mean_logvar(mean_logvar):
 
     shape = tf.shape(mean_logvar)
     B = shape[0]
-    Z = shape[1]
+    Z = shape[1] / 2
 
     mean = tf.slice(mean_logvar, [0,0], [B, Z]) #[B,Z] 
     logvar = tf.slice(mean_logvar, [0,Z], [B, Z]) #[B,Z]
@@ -28,34 +28,17 @@ def sample_Gaussian(mean, logvar, n_particles):
     outpit: [P,B,Z]
     '''
 
-    shape = tf.shape(mean_logvar)
+    shape = tf.shape(mean)
     B = shape[0]
     Z = shape[1]
 
-    eps = tf.random_normal((n_particles, B, Z), 0, 1, seed=self.rs) 
+    eps = tf.random_normal((n_particles, B, Z), 0, 1)#, seed=self.rs) 
     z = tf.add(mean, tf.multiply(tf.sqrt(tf.exp(logvar)), eps)) # [P,B,Z]
 
     return z
 
 
-# def log_normal(z, mean, log_var):
-#     '''
-#     Log of normal distribution
 
-#     z is [B, D]
-#     mean is [B, D]
-#     log_var is [B, D]
-#     output is [B]
-#     '''
-
-#     D = tf.to_float(tf.shape(mean)[1])
-#     term1 = D * tf.log(2*math.pi) #[1]
-#     term2 = tf.reduce_sum(log_var, axis=1) #sum over D, [B]
-#     dif_cov = tf.square(z - mean) / tf.exp(log_var)
-#     term3 = tf.reduce_sum(dif_cov, axis=1) #sum over D, [B]
-#     all_ = term1 + term2 + term3
-#     log_N = -.5 * all_
-#     return log_N
 
 
 def log_normal(z, mean, log_var):
@@ -78,6 +61,26 @@ def log_normal(z, mean, log_var):
     log_N = -.5 * all_
     return log_N
 
+
+
+def log_normal2(z, mean, log_var):
+    '''
+    Log of normal distribution
+
+    z is [B, D]
+    mean is [B, D]
+    log_var is [B, D]
+    output is [B]
+    '''
+
+    D = tf.to_float(tf.shape(mean)[1])
+    term1 = D * tf.log(2*math.pi) #[1]
+    term2 = tf.reduce_sum(log_var, axis=1) #sum over D, [B]
+    dif_cov = tf.square(z - mean) / tf.exp(log_var)
+    term3 = tf.reduce_sum(dif_cov, axis=1) #sum over D, [B]
+    all_ = term1 + term2 + term3
+    log_N = -.5 * all_
+    return log_N
 
 
 # def log_normal_0_1(z):
