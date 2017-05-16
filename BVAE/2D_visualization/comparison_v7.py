@@ -474,7 +474,7 @@ def reverse_hamiltonian_sampling(n_samples, log_posterior, z_init, v_init, n_ste
 if __name__ == '__main__':
 
 
-    for n_steps in range(1,3,1):
+    for n_steps in range(21,61,5):
         
         print 'Initializing graph'
         print n_steps
@@ -589,7 +589,7 @@ if __name__ == '__main__':
 
             # qIW distributions
             n_batches = 5
-            k = 20
+            k = 1000
             alpha=.2
             # proposal_sampler = lambda x: sess.run(q_samples, feed_dict={n_samples: x})
 
@@ -651,7 +651,19 @@ if __name__ == '__main__':
         
         # with tf.Session() as sess:
             # Plot Hamiltonian distributions
-            k = 100
+
+            #skip it for now.
+
+
+            # plt.show()
+            save_to = home + '/Downloads/plots_'+str(n_steps)+'_steps_v5.png'
+            plt.savefig(save_to)
+            print 'saved to ' + save_to
+
+            continue
+
+
+            k = 1000
 
             # sess2 = tf.Session()
             sample_vT_func = lambda x: sess.run(sample_vT, feed_dict={n_samples: x})
@@ -726,7 +738,7 @@ if __name__ == '__main__':
 
 
         # plt.show()
-        save_to = home + '/Downloads/plots_'+str(n_steps)+'_steps_v3.png'
+        save_to = home + '/Downloads/plots_'+str(n_steps)+'_steps_v5.png'
         plt.savefig(save_to)
         print 'saved to ' + save_to
 
