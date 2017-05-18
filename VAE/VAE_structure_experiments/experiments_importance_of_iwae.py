@@ -204,7 +204,9 @@ if __name__ == '__main__':
         #Also have a timer going to say how long each took. 
 
 
-        k_evaluation = 5000
+        # k_evaluation = 5000
+        k_evaluation = 500
+
 
         dt = datetime.datetime.now()
         date_ = str(dt.date())
@@ -223,7 +225,9 @@ if __name__ == '__main__':
         list_of_models = ['iwae']#, 'vae']  #mog vae vs mog iwae
 
         # list_model_structures = range(4)
-        list_of_k_samples = [50,10,1] #[1,5,50] #[1,3,12,60]
+        # list_of_k_samples = [50,10,1] #[1,5,50] #[1,3,12,60]
+        list_of_k_samples = [1] #[1,5,50] #[1,3,12,60]
+
         # list_of_donts = [[]]  #[c,k]
 
         #Define model
@@ -265,7 +269,7 @@ if __name__ == '__main__':
 
                 for arch in list_of_archs_i:
 
-                    saved_parameter_file = m + '_struc' + str(arch) + '_k' + str(k) + '_1000.ckpt' 
+                    saved_parameter_file = m + '_struc' + str(arch) + '_k' + str(k) + '_epochs'+str(epochs)+'.ckpt' 
                     # 60 means the train + validation set
 
                     print 'Current:', saved_parameter_file
@@ -341,6 +345,9 @@ if __name__ == '__main__':
 
 
 
+    with open(experiment_log, "a") as myfile:
+        myfile.write('All Done.\n\n')
+    print 
 
 
 
