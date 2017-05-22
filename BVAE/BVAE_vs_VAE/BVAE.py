@@ -234,11 +234,12 @@ class BVAE(object):
 
 
 
-    def train(self, train_x, valid_x=[], display_step=5, 
+    def train(self, train_x, valid_x=[], display_step=[1,100], 
                 path_to_load_variables='', path_to_save_variables='', 
                 epochs=10, batch_size=20):
         '''
         Train.
+        Display step: [0] every x epochs, [1] every x steps
         '''
         with tf.Session() as self.sess:
             # self.sess = tf.Session()
@@ -272,7 +273,7 @@ class BVAE(object):
                     _ = self.sess.run((self.optimizer), feed_dict={self.x: batch, 
                                                             self.batch_frac: 1./float(n_datapoints)})
                     # Display logs per epoch step
-                    if step % display_step == 0:
+                    if step % display_step[1] == 0 and epoch % display_step[0] == 0:
                         elbo,log_px,log_pz,log_qz,log_pW,log_qW, i_elbo = self.sess.run((self.elbo, 
                                                                                     self.log_px, self.log_pz, 
                                                                                     self.log_qz, self.log_pW, 
@@ -443,7 +444,7 @@ if __name__ == '__main__':
 
     print 'Training'
     model.train(train_x=train_x,
-                epochs=1, batch_size=20, display_step=1000,
+                epochs=1, batch_size=20, display_step=[1,1000],
                 path_to_load_variables=path_to_load_variables,
                 path_to_save_variables=path_to_save_variables)
 

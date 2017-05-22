@@ -55,22 +55,26 @@ if __name__ == '__main__':
     print 'Valid', valid_x.shape
     print 'Test', test_x.shape
 
+    train_x = train_x[:50]
+    print 'Train', train_x.shape
+
 
     # Training settings
     x_size = 784   #f_height=28f_width=28
-    n_batch = 20
-    epochs = 200
+    n_batch = 50
+    epochs = 30000
+    h1_size = 200
     S_training = 1  #number of weight samples
 
     #Experimental Variables
-    list_of_models = ['bvae', 'vae']
+    list_of_models = ['vae', 'bvae']
     list_of_k_samples = [1]
-    z_sizes = [10,50,100]
+    z_sizes = [10,100]#[10,50,100]
 
     # Test settings
-    S_evaluation = 1 #2
-    k_evaluation = 500 #500
-    n_batch_eval = 2 #2
+    S_evaluation = 5 #2
+    k_evaluation = 100 #500
+    n_batch_eval = 1 #2
 
     #Experiment log
     dt = datetime.datetime.now()
@@ -87,10 +91,13 @@ if __name__ == '__main__':
 
             for z_size in z_sizes:
 
-                saved_parameter_file = m + '_k' + str(k_training) + '_S'+str(S_training) + '_z'+str(z_size) + '_epochs'+str(epochs)+'.ckpt' 
+                saved_parameter_file = m + '_k' + str(k_training) + '_z'+str(z_size) + '_epochs'+str(epochs)+'_smalldata.ckpt' 
                 print 'Current:', saved_parameter_file
                 with open(experiment_log, "a") as myfile:
                     myfile.write('\nCurrent:' + saved_parameter_file +'\n')
+
+
+
 
                 #Train 
                 print 'Training'
@@ -99,8 +106,8 @@ if __name__ == '__main__':
                     'learning_rate': .0001,
                     'x_size': x_size,
                     'z_size': z_size,
-                    'encoder_net': [x_size, 200, z_size*2],
-                    'decoder_net': [z_size, 200, x_size],
+                    'encoder_net': [x_size, h1_size, z_size*2],
+                    'decoder_net': [z_size, h1_size, x_size],
                     'n_W_particles': S_training,
                     'n_z_particles': k_training}
 
@@ -116,7 +123,7 @@ if __name__ == '__main__':
 
                 model.train(train_x=train_x, valid_x=valid_x,
                             epochs=epochs, batch_size=n_batch,
-                            display_step=3000,
+                            display_step=[500,3000],
                             path_to_load_variables='',
                             path_to_save_variables=parameter_path+saved_parameter_file)
 
@@ -124,32 +131,6 @@ if __name__ == '__main__':
                 print 'Time to train', time_to_train
                 with open(experiment_log, "a") as f:
                     f.write('Time to train '+  str(time_to_train) + '\n')
-
-
-
-
-
-
-
-
-                # #Initialize model
-                # if m == 'bvae':
-                #     model = BVAE(hyperparams)
-                # elif m == 'biwae':
-                #     model = BIWAE(hyperparams)
-
-                # start = time.time()
-
-                # model.train(train_x=train_x, valid_x=valid_x,
-                #             epochs=epochs, batch_size=n_batch, n_W_particles='notImplemented', n_z_particles=k_training, 
-                #             display_step=2400,
-                #             path_to_load_variables=parameter_path+saved_parameter_file,
-                #             path_to_save_variables=parameter_path+saved_parameter_file)
-
-                # time_to_train = time.time() - start
-                # print 'Time to train', time_to_train
-                # with open(experiment_log, "a") as f:
-                #     f.write('Time to train '+  str(time_to_train) + '\n')
 
 
 
@@ -170,8 +151,8 @@ if __name__ == '__main__':
                     'learning_rate': .0001,
                     'x_size': x_size,
                     'z_size': z_size,
-                    'encoder_net': [x_size, 200, z_size*2],
-                    'decoder_net': [z_size, 200, x_size],
+                    'encoder_net': [x_size, h1_size, z_size*2],
+                    'decoder_net': [z_size, h1_size, x_size],
                     'n_W_particles': S_evaluation,
                     'n_z_particles': k_evaluation}
 
@@ -185,8 +166,8 @@ if __name__ == '__main__':
 
                 start = time.time()
 
-                info = model.eval(data=test_x, batch_size=n_batch_eval, n_W_particles='notImplemented', display_step=100,
-                                        path_to_load_variables=parameter_path+saved_parameter_file, data2=train_x)
+                info = model.eval(data=test_x, batch_size=n_batch_eval, display_step=100,
+                                        path_to_load_variables=parameter_path+saved_parameter_file)
 
                 time_to_eval = time.time() - start
                 print 'time to evaluate', time_to_eval
@@ -194,47 +175,21 @@ if __name__ == '__main__':
                 
                 with open(experiment_log, "a") as myfile:
                     myfile.write('time to evaluate '+  str(time_to_eval) +'\n')
-                    myfile.write('Model Log Likelihood is ' + str(info) + ' for ' 
-                        + saved_parameter_file +'\n')
-                    myfile.write('z_elbo '+  str(info[2]+info[3]-info[4]) +'\n\n')
                     
+                    myfile.write('iwae_elbo, log_px,log_pz,log_qz,log_pW,log_qW\n')
 
+                    myfile.write('Info' + str(info) + ' for '+ saved_parameter_file +'\n')
+                    
                 print 
 
 
 
-    #Examples: 
-    # python experiments.py -m vae -k 1 -a train -s vae_1
-    # python experiments.py -m vae -k 10 -a train -s vae_10_s6 -l vae_10 -ss 6 -es 6
-    # # python experiments.py -m vae -k 10 -a evaluate -l vae_10
-    # parser = argparse.ArgumentParser(description='Run experiments.')
-    # parser.add_argument('--model', '-m', choices=['vae', 'iwae', 'mog_vae', 'mog_iwae'], 
-    #     default='vae')
-    # parser.add_argument('--k', '-k', type=int, default=1)
-    # parser.add_argument('--action', '-a', choices=['train', 'evaluate', 'combined'], default='train')
-    # parser.add_argument('--save_to', '-s', type=str, default='')
-    # parser.add_argument('--load_from', '-l', type=str, default='')
-    # parser.add_argument('--starting_stage', '-ss', type=int, default=0)
-    # parser.add_argument('--ending_stage', '-es', type=int, default=5)
-    # parser.add_argument('--n_clusters', '-c', type=int, default=2)
-    # args = parser.parse_args()
-
-    # path_to_save_variables, path_to_load_variables = user_defined_locations(args)
-
-    # #Load data
-    # train_x, valid_x, test_x = load_binarized_mnist(location=home+'/data/binarized_mnist.pkl')
-    # print 'Train', train_x.shape
-    # print 'Valid', valid_x.shape
-    # print 'Test', test_x.shape
 
 
-
-        # Check for the model variables, if not there train it then eval. 
-        #Write results to a file in case something happens
-        #Also have a timer going to say how long each took. 
-
-
-
+                
+    with open(experiment_log, "a") as myfile:
+        myfile.write('All Done.\n')
+        
     print 'All Done'
 
 

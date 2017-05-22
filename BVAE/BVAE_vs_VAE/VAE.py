@@ -138,7 +138,7 @@ class VAE(object):
         self.z_elbo = self.log_px + self.log_pz - self.log_qz 
 
         #Calc elbo
-        elbo = self.log_px + self.log_pz - self.log_qz # + self.batch_frac*(self.log_pW - self.log_qW)
+        elbo = self.log_px + self.log_pz - self.log_qz +  self.batch_frac*(self.log_pW)# - self.log_qW)
 
         return elbo
 
@@ -239,7 +239,7 @@ class VAE(object):
 
 
 
-    def train(self, train_x, valid_x=[], display_step=5, 
+    def train(self, train_x, valid_x=[], display_step=[1,100], 
                 path_to_load_variables='', path_to_save_variables='', 
                 epochs=10, batch_size=20):
         '''
@@ -277,7 +277,7 @@ class VAE(object):
                     _ = self.sess.run((self.optimizer), feed_dict={self.x: batch, 
                                                             self.batch_frac: 1./float(n_datapoints)})
                     # Display logs per epoch step
-                    if step % display_step == 0:
+                    if step % display_step[1] == 0 and epoch % display_step[0] == 0:
                         elbo,log_px,log_pz,log_qz,log_pW,log_qW, i_elbo = self.sess.run((self.elbo, 
                                                                                     self.log_px, self.log_pz, 
                                                                                     self.log_qz, self.log_pW, 
