@@ -67,7 +67,7 @@ if __name__ == '__main__':
     S_training = 1  #number of weight samples
 
     #Experimental Variables
-    list_of_models = ['vae', 'bvae']
+    list_of_models = ['bvae'] #['vae', 'bvae']
     list_of_k_samples = [1]
     z_sizes = [10,100]#[10,50,100]
 
@@ -166,6 +166,17 @@ if __name__ == '__main__':
 
                 start = time.time()
 
+
+                means, logvars = model.get_means_logvars(path_to_load_variables=parameter_path+saved_parameter_file)
+                
+                for list_ in means:
+                    print list_.shape
+                print np.mean(means)
+                print np.mean(logvars)
+                fsafsa
+
+
+
                 info = model.eval(data=test_x, batch_size=n_batch_eval, display_step=100,
                                         path_to_load_variables=parameter_path+saved_parameter_file)
 
@@ -180,7 +191,9 @@ if __name__ == '__main__':
 
                     myfile.write('Info' + str(info) + ' for '+ saved_parameter_file +'\n')
                     
-                print 
+
+
+                print
 
 
 

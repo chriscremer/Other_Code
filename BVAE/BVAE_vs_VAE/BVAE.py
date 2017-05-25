@@ -47,7 +47,10 @@ class BVAE(object):
 
         with tf.variable_scope("decoder"):
             decoder = BNN(self.decoder_net, self.decoder_act_func, self.batch_size)
-        
+
+
+        self.decoder_means = decoder.W_means
+        self.decoder_logvars = decoder.W_logvars
 
         #Objective
         log_probs = self.log_probs(self.x, encoder, decoder)
@@ -340,6 +343,22 @@ class BVAE(object):
         return [np.mean(iwae_elbos), np.mean(logpxs), np.mean(logpzs), np.mean(logqzs), np.mean(logpWs), np.mean(logqWs)]
 
 
+
+
+    def get_means_logvars(self, path_to_load_variables=''):
+
+        with tf.Session() as self.sess:
+
+            if path_to_load_variables == '':
+                self.sess.run(self.init_vars)
+            else:
+                #Load variables
+                self.saver.restore(self.sess, path_to_load_variables)
+                print 'loaded variables ' + path_to_load_variables
+
+            means, logvars = self.sess.run((self.decoder_means, self.decoder_logvars))
+
+            return means, logvars
 
 
 
