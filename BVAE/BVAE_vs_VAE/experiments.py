@@ -99,38 +99,38 @@ if __name__ == '__main__':
 
 
 
-                #Train 
-                print 'Training'
+                # #Train 
+                # print 'Training'
 
-                hyperparams = {
-                    'learning_rate': .0001,
-                    'x_size': x_size,
-                    'z_size': z_size,
-                    'encoder_net': [x_size, h1_size, z_size*2],
-                    'decoder_net': [z_size, h1_size, x_size],
-                    'n_W_particles': S_training,
-                    'n_z_particles': k_training}
+                # hyperparams = {
+                #     'learning_rate': .0001,
+                #     'x_size': x_size,
+                #     'z_size': z_size,
+                #     'encoder_net': [x_size, h1_size, z_size*2],
+                #     'decoder_net': [z_size, h1_size, x_size],
+                #     'n_W_particles': S_training,
+                #     'n_z_particles': k_training}
 
-                #Initialize model
-                if m == 'bvae':
-                    model = BVAE(hyperparams)
-                elif m == 'biwae':
-                    model = BIWAE(hyperparams)
-                elif m == 'vae':
-                    model = VAE(hyperparams)   
+                # #Initialize model
+                # if m == 'bvae':
+                #     model = BVAE(hyperparams)
+                # elif m == 'biwae':
+                #     model = BIWAE(hyperparams)
+                # elif m == 'vae':
+                #     model = VAE(hyperparams)   
 
-                start = time.time()
+                # start = time.time()
 
-                model.train(train_x=train_x, valid_x=valid_x,
-                            epochs=epochs, batch_size=n_batch,
-                            display_step=[500,3000],
-                            path_to_load_variables='',
-                            path_to_save_variables=parameter_path+saved_parameter_file)
+                # model.train(train_x=train_x, valid_x=valid_x,
+                #             epochs=epochs, batch_size=n_batch,
+                #             display_step=[500,3000],
+                #             path_to_load_variables='',
+                #             path_to_save_variables=parameter_path+saved_parameter_file)
 
-                time_to_train = time.time() - start
-                print 'Time to train', time_to_train
-                with open(experiment_log, "a") as f:
-                    f.write('Time to train '+  str(time_to_train) + '\n')
+                # time_to_train = time.time() - start
+                # print 'Time to train', time_to_train
+                # with open(experiment_log, "a") as f:
+                #     f.write('Time to train '+  str(time_to_train) + '\n')
 
 
 
