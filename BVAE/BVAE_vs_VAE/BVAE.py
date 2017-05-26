@@ -49,14 +49,13 @@ class BVAE(object):
             decoder = BNN(self.decoder_net, self.decoder_act_func, self.batch_size)
 
 
-        self.decoder_means = decoder.W_means
-        self.decoder_logvars = decoder.W_logvars
+
 
         #Objective
         log_probs = self.log_probs(self.x, encoder, decoder)
 
         self.elbo = self.objective(*log_probs)
-        self.iwae_elbo = self.iwae_objective(*log_probs)
+        # self.iwae_elbo = self.iwae_objective(*log_probs)
 
         self.iwae_elbo_test = self.iwae_objective_test(*log_probs)
 
@@ -67,6 +66,13 @@ class BVAE(object):
 
         # for var in tf.global_variables():
         #     print var
+
+        # FOR INSPECING MODEL
+
+        self.decoder_means = decoder.W_means
+        self.decoder_logvars = decoder.W_logvars
+
+        self.recons, self.priors = self.get_x_samples(self.x, encoder, decoder)
 
 
         #Finalize Initilization
@@ -142,23 +148,23 @@ class BVAE(object):
 
 
 
-    def iwae_objective(self, log_px, log_pz, log_qz, log_pW, log_qW):
-        '''
-        log_px, log_pz, log_qz: [S,P,B]
-        log_pW, log_qW: [S]
-        Output: [1]
-        '''
+    # def iwae_objective(self, log_px, log_pz, log_qz, log_pW, log_qW):
+    #     '''
+    #     log_px, log_pz, log_qz: [S,P,B]
+    #     log_pW, log_qW: [S]
+    #     Output: [1]
+    #     '''
 
-        # Log mean exp over S and P, mean over B
-        temp_elbo = tf.reduce_mean(log_px + log_pz - log_qz, axis=2)   #[S,P]
-        log_pW = tf.reshape(log_pW, [self.n_W_particles, 1]) #[S,1]
-        log_qW = tf.reshape(log_qW, [self.n_W_particles, 1]) #[S,1]
-        temp_elbo = temp_elbo + (self.batch_frac*(log_pW - log_qW)) #broadcast, [S,P]
-        temp_elbo = tf.reshape(temp_elbo, [self.n_W_particles*self.n_z_particles]) #[SP]
-        max_ = tf.reduce_max(temp_elbo, axis=0) #[1]
-        iwae_elbo = tf.log(tf.reduce_mean(tf.exp(temp_elbo-max_))) + max_  #[1]
+    #     # Log mean exp over S and P, mean over B
+    #     temp_elbo = tf.reduce_mean(log_px + log_pz - log_qz, axis=2)   #[S,P]
+    #     log_pW = tf.reshape(log_pW, [self.n_W_particles, 1]) #[S,1]
+    #     log_qW = tf.reshape(log_qW, [self.n_W_particles, 1]) #[S,1]
+    #     temp_elbo = temp_elbo + (self.batch_frac*(log_pW - log_qW)) #broadcast, [S,P]
+    #     temp_elbo = tf.reshape(temp_elbo, [self.n_W_particles*self.n_z_particles]) #[SP]
+    #     max_ = tf.reduce_max(temp_elbo, axis=0) #[1]
+    #     iwae_elbo = tf.log(tf.reduce_mean(tf.exp(temp_elbo-max_))) + max_  #[1]
 
-        return iwae_elbo
+    #     return iwae_elbo
 
 
 
@@ -233,7 +239,50 @@ class BVAE(object):
 
 
 
+    def get_x_samples(self, x, encoder, decoder):
 
+        recons = []
+        priors = []
+
+        for W_i in range(self.n_W_particles):
+
+            # Sample decoder weights  __, [1], [1]
+            W, log_pW, log_qW = decoder.sample_weights()
+
+            # Sample z   [P,B,Z], [P,B], [P,B]
+            z, log_pz, log_qz = self.sample_z(x, encoder, decoder, W)
+            # z: [PB,Z]
+            z = tf.reshape(z, [self.n_z_particles*self.batch_size, self.z_size])
+
+            # Decode [PB,X]
+            y = decoder.feedforward(W, z)
+            # y: [P,B,X]
+            y = tf.reshape(y, [self.n_z_particles, self.batch_size, self.x_size])
+            y = tf.sigmoid(y)
+            recons.append(y)
+
+            # # Likelihood p(x|z)  [P,B]
+            # log_px = log_bern(x,y)
+
+            # #Store for later
+            # log_px_list.append(log_px)
+
+            #Sample prior
+            z = tf.random_normal((self.n_z_particles, self.batch_size, self.z_size), 0, 1, seed=self.rs) 
+            z = tf.reshape(z, [self.n_z_particles*self.batch_size, self.z_size])
+
+            # Decode [PB,X]
+            y = decoder.feedforward(W, z)
+            # y: [P,B,X]
+            y = tf.reshape(y, [self.n_z_particles, self.batch_size, self.x_size])
+            y = tf.sigmoid(y)
+            priors.append(y)
+
+
+        recons = tf.stack(recons)
+        priors = tf.stack(priors)
+
+        return recons, priors
 
 
 
@@ -277,16 +326,16 @@ class BVAE(object):
                                                             self.batch_frac: 1./float(n_datapoints)})
                     # Display logs per epoch step
                     if step % display_step[1] == 0 and epoch % display_step[0] == 0:
-                        elbo,log_px,log_pz,log_qz,log_pW,log_qW, i_elbo = self.sess.run((self.elbo, 
+                        elbo,log_px,log_pz,log_qz,log_pW,log_qW = self.sess.run((self.elbo, 
                                                                                     self.log_px, self.log_pz, 
                                                                                     self.log_qz, self.log_pW, 
-                                                                                    self.log_qW, self.iwae_elbo), 
+                                                                                    self.log_qW), 
                                                         feed_dict={self.x: batch, 
                                                             self.batch_frac: 1./float(n_datapoints)})
                         print ("Epoch", str(epoch+1)+'/'+str(epochs), 
                                 'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
                                 "elbo={:.4f}".format(float(elbo)),
-                                log_px,log_pz,log_qz,log_pW,log_qW, i_elbo)
+                                log_px,log_pz,log_qz,log_pW,log_qW)
 
             if path_to_save_variables != '':
                 self.saver.save(self.sess, path_to_save_variables)
@@ -361,6 +410,36 @@ class BVAE(object):
             return means, logvars
 
 
+    def get_recons_and_priors(self, data, path_to_load_variables=''):
+
+
+        with tf.Session() as self.sess:
+
+            if path_to_load_variables == '':
+                self.sess.run(self.init_vars)
+            else:
+                #Load variables
+                self.saver.restore(self.sess, path_to_load_variables)
+                print 'loaded variables ' + path_to_load_variables
+
+            batch_size = 100
+            data_index = 0
+            batch = []
+            rs=np.random.RandomState(0)
+            while len(batch) != batch_size:
+                
+                batch.append(data[rs.randint(0,len(data))]) 
+                # batch.append(data[data_index])     
+                # data_index +=1
+                # if data_index >= len(data):
+                #     data_index = 0
+            batch = np.array(batch)
+
+            recons, priors = self.sess.run((self.recons, self.priors), feed_dict={self.x: batch})
+
+            return batch, recons, priors
+
+
 
 
 # class BIWAE(BVAE):
@@ -419,12 +498,6 @@ class BVAE(object):
 #         self.saver = tf.train.Saver()
 #         tf.get_default_graph().finalize()
 #         self.sess = tf.Session()
-
-
-
-
-
-
 
 
 

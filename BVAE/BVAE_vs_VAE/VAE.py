@@ -16,12 +16,14 @@ home = expanduser("~")
 from utils import log_normal as log_norm
 from utils import log_bernoulli as log_bern
 
+from BVAE import BVAE
+
 from NN import NN
 from NN_like_BNN import NN as BNN
 
 
 
-class VAE(object):
+class VAE(BVAE):
 
 
     def __init__(self, hyperparams):
@@ -58,7 +60,7 @@ class VAE(object):
         log_probs = self.log_probs(self.x, encoder, decoder)
 
         self.elbo = self.objective(*log_probs)
-        self.iwae_elbo = self.iwae_objective(*log_probs)
+        # self.iwae_elbo = self.iwae_objective(*log_probs)
 
         self.iwae_elbo_test = self.iwae_objective_test(*log_probs)
 
@@ -71,6 +73,15 @@ class VAE(object):
         #     print var
 
 
+        # FOR INSPECING MODEL
+
+        # self.decoder_means = decoder.W_means
+        # self.decoder_logvars = decoder.W_logvars
+
+        self.recons, self.priors = self.get_x_samples(self.x, encoder, decoder)
+
+
+
         #Finalize Initilization
         self.init_vars = tf.global_variables_initializer()
         self.saver = tf.train.Saver()
@@ -78,47 +89,47 @@ class VAE(object):
         # self.sess = tf.Session()
 
 
-    def log_probs(self, x, encoder, decoder):
+    # def log_probs(self, x, encoder, decoder):
 
-        log_px_list = []
-        log_pz_list = []
-        log_qz_list = []
-        log_pW_list = []
-        log_qW_list = []
+    #     log_px_list = []
+    #     log_pz_list = []
+    #     log_qz_list = []
+    #     log_pW_list = []
+    #     log_qW_list = []
 
-        for W_i in range(self.n_W_particles):
+    #     for W_i in range(self.n_W_particles):
 
-            # Sample decoder weights  __, [1], [1]
-            W, log_pW, log_qW = decoder.sample_weights()
+    #         # Sample decoder weights  __, [1], [1]
+    #         W, log_pW, log_qW = decoder.sample_weights()
 
-            # Sample z   [P,B,Z], [P,B], [P,B]
-            z, log_pz, log_qz = self.sample_z(x, encoder, decoder, W)
-            # z: [PB,Z]
-            z = tf.reshape(z, [self.n_z_particles*self.batch_size, self.z_size])
+    #         # Sample z   [P,B,Z], [P,B], [P,B]
+    #         z, log_pz, log_qz = self.sample_z(x, encoder, decoder, W)
+    #         # z: [PB,Z]
+    #         z = tf.reshape(z, [self.n_z_particles*self.batch_size, self.z_size])
 
-            # Decode [PB,X]
-            y = decoder.feedforward(W, z)
-            # y: [P,B,X]
-            y = tf.reshape(y, [self.n_z_particles, self.batch_size, self.x_size])
+    #         # Decode [PB,X]
+    #         y = decoder.feedforward(W, z)
+    #         # y: [P,B,X]
+    #         y = tf.reshape(y, [self.n_z_particles, self.batch_size, self.x_size])
 
-            # Likelihood p(x|z)  [P,B]
-            log_px = log_bern(x,y)
+    #         # Likelihood p(x|z)  [P,B]
+    #         log_px = log_bern(x,y)
 
-            #Store for later
-            log_px_list.append(log_px)
-            log_pz_list.append(log_pz)
-            log_qz_list.append(log_qz)
-            log_pW_list.append(log_pW)
-            log_qW_list.append(log_qW)
+    #         #Store for later
+    #         log_px_list.append(log_px)
+    #         log_pz_list.append(log_pz)
+    #         log_qz_list.append(log_qz)
+    #         log_pW_list.append(log_pW)
+    #         log_qW_list.append(log_qW)
 
 
-        log_px = tf.stack(log_px_list) #[S,P,B]
-        log_pz = tf.stack(log_pz_list) #[S,P,B]
-        log_qz = tf.stack(log_qz_list) #[S,P,B]
-        log_pW = tf.stack(log_pW_list) #[S]
-        log_qW = tf.stack(log_qW_list) #[S]
+    #     log_px = tf.stack(log_px_list) #[S,P,B]
+    #     log_pz = tf.stack(log_pz_list) #[S,P,B]
+    #     log_qz = tf.stack(log_qz_list) #[S,P,B]
+    #     log_pW = tf.stack(log_pW_list) #[S]
+    #     log_qW = tf.stack(log_qW_list) #[S]
 
-        return [log_px, log_pz, log_qz, log_pW, log_qW]  
+    #     return [log_px, log_pz, log_qz, log_pW, log_qW]  
 
 
 
@@ -144,23 +155,23 @@ class VAE(object):
 
 
 
-    def iwae_objective(self, log_px, log_pz, log_qz, log_pW, log_qW):
-        '''
-        log_px, log_pz, log_qz: [S,P,B]
-        log_pW, log_qW: [S]
-        Output: [1]
-        '''
+    # def iwae_objective(self, log_px, log_pz, log_qz, log_pW, log_qW):
+    #     '''
+    #     log_px, log_pz, log_qz: [S,P,B]
+    #     log_pW, log_qW: [S]
+    #     Output: [1]
+    #     '''
 
-        # Log mean exp over S and P, mean over B
-        temp_elbo = tf.reduce_mean(log_px + log_pz - log_qz, axis=2)   #[S,P]
-        # log_pW = tf.reshape(log_pW, [self.n_W_particles, 1]) #[S,1]
-        # log_qW = tf.reshape(log_qW, [self.n_W_particles, 1]) #[S,1]
-        # temp_elbo = temp_elbo + (self.batch_frac*(log_pW - log_qW)) #broadcast, [S,P]
-        temp_elbo = tf.reshape(temp_elbo, [self.n_W_particles*self.n_z_particles]) #[SP]
-        max_ = tf.reduce_max(temp_elbo, axis=0) #[1]
-        iwae_elbo = tf.log(tf.reduce_mean(tf.exp(temp_elbo-max_))) + max_  #[1]
+    #     # Log mean exp over S and P, mean over B
+    #     temp_elbo = tf.reduce_mean(log_px + log_pz - log_qz, axis=2)   #[S,P]
+    #     # log_pW = tf.reshape(log_pW, [self.n_W_particles, 1]) #[S,1]
+    #     # log_qW = tf.reshape(log_qW, [self.n_W_particles, 1]) #[S,1]
+    #     # temp_elbo = temp_elbo + (self.batch_frac*(log_pW - log_qW)) #broadcast, [S,P]
+    #     temp_elbo = tf.reshape(temp_elbo, [self.n_W_particles*self.n_z_particles]) #[SP]
+    #     max_ = tf.reduce_max(temp_elbo, axis=0) #[1]
+    #     iwae_elbo = tf.log(tf.reduce_mean(tf.exp(temp_elbo-max_))) + max_  #[1]
 
-        return iwae_elbo
+    #     return iwae_elbo
 
 
 
@@ -187,161 +198,161 @@ class VAE(object):
 
 
 
-    def iwae_objective_test(self, log_px, log_pz, log_qz, log_pW, log_qW):
-        '''
-        Uses approximate posterior
-        log_px, log_pz, log_qz: [S,P,B]
-        log_pW, log_qW: [S]
-        Output: [1]
-        '''
+    # def iwae_objective_test(self, log_px, log_pz, log_qz, log_pW, log_qW):
+    #     '''
+    #     Uses approximate posterior
+    #     log_px, log_pz, log_qz: [S,P,B]
+    #     log_pW, log_qW: [S]
+    #     Output: [1]
+    #     '''
 
-        # Log mean exp over S and P, mean over B
-        temp_elbo = tf.reduce_mean(log_px + log_pz - log_qz, axis=2)   #[S,P]
-        # log_pW = tf.reshape(log_pW, [self.n_W_particles, 1]) #[S,1]
-        # log_qW = tf.reshape(log_qW, [self.n_W_particles, 1]) #[S,1]
-        # temp_elbo = temp_elbo #+ (self.batch_frac*(log_pW - log_qW)) #broadcast, [S,P]
-        temp_elbo = tf.reshape(temp_elbo, [self.n_W_particles*self.n_z_particles]) #[SP]
-        max_ = tf.reduce_max(temp_elbo, axis=0) #[1]
-        iwae_elbo = tf.log(tf.reduce_mean(tf.exp(temp_elbo-max_))) + max_  #[1]
+    #     # Log mean exp over S and P, mean over B
+    #     temp_elbo = tf.reduce_mean(log_px + log_pz - log_qz, axis=2)   #[S,P]
+    #     # log_pW = tf.reshape(log_pW, [self.n_W_particles, 1]) #[S,1]
+    #     # log_qW = tf.reshape(log_qW, [self.n_W_particles, 1]) #[S,1]
+    #     # temp_elbo = temp_elbo #+ (self.batch_frac*(log_pW - log_qW)) #broadcast, [S,P]
+    #     temp_elbo = tf.reshape(temp_elbo, [self.n_W_particles*self.n_z_particles]) #[SP]
+    #     max_ = tf.reduce_max(temp_elbo, axis=0) #[1]
+    #     iwae_elbo = tf.log(tf.reduce_mean(tf.exp(temp_elbo-max_))) + max_  #[1]
 
-        return iwae_elbo
-
-
-
-
-
-    def sample_z(self, x, encoder, decoder, W):
-        '''
-        z: [P,B,Z]
-        log_pz: [P,B]
-        log_qz: [P,B]
-        '''
-
-        #Encode
-        z_mean_logvar = encoder.feedforward(x) #[B,Z*2]
-        z_mean = tf.slice(z_mean_logvar, [0,0], [self.batch_size, self.z_size]) #[B,Z] 
-        z_logvar = tf.slice(z_mean_logvar, [0,self.z_size], [self.batch_size, self.z_size]) #[B,Z]
-
-        #Sample z  [P,B,Z]
-        eps = tf.random_normal((self.n_z_particles, self.batch_size, self.z_size), 0, 1, seed=self.rs) 
-        z = tf.add(z_mean, tf.multiply(tf.sqrt(tf.exp(z_logvar)), eps)) #broadcast, [P,B,Z]
-
-        # Calc log probs [P,B]
-        log_pz = log_norm(z, tf.zeros([self.batch_size, self.z_size]), 
-                                tf.log(tf.ones([self.batch_size, self.z_size])))
-        log_qz = log_norm(z, z_mean, z_logvar)
-
-        return z, log_pz, log_qz
+    #     return iwae_elbo
 
 
 
 
 
+    # def sample_z(self, x, encoder, decoder, W):
+    #     '''
+    #     z: [P,B,Z]
+    #     log_pz: [P,B]
+    #     log_qz: [P,B]
+    #     '''
 
+    #     #Encode
+    #     z_mean_logvar = encoder.feedforward(x) #[B,Z*2]
+    #     z_mean = tf.slice(z_mean_logvar, [0,0], [self.batch_size, self.z_size]) #[B,Z] 
+    #     z_logvar = tf.slice(z_mean_logvar, [0,self.z_size], [self.batch_size, self.z_size]) #[B,Z]
 
-    def train(self, train_x, valid_x=[], display_step=[1,100], 
-                path_to_load_variables='', path_to_save_variables='', 
-                epochs=10, batch_size=20):
-        '''
-        Train.
-        '''
-        with tf.Session() as self.sess:
-            # self.sess = tf.Session()
-            random_seed=1
-            rs=np.random.RandomState(random_seed)
-            n_datapoints = len(train_x)
-            arr = np.arange(n_datapoints)
+    #     #Sample z  [P,B,Z]
+    #     eps = tf.random_normal((self.n_z_particles, self.batch_size, self.z_size), 0, 1, seed=self.rs) 
+    #     z = tf.add(z_mean, tf.multiply(tf.sqrt(tf.exp(z_logvar)), eps)) #broadcast, [P,B,Z]
 
-            if path_to_load_variables == '':
-                self.sess.run(self.init_vars)
-            else:
-                #Load variables
-                self.saver.restore(self.sess, path_to_load_variables)
-                print 'loaded variables ' + path_to_load_variables
+    #     # Calc log probs [P,B]
+    #     log_pz = log_norm(z, tf.zeros([self.batch_size, self.z_size]), 
+    #                             tf.log(tf.ones([self.batch_size, self.z_size])))
+    #     log_qz = log_norm(z, z_mean, z_logvar)
 
-            #start = time.time()
-            for epoch in range(epochs):
-
-                #shuffle the data
-                rs.shuffle(arr)
-                train_x = train_x[arr]
-
-                data_index = 0
-                for step in range(n_datapoints/batch_size):
-                    #Make batch
-                    batch = []
-                    while len(batch) != batch_size:
-                        batch.append(train_x[data_index]) 
-                        data_index +=1
-                    # Fit training using batch data
-                    _ = self.sess.run((self.optimizer), feed_dict={self.x: batch, 
-                                                            self.batch_frac: 1./float(n_datapoints)})
-                    # Display logs per epoch step
-                    if step % display_step[1] == 0 and epoch % display_step[0] == 0:
-                        elbo,log_px,log_pz,log_qz,log_pW,log_qW, i_elbo = self.sess.run((self.elbo, 
-                                                                                    self.log_px, self.log_pz, 
-                                                                                    self.log_qz, self.log_pW, 
-                                                                                    self.log_qW, self.iwae_elbo), 
-                                                        feed_dict={self.x: batch, 
-                                                            self.batch_frac: 1./float(n_datapoints)})
-                        print ("Epoch", str(epoch+1)+'/'+str(epochs), 
-                                'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
-                                "elbo={:.4f}".format(float(elbo)),
-                                log_px,log_pz,log_qz,log_pW,log_qW, i_elbo)
-
-            if path_to_save_variables != '':
-                self.saver.save(self.sess, path_to_save_variables)
-                print 'Saved variables to ' + path_to_save_variables
+    #     return z, log_pz, log_qz
 
 
 
 
-    def eval(self, data, display_step=5, path_to_load_variables='',
-             batch_size=20, data2=[]):
-        '''
-        Evaluate.
-        '''
-        with tf.Session() as self.sess:
 
-            n_datapoints = len(data)
-            # n_datapoints_for_frac = len(data2)
 
-            if path_to_load_variables == '':
-                self.sess.run(self.init_vars)
-            else:
-                #Load variables
-                self.saver.restore(self.sess, path_to_load_variables)
-                print 'loaded variables ' + path_to_load_variables
 
-            iwae_elbos = []
-            logpxs=[]
-            logpzs=[]
-            logqzs=[]
-            logpWs=[]
-            logqWs=[]
+    # def train(self, train_x, valid_x=[], display_step=[1,100], 
+    #             path_to_load_variables='', path_to_save_variables='', 
+    #             epochs=10, batch_size=20):
+    #     '''
+    #     Train.
+    #     '''
+    #     with tf.Session() as self.sess:
+    #         # self.sess = tf.Session()
+    #         random_seed=1
+    #         rs=np.random.RandomState(random_seed)
+    #         n_datapoints = len(train_x)
+    #         arr = np.arange(n_datapoints)
 
-            data_index = 0
-            for step in range(n_datapoints/batch_size):
+    #         if path_to_load_variables == '':
+    #             self.sess.run(self.init_vars)
+    #         else:
+    #             #Load variables
+    #             self.saver.restore(self.sess, path_to_load_variables)
+    #             print 'loaded variables ' + path_to_load_variables
 
-                #Make batch
-                batch = []
-                while len(batch) != batch_size:
-                    batch.append(data[data_index]) 
-                    data_index +=1
-                # Calc iwae elbo on test set
-                iwae_elbo, log_px,log_pz,log_qz,log_pW,log_qW = self.sess.run((self.iwae_elbo_test,
-                                                                            self.log_px, self.log_pz, 
-                                                                            self.log_qz, self.log_pW, 
-                                                                            self.log_qW), 
-                                                        feed_dict={self.x: batch})
-                iwae_elbos.append(iwae_elbo)
-                logpxs.append(log_px)
-                logpzs.append(log_pz)
-                logqzs.append(log_qz)
-                logpWs.append(log_pW)
-                logqWs.append(log_qW)
+    #         #start = time.time()
+    #         for epoch in range(epochs):
 
-        return [np.mean(iwae_elbos), np.mean(logpxs), np.mean(logpzs), np.mean(logqzs), np.mean(logpWs), np.mean(logqWs)]
+    #             #shuffle the data
+    #             rs.shuffle(arr)
+    #             train_x = train_x[arr]
+
+    #             data_index = 0
+    #             for step in range(n_datapoints/batch_size):
+    #                 #Make batch
+    #                 batch = []
+    #                 while len(batch) != batch_size:
+    #                     batch.append(train_x[data_index]) 
+    #                     data_index +=1
+    #                 # Fit training using batch data
+    #                 _ = self.sess.run((self.optimizer), feed_dict={self.x: batch, 
+    #                                                         self.batch_frac: 1./float(n_datapoints)})
+    #                 # Display logs per epoch step
+    #                 if step % display_step[1] == 0 and epoch % display_step[0] == 0:
+    #                     elbo,log_px,log_pz,log_qz,log_pW,log_qW = self.sess.run((self.elbo, 
+    #                                                                                 self.log_px, self.log_pz, 
+    #                                                                                 self.log_qz, self.log_pW, 
+    #                                                                                 self.log_qW), 
+    #                                                     feed_dict={self.x: batch, 
+    #                                                         self.batch_frac: 1./float(n_datapoints)})
+    #                     print ("Epoch", str(epoch+1)+'/'+str(epochs), 
+    #                             'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
+    #                             "elbo={:.4f}".format(float(elbo)),
+    #                             log_px,log_pz,log_qz,log_pW,log_qW)
+
+    #         if path_to_save_variables != '':
+    #             self.saver.save(self.sess, path_to_save_variables)
+    #             print 'Saved variables to ' + path_to_save_variables
+
+
+
+
+    # def eval(self, data, display_step=5, path_to_load_variables='',
+    #          batch_size=20, data2=[]):
+    #     '''
+    #     Evaluate.
+    #     '''
+    #     with tf.Session() as self.sess:
+
+    #         n_datapoints = len(data)
+    #         # n_datapoints_for_frac = len(data2)
+
+    #         if path_to_load_variables == '':
+    #             self.sess.run(self.init_vars)
+    #         else:
+    #             #Load variables
+    #             self.saver.restore(self.sess, path_to_load_variables)
+    #             print 'loaded variables ' + path_to_load_variables
+
+    #         iwae_elbos = []
+    #         logpxs=[]
+    #         logpzs=[]
+    #         logqzs=[]
+    #         logpWs=[]
+    #         logqWs=[]
+
+    #         data_index = 0
+    #         for step in range(n_datapoints/batch_size):
+
+    #             #Make batch
+    #             batch = []
+    #             while len(batch) != batch_size:
+    #                 batch.append(data[data_index]) 
+    #                 data_index +=1
+    #             # Calc iwae elbo on test set
+    #             iwae_elbo, log_px,log_pz,log_qz,log_pW,log_qW = self.sess.run((self.iwae_elbo_test,
+    #                                                                         self.log_px, self.log_pz, 
+    #                                                                         self.log_qz, self.log_pW, 
+    #                                                                         self.log_qW), 
+    #                                                     feed_dict={self.x: batch})
+    #             iwae_elbos.append(iwae_elbo)
+    #             logpxs.append(log_px)
+    #             logpzs.append(log_pz)
+    #             logqzs.append(log_qz)
+    #             logpWs.append(log_pW)
+    #             logqWs.append(log_qW)
+
+    #     return [np.mean(iwae_elbos), np.mean(logpxs), np.mean(logpzs), np.mean(logqzs), np.mean(logpWs), np.mean(logqWs)]
 
 
 
@@ -404,6 +415,36 @@ class VAE(object):
 #         self.saver = tf.train.Saver()
 #         tf.get_default_graph().finalize()
 #         self.sess = tf.Session()
+
+
+
+
+
+
+class VAE_no_reg(VAE):
+
+    def objective(self, log_px, log_pz, log_qz, log_pW, log_qW):
+        '''
+        log_px, log_pz, log_qz: [S,P,B]
+        log_pW, log_qW: [S]
+        Output: [1]
+        '''
+
+        # Calculte log probs for printing
+        self.log_px = tf.reduce_mean(log_px)
+        self.log_pz = tf.reduce_mean(log_pz)
+        self.log_qz = tf.reduce_mean(log_qz)
+        self.log_pW = tf.reduce_mean(log_pW)
+        self.log_qW = tf.reduce_mean(log_qW)
+        self.z_elbo = self.log_px + self.log_pz - self.log_qz 
+
+        #Calc elbo
+        elbo = self.log_px + self.log_pz - self.log_qz #+  self.batch_frac*(self.log_pW)# - self.log_qW)
+
+        return elbo
+
+
+
 
 
 

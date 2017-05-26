@@ -54,7 +54,9 @@ class BNN(object):
 
             #Define variables [IS,OS]
             W_means.append(tf.Variable(xavier_init(input_size_i, output_size_i)))
-            W_logvars.append(tf.Variable(xavier_init(input_size_i, output_size_i) - 10.))
+            # W_logvars.append(tf.Variable(xavier_init(input_size_i, output_size_i) - 10.))
+
+            W_logvars.append(tf.Variable(tf.random_normal([input_size_i, output_size_i], stddev=0.1))-5.)
 
         return W_means, W_logvars
 
