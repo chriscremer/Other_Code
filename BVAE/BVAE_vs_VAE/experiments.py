@@ -104,7 +104,7 @@ if __name__ == '__main__':
 
                 # to_load_parameter_file = m + '_k' + str(k_training) + '_z'+str(z_size) + '_epochs'+str(90000)+'_smalldata.ckpt' 
 
-                saved_parameter_file = m + '_k' + str(k_training) + '_z'+str(z_size) + '_epochs'+str(epochs)+'_smalldata.ckpt' 
+                saved_parameter_file = m + '_k' + str(k_training) + '_z'+str(z_size) + '_epochs'+str(epochs)+'_smalldata_highvar.ckpt' 
                 print 'Current:', saved_parameter_file
                 if save_log:
                     with open(experiment_log, "a") as myfile:

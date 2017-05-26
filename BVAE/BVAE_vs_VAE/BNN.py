@@ -86,7 +86,7 @@ class BNN(object):
             flat_w = tf.reshape(W,[input_size_i*output_size_i]) #[IS*OS]
             flat_W_means = tf.reshape(W_means, [input_size_i*output_size_i]) #[IS*OS]
             flat_W_logvars = tf.reshape(W_logvars, [input_size_i*output_size_i]) #[IS*OS]
-            log_p_W_sum += log_normal3(flat_w, tf.zeros([input_size_i*output_size_i]), tf.log(tf.ones([input_size_i*output_size_i])))
+            log_p_W_sum += log_normal3(flat_w, tf.zeros([input_size_i*output_size_i]), tf.log(tf.ones([input_size_i*output_size_i])*100.))
             log_q_W_sum += log_normal3(flat_w, flat_W_means, flat_W_logvars)
 
             Ws.append(W)
