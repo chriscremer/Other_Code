@@ -389,7 +389,28 @@ class BVAE(object):
                 logpWs.append(log_pW)
                 logqWs.append(log_qW)
 
-        return [np.mean(iwae_elbos), np.mean(logpxs), np.mean(logpzs), np.mean(logqzs), np.mean(logpWs), np.mean(logqWs)]
+            test_results = [np.mean(iwae_elbos), np.mean(logpxs), np.mean(logpzs), np.mean(logqzs), np.mean(logpWs), np.mean(logqWs)]
+
+
+            batch = []
+            rs=np.random.RandomState(0)
+            while len(batch) != batch_size:
+                batch.append(data[rs.randint(0,len(data))]) 
+                data_index +=1
+ 
+            elbo,log_px,log_pz,log_qz,log_pW,log_qW = self.sess.run((self.elbo, 
+                                                                        self.log_px, self.log_pz, 
+                                                                        self.log_qz, self.log_pW, 
+                                                                        self.log_qW), 
+                                                feed_dict={self.x: batch, 
+                                                    self.batch_frac: 1./float(n_datapoints)})
+
+            train_results = [elbo,log_px,log_pz,log_qz,log_pW,log_qW]
+
+            labels = ['elbo','log_px','log_pz','log_qz','log_pW','log_qW']
+
+
+            return test_results, train_results, labels
 
 
 

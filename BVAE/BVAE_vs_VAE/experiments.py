@@ -46,11 +46,11 @@ def load_mnist(location):
 
 if __name__ == '__main__':
 
-    save_log = 1
-    train_ = 1
-    eval_ = 1
+    save_log = 0
+    train_ = 0
+    eval_ = 0
     plot_histo = 0
-    viz_sammples = 0
+    viz_sammples = 1
 
     # Paths
     mnist_path = home+'/Documents/MNIST_data/mnist.pkl'
@@ -67,21 +67,23 @@ if __name__ == '__main__':
     train_x = train_x[:50]
     print 'Train', train_x.shape
 
+    # test_x = test_x[:100]
+
 
     # Training settings
     x_size = 784   #f_height=28f_width=28
     n_batch = 50
     epochs = 50000
-    h1_size = 100
+    h1_size = 100  #hidden layer size
     S_training = 1  #number of weight samples
 
     #Experimental Variables
     list_of_models = ['vae', 'bvae', 'vae_no_reg']#['bvae']#['bvae'] #['vae', 'bvae', 'vae_no_reg']
     list_of_k_samples = [1]
-    z_sizes = [30] #[10,100]#[10,50,100]
+    z_sizes = [30] #[10,100]#[10,50,100]   #latent layer size
 
     # Test settings
-    S_evaluation = 5 #2
+    S_evaluation = 5 #2  
     k_evaluation = 100 #500
     n_batch_eval = 1 #2
 
@@ -104,11 +106,11 @@ if __name__ == '__main__':
 
                 # to_load_parameter_file = m + '_k' + str(k_training) + '_z'+str(z_size) + '_epochs'+str(90000)+'_smalldata.ckpt' 
 
-                saved_parameter_file = m + '_k' + str(k_training) + '_z'+str(z_size) + '_epochs'+str(epochs)+'_smalldata_highvar.ckpt' 
+                saved_parameter_file = m + '_k' + str(k_training) + '_z'+str(z_size) + '_epochs'+str(epochs)+'_smalldata.ckpt' 
                 print 'Current:', saved_parameter_file
                 if save_log:
                     with open(experiment_log, "a") as myfile:
-                        myfile.write('\nCurrent:' + saved_parameter_file +'\n')
+                        myfile.write('\n\n' + saved_parameter_file +'\n')
 
 
 
@@ -212,7 +214,7 @@ if __name__ == '__main__':
                         'z_size': z_size,
                         'encoder_net': [x_size, h1_size, z_size*2],
                         'decoder_net': [z_size, h1_size, x_size],
-                        'n_W_particles': 1,
+                        'n_W_particles': 5,
                         'n_z_particles': 1}
 
                     #Initialize model
@@ -228,6 +230,9 @@ if __name__ == '__main__':
                     print recons.shape
                     print prior_x_.shape
                     print batch.shape
+
+
+                    fsd
 
                     # print recons[0][0][0]
                     # print prior_x_[0][0][1]
@@ -310,20 +315,32 @@ if __name__ == '__main__':
                     print 'Evaluating'
 
                     start = time.time()
-                    info = model.eval(data=test_x, batch_size=n_batch_eval, display_step=100,
-                                            path_to_load_variables=parameter_path+saved_parameter_file)
+                    test_results, train_results, labels = model.eval(data=test_x, batch_size=n_batch_eval, display_step=100,
+                                            path_to_load_variables=parameter_path+saved_parameter_file, data2=train_x)
 
                     time_to_eval = time.time() - start
                     print 'time to evaluate', time_to_eval
-                    print 'Model Log Likelihood is ' + str(info) + ' for ' + saved_parameter_file
+                    print 'Results: ' + str(test_results) + ' for ' + saved_parameter_file
                     
                     if save_log:
                         with open(experiment_log, "a") as myfile:
-                            myfile.write('time to evaluate '+  str(time_to_eval) +'\n')
-                            
-                            myfile.write('iwae_elbo, log_px,log_pz,log_qz,log_pW,log_qW\n')
 
-                            myfile.write('Info' + str(info) + ' for '+ saved_parameter_file +'\n')
+                            # myfile.write('time to evaluate '+  str(time_to_eval) +'\n')
+
+                            myfile.write('Train set\n')
+                            myfile.write('%10s' % 'elbo'+ '%10s' %'log_px' + '%10s' %'log_pz'+'%10s' %'log_qz'+ '%10s' %'log_pW'+'%10s' %'log_qW'+'\n')
+                            results_str = ''
+                            for val in train_results:
+                                results_str += '%10.2f' % val
+                            myfile.write(results_str +'\n')
+
+
+                            myfile.write('Test set\n')
+                            myfile.write('%10s' % 'iwae_elbo'+ '%10s' %'log_px' + '%10s' %'log_pz'+'%10s' %'log_qz'+ '%10s' %'log_pW'+'%10s' %'log_qW'+'\n')
+                            results_str = ''
+                            for val in test_results:
+                                results_str += '%10.2f' % val
+                            myfile.write(results_str +'\n')
                         
 
 
@@ -335,7 +352,7 @@ if __name__ == '__main__':
 
     if save_log:             
         with open(experiment_log, "a") as myfile:
-            myfile.write('All Done.\n')
+            myfile.write('\n\nAll Done.\n')
         
     print 'All Done'
 
