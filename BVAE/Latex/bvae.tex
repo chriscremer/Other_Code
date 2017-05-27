@@ -2,10 +2,12 @@
 
 \usepackage{graphicx}
 \usepackage{amsmath}
+\usepackage{tikz}
+\usetikzlibrary{bayesnet}
 
 \begin{document}
 
-\title{HIS+BVAE+more}
+\title{BVAE}
 
 \author{Chris}
 
@@ -15,8 +17,66 @@
 % The abstract text goes here.
 % \end{abstract}
 
-\section{2D Plots}
+\begin{figure}[h]
+    \centering
+    \tikz
+    {
+        \node[latent] (weights) {$\theta$} ;
+        \node[latent, right=of weights] (Z) {$Z$} ;
+        \node[latent, left=of weights] (Z_prime) {$Z'$} ;
+        \node[obs, below=of Z] (X) {$X$} ;
+        \node[obs, below=of Z_prime] (X_prime) {$X'$} ;
+        
+        \edge {Z_prime} {X_prime} ;
+        \edge {weights} {X_prime} ;
+        \edge {weights} {X} ;
+        \edge {Z} {X} ;
+        
+        \plate[inner sep=0.25cm, xshift=0.0cm, yshift=0.12cm] {plate1} {(Z) (X)} {N};
+    }
+    \caption{Graphical model of BVAE. $X$ is the training set. $X'$ is the test set.}
+\end{figure}
 
+
+
+
+\section{BVAE Objectives}
+
+\subsection{Objective maximized during training}
+
+
+
+\begin{align}
+    p(x) &= \int_{\theta} \int_{z} p(x,z,\theta) \\
+    &= E_{q(\theta,z|x)} \left[ \frac{p(x,z,\theta)}{q(\theta,z|x)} \right ] \\
+    &= E_{q(\theta,z|x)} \left[ \frac{p(x,z)p(\theta)}{q(z|x)q(\theta)} \right ] \\
+    log(p(x)) &= log \left( E_{q(\theta,z|x)} \left[ \frac{p(x,z)p(\theta)}{q(z|x)q(\theta)} \right ] \right) \\
+    &\geq  E_{q(\theta,z|x)} \left[ log \left( \frac{p(x,z)p(\theta)}{q(z|x)q(\theta)} \right) \right ] 
+\end{align}
+
+
+\subsection{Objective evaluated on the test set}
+
+
+\begin{align}
+    p(x'|x) &= \int_{\theta} \int_{z'} p(x',z',\theta|x) \\
+    &= \int_{\theta} \int_{z} p(x',z'|\theta,x) p(\theta|x) \\
+    &= \int_{\theta} \int_{z} p(x',z'|\theta) p(\theta|x) \\
+    q(x'|x) &= \int_{\theta} \int_{z} p(x',z'|\theta) q(\theta) \\
+    &= E_{q(\theta)} \left[ \int_{z} p(x',z'|\theta) \right] \\
+    &= E_{q(\theta)} \left[ E_{q(z'|x')} \left[ \frac{p(x',z'|\theta)}{q(z'|x')} \right] \right]  \\
+	log(q(x'|x)) &= log \left(  E_{q(\theta)} \left[ E_{q(z'|x')} \left[ \frac{p(x',z'|\theta)}{q(z'|x')}  \right ] \right ] \right) \\
+    &\geq   E_{q(\theta)} \left[ E_{q(z'|x')} \left[ log \left( \frac{p(x',z'|\theta)}{q(z'|x')} \right) \right ] \right ] 
+\end{align}
+
+
+
+
+    % &= E_{q(\theta,z|x)} \left[ \frac{p(x,z,\theta)}{q(\theta,z|x)} \right ] \\
+    % &= E_{q(\theta,z|x)} \left[ \frac{p(x,z)p(\theta)}{q(z|x)q(\theta)} \right ] \\
+    % log(p(x)) &= log \left( E_{q(\theta,z|x)} \left[ \frac{p(x,z)p(\theta)}{q(z|x)q(\theta)} \right ] \right) \\
+
+\section{2D Plots}
 
 Equation used to plot $q_{T}(z_{T})$
 
