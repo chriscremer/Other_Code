@@ -36,6 +36,7 @@ class BVAE(object):
         self.n_z_particles = hyperparams['n_z_particles']  #P
 
         self.qW_weight = hyperparams['qW_weight']
+        self.lmba = hyperparams['lmba']
 
         #Placeholders - Inputs/Targets
         self.x = tf.placeholder(tf.float32, [None, self.x_size])
@@ -46,6 +47,9 @@ class BVAE(object):
         #Define endocer and decoder
         with tf.variable_scope("encoder"):
             encoder = NN(self.encoder_net, self.encoder_act_func, self.batch_size)
+        # self.encoder = encoder
+
+        self.l2_sum = encoder.weight_decay()
 
         with tf.variable_scope("decoder"):
             decoder = BNN(self.decoder_net, self.decoder_act_func, self.batch_size)
@@ -141,10 +145,10 @@ class BVAE(object):
         self.log_qz = tf.reduce_mean(log_qz)
         self.log_pW = tf.reduce_mean(log_pW)
         self.log_qW = tf.reduce_mean(log_qW)
-        self.z_elbo = self.log_px + self.log_pz - self.log_qz 
+        # self.z_elbo = self.log_px + self.log_pz - self.log_qz 
 
         #Calc elbo
-        elbo = self.log_px + self.log_pz - self.log_qz + self.batch_frac*(self.log_pW - (self.log_qW*self.qW_weight))
+        elbo = self.log_px + self.log_pz - self.log_qz + self.batch_frac*(self.log_pW - (self.log_qW*self.qW_weight)) - (self.lmba*self.l2_sum)
 
         return elbo
 
@@ -354,7 +358,7 @@ class BVAE(object):
         with tf.Session() as self.sess:
 
             n_datapoints = len(data)
-            # n_datapoints_for_frac = len(data2)
+            n_datapoints_for_frac = len(data2)
 
             if path_to_load_variables == '':
                 self.sess.run(self.init_vars)
@@ -369,6 +373,7 @@ class BVAE(object):
             logqzs=[]
             logpWs=[]
             logqWs=[]
+            l2_sums=[]
 
             data_index = 0
             for step in range(n_datapoints/batch_size):
@@ -379,10 +384,10 @@ class BVAE(object):
                     batch.append(data[data_index]) 
                     data_index +=1
                 # Calc iwae elbo on test set
-                iwae_elbo, log_px,log_pz,log_qz,log_pW,log_qW = self.sess.run((self.iwae_elbo_test,
+                iwae_elbo, log_px,log_pz,log_qz,log_pW,log_qW,l2_sum = self.sess.run((self.iwae_elbo_test,
                                                                             self.log_px, self.log_pz, 
                                                                             self.log_qz, self.log_pW, 
-                                                                            self.log_qW), 
+                                                                            self.log_qW, self.l2_sum), 
                                                         feed_dict={self.x: batch})
                 iwae_elbos.append(iwae_elbo)
                 logpxs.append(log_px)
@@ -390,29 +395,31 @@ class BVAE(object):
                 logqzs.append(log_qz)
                 logpWs.append(log_pW)
                 logqWs.append(log_qW)
+                l2_sums.append(l2_sum)
 
-            test_results = [np.mean(iwae_elbos), np.mean(logpxs), np.mean(logpzs), np.mean(logqzs), np.mean(logpWs), np.mean(logqWs)]
+            test_results = [np.mean(iwae_elbos), np.mean(logpxs), np.mean(logpzs), np.mean(logqzs), np.mean(logpWs), np.mean(logqWs), np.mean(l2_sums)]
 
+            test_labels = ['iwae_elbo','log_px','log_pz','log_qz','log_pW','log_qW','l2_sum']
 
             batch = []
             rs=np.random.RandomState(0)
             while len(batch) != batch_size:
-                batch.append(data[rs.randint(0,len(data))]) 
-                data_index +=1
+                batch.append(data2[rs.randint(0,len(data2))]) 
  
-            elbo,log_px,log_pz,log_qz,log_pW,log_qW = self.sess.run((self.elbo, 
+            elbo,log_px,log_pz,log_qz,log_pW,log_qW, l2_sum, batch_frac = self.sess.run((self.elbo, 
                                                                         self.log_px, self.log_pz, 
                                                                         self.log_qz, self.log_pW, 
-                                                                        self.log_qW), 
+                                                                        self.log_qW, self.l2_sum,
+                                                                        self.batch_frac), 
                                                 feed_dict={self.x: batch, 
-                                                    self.batch_frac: 1./float(n_datapoints)})
+                                                    self.batch_frac: 1./n_datapoints_for_frac})
 
-            train_results = [elbo,log_px,log_pz,log_qz,log_pW,log_qW]
+            train_results = [elbo,log_px,log_pz,log_qz,log_pW,log_qW,l2_sum,batch_frac]
 
-            labels = ['elbo','log_px','log_pz','log_qz','log_pW','log_qW']
+            train_labels = ['elbo','log_px','log_pz','log_qz','log_pW','log_qW','l2_sum','batch_frac']
 
 
-            return test_results, train_results, labels
+            return test_results, train_results, test_labels, train_labels
 
 
 

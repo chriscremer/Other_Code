@@ -47,6 +47,20 @@ class NN(object):
 
 
 
+    def weight_decay(self):
+
+        l2 = 0
+        for weight_layer in self.Ws:
+
+            l2 += tf.reduce_sum(tf.square(weight_layer))
+
+        return l2
+
+
+
+
+
+
 
     def feedforward(self, x):
         '''

@@ -7,7 +7,7 @@ import pickle, time, datetime
 from os.path import expanduser
 home = expanduser("~")
 import matplotlib.pyplot as plt
-from decimal import Decimal
+# from decimal import Decimal
 # import sys
 # sys.path.insert(0, './BVAE_adding_eval_use_this')
 
@@ -18,6 +18,7 @@ from decimal import Decimal
 from BVAE import BVAE
 from VAE import VAE
 from VAE import VAE_no_reg
+
 
 
 
@@ -77,12 +78,14 @@ if __name__ == '__main__':
     h1_size = 100  #hidden layer size
     S_training = 1  #number of weight samples
     k_training = 1 #number of z samples
+    z_size = 30
 
     #Experimental Variables
     list_of_models = ['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
     # list_of_k_samples = [1]
-    z_sizes = [30] #[10,100]#[10,50,100]   #latent layer size
-    qW_weights = [.00000001, .00001, 1.]
+    # z_sizes = [30] #[10,100]#[10,50,100]   #latent layer size
+    qW_weights = [.0000001, 1.]
+    lmbas = [0., 1.]
 
     # Test settings
     S_evaluation = 5 #2  
@@ -104,7 +107,7 @@ if __name__ == '__main__':
 
         for m in list_of_models:
 
-            for z_size in z_sizes:
+            for lmba in lmbas:
 
                 hyperparams = {
                     'learning_rate': lr,
@@ -114,12 +117,18 @@ if __name__ == '__main__':
                     'decoder_net': [z_size, h1_size, x_size],
                     # 'n_W_particles': S_training,
                     # 'n_z_particles': k_training,
-                    'qW_weight': qW_weight}
+                    'qW_weight': qW_weight,
+                    'lmba': lmba}
 
 
                 # to_load_parameter_file = m + '_k' + str(k_training) + '_z'+str(z_size) + '_epochs'+str(90000)+'_smalldata.ckpt' 
+                
+                sci_not = '{:2e}'.format(qW_weight)
+                sci_not = sci_not.replace(".", "")
+                sci_not = sci_not.replace("0", "")
+                # print sci_not
 
-                saved_parameter_file = m + '_qW_' + str(Decimal(qW_weight)) + '_z'+str(z_size) + '_epochs'+str(epochs)+'_smalldata.ckpt' 
+                saved_parameter_file = m + '_qW_' + str(sci_not) + '_lmba'+str(int(lmba)) + '_epochs'+str(epochs)+'_smalldata.ckpt' 
                 print 'Current:', saved_parameter_file
                 if save_log:
                     with open(experiment_log, "a") as myfile:
@@ -154,8 +163,8 @@ if __name__ == '__main__':
 
                     time_to_train = time.time() - start
                     print 'Time to train', time_to_train
-                    with open(experiment_log, "a") as f:
-                        f.write('Time to train '+  str(time_to_train) + '\n')
+                    # with open(experiment_log, "a") as f:
+                    #     f.write('Time to train '+  str(time_to_train) + '\n')
 
 
 
@@ -360,7 +369,7 @@ if __name__ == '__main__':
                     print 'Evaluating'
 
                     start = time.time()
-                    test_results, train_results, labels = model.eval(data=test_x, batch_size=n_batch_eval, display_step=100,
+                    test_results, train_results, test_labels, train_labels = model.eval(data=test_x, batch_size=n_batch_eval, display_step=100,
                                             path_to_load_variables=parameter_path+saved_parameter_file, data2=train_x)
 
                     time_to_eval = time.time() - start
@@ -373,7 +382,11 @@ if __name__ == '__main__':
                             # myfile.write('time to evaluate '+  str(time_to_eval) +'\n')
 
                             myfile.write('Train set\n')
-                            myfile.write('%11s' % 'elbo'+ '%11s' %'log_px' + '%11s' %'log_pz'+'%11s' %'log_qz'+ '%11s' %'log_pW'+'%11s' %'log_qW'+'\n')
+                            labels_str = ''
+                            for val in train_labels:
+                                labels_str += '%11s' % val
+                            myfile.write(labels_str +'\n')
+                            # myfile.write('%11s' % 'elbo'+ '%11s' %'log_px' + '%11s' %'log_pz'+'%11s' %'log_qz'+ '%11s' %'log_pW'+'%11s' %'log_qW'+'\n')
                             results_str = ''
                             for val in train_results:
                                 results_str += '%11.2f' % val
@@ -381,7 +394,13 @@ if __name__ == '__main__':
 
 
                             myfile.write('Test set\n')
-                            myfile.write('%11s' % 'iwae_elbo'+ '%11s' %'log_px' + '%11s' %'log_pz'+'%11s' %'log_qz'+ '%11s' %'log_pW'+'%11s' %'log_qW'+'\n')
+                            labels_str = ''
+                            for val in test_labels:
+                                labels_str += '%11s' % val
+                            myfile.write(labels_str +'\n')
+
+                            # myfile.write('%11s' % 'iwae_elbo'+ '%11s' %'log_px' + '%11s' %'log_pz'+'%11s' %'log_qz'+ '%11s' %'log_pW'+'%11s' %'log_qW'+'\n')
+                            
                             results_str = ''
                             for val in test_results:
                                 results_str += '%11.2f' % val
