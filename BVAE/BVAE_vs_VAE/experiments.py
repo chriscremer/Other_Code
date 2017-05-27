@@ -7,6 +7,7 @@ import pickle, time, datetime
 from os.path import expanduser
 home = expanduser("~")
 import matplotlib.pyplot as plt
+from decimal import Decimal
 # import sys
 # sys.path.insert(0, './BVAE_adding_eval_use_this')
 
@@ -17,8 +18,6 @@ import matplotlib.pyplot as plt
 from BVAE import BVAE
 from VAE import VAE
 from VAE import VAE_no_reg
-
-
 
 
 
@@ -46,11 +45,11 @@ def load_mnist(location):
 
 if __name__ == '__main__':
 
-    save_log = 0
-    train_ = 0
-    eval_ = 0
+    save_log = 1
+    train_ = 1
+    eval_ = 1
     plot_histo = 0
-    viz_sammples = 1
+    viz_sammples = 0
 
     # Paths
     mnist_path = home+'/Documents/MNIST_data/mnist.pkl'
@@ -74,18 +73,22 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     n_batch = 50
     epochs = 50000
+    lr = .001
     h1_size = 100  #hidden layer size
     S_training = 1  #number of weight samples
+    k_training = 1 #number of z samples
 
     #Experimental Variables
-    list_of_models = ['vae', 'bvae', 'vae_no_reg']#['bvae']#['bvae'] #['vae', 'bvae', 'vae_no_reg']
-    list_of_k_samples = [1]
+    list_of_models = ['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
+    # list_of_k_samples = [1]
     z_sizes = [30] #[10,100]#[10,50,100]   #latent layer size
+    qW_weights = [.00000001, .00001, 1.]
 
     # Test settings
     S_evaluation = 5 #2  
     k_evaluation = 100 #500
     n_batch_eval = 1 #2
+
 
     #Experiment log
     if save_log:
@@ -97,16 +100,26 @@ if __name__ == '__main__':
         print 'Saving experiment log to ' + experiment_log
 
 
-    for k_training in list_of_k_samples:
+    for qW_weight in qW_weights:
 
         for m in list_of_models:
 
             for z_size in z_sizes:
 
+                hyperparams = {
+                    'learning_rate': lr,
+                    'x_size': x_size,
+                    'z_size': z_size,
+                    'encoder_net': [x_size, h1_size, z_size*2],
+                    'decoder_net': [z_size, h1_size, x_size],
+                    # 'n_W_particles': S_training,
+                    # 'n_z_particles': k_training,
+                    'qW_weight': qW_weight}
+
 
                 # to_load_parameter_file = m + '_k' + str(k_training) + '_z'+str(z_size) + '_epochs'+str(90000)+'_smalldata.ckpt' 
 
-                saved_parameter_file = m + '_k' + str(k_training) + '_z'+str(z_size) + '_epochs'+str(epochs)+'_smalldata.ckpt' 
+                saved_parameter_file = m + '_qW_' + str(Decimal(qW_weight)) + '_z'+str(z_size) + '_epochs'+str(epochs)+'_smalldata.ckpt' 
                 print 'Current:', saved_parameter_file
                 if save_log:
                     with open(experiment_log, "a") as myfile:
@@ -118,14 +131,8 @@ if __name__ == '__main__':
                     #Train 
                     print 'Training'
 
-                    hyperparams = {
-                        'learning_rate': .001,
-                        'x_size': x_size,
-                        'z_size': z_size,
-                        'encoder_net': [x_size, h1_size, z_size*2],
-                        'decoder_net': [z_size, h1_size, x_size],
-                        'n_W_particles': S_training,
-                        'n_z_particles': k_training}
+                    hyperparams['n_W_particles'] = S_training
+                    hyperparams['n_z_particles'] = k_training
 
                     #Initialize model
                     if m == 'bvae':
@@ -160,14 +167,9 @@ if __name__ == '__main__':
 
                     print 'Plot histograms'
 
-                    hyperparams = {
-                        'learning_rate': .001,
-                        'x_size': x_size,
-                        'z_size': z_size,
-                        'encoder_net': [x_size, h1_size, z_size*2],
-                        'decoder_net': [z_size, h1_size, x_size],
-                        'n_W_particles': 1,
-                        'n_z_particles': 1}
+                    hyperparams['n_W_particles'] = 1
+                    hyperparams['n_z_particles'] = 1
+
 
                     #Initialize model
                     if m == 'bvae':
@@ -208,14 +210,10 @@ if __name__ == '__main__':
 
                     print 'Vizualize samples'
 
-                    hyperparams = {
-                        'learning_rate': .001,
-                        'x_size': x_size,
-                        'z_size': z_size,
-                        'encoder_net': [x_size, h1_size, z_size*2],
-                        'decoder_net': [z_size, h1_size, x_size],
-                        'n_W_particles': 5,
-                        'n_z_particles': 1}
+
+                    hyperparams['n_W_particles'] = 5
+                    hyperparams['n_z_particles'] = 1
+
 
                     #Initialize model
                     if m == 'bvae':
@@ -225,61 +223,114 @@ if __name__ == '__main__':
                     elif m == 'vae':
                         model = VAE(hyperparams)   
 
-                    batch, recons, prior_x_ = model.get_recons_and_priors(train_x, path_to_load_variables=parameter_path+saved_parameter_file)
-
-                    print recons.shape
-                    print prior_x_.shape
-                    print batch.shape
-
-
-                    fsd
-
-                    # print recons[0][0][0]
-                    # print prior_x_[0][0][1]
-                    # print batch[0]
-                    
-                    # plt.clf()
+                    batch_size=36
+                    batch_size_sqrt = int(np.sqrt(batch_size))
 
                     f,axarr=plt.subplots(2,3,figsize=(12,6))
-                    # axarr[0].plot(data1[0],data1[1])
-                    # axarr[0].set_title('Loss')
 
-                    axarr[0,0].set_title(m+' Prior Samples')
+
+
+                    #Train set
+                    batch, recons, prior_x_ = model.get_recons_and_priors(train_x, batch_size, path_to_load_variables=parameter_path+saved_parameter_file)
+
+                    # print recons.shape  # [S,K,N,X]
+                    # print prior_x_.shape  # [S,K,N,X]
+                    # print batch.shape  # [N,X]
+
+
+
+                    # Average over weights 
+                    recons_means = np.mean(recons, axis=0)
+                    recons_means = np.reshape(recons_means, [batch_size, x_size]) #[N,X]
+                    prior_x_means = np.mean(prior_x_, axis=0)
+                    prior_x_means = np.reshape(prior_x_means, [batch_size, x_size]) #[N,X]
+
+                    #get variance of predictions
+                    if m=='bvae':
+                        recons_std = np.std(recons, axis=0)
+                        recons_std = np.reshape(recons_std, [batch_size, x_size]) #[N,X]
+                        recons_means[batch_size/2:] = recons_std[:batch_size/2]
+
+                        # # print recons_std
+                        # for jj in range(len(prior_x_[0][0][0])):
+                        #         print prior_x_[0][0][0][jj], prior_x_[1][0][0][jj], prior_x_[2][0][0][jj], ' ', recons_std[0][jj]
+
+                        prior_x_std = np.std(prior_x_, axis=0)
+                        prior_x_std = np.reshape(prior_x_std, [batch_size, x_size]) #[N,X]
+                        prior_x_means[batch_size/2:] = prior_x_std[:batch_size/2]
+
+                        # print prior_x_std
+
+                    recons = recons_means
+                    prior_x_ = prior_x_means
+
+                    axarr[0,0].set_title('Prior Samples')
                     axarr[0,0].set_ylabel('Train')
-
-                    tmp = np.reshape(prior_x_,(-1,280,28)) # (10,280,28)
-                    img = np.hstack([tmp[i] for i in range(10)])
+                    tmp = np.reshape(prior_x_,(-1,28*batch_size_sqrt,28)) 
+                    img = np.hstack([tmp[i] for i in range(batch_size_sqrt)])
                     axarr[0,0].imshow(img, cmap='gray')
+                    # axarr[0,0].axis('off')
+                    axarr[0,0].set_yticklabels([])
+                    axarr[0,0].set_xticklabels([])
 
                     axarr[0,1].set_title('Batch')
-                    tmp = np.reshape(batch,(-1,280,28)) # (10,280,28)
-                    img = np.hstack([tmp[i] for i in range(10)])
+                    tmp = np.reshape(batch,(-1,28*batch_size_sqrt,28)) 
+                    img = np.hstack([tmp[i] for i in range(batch_size_sqrt)])
                     axarr[0,1].imshow(img, cmap='gray')
+                    axarr[0,1].axis('off')
 
                     axarr[0,2].set_title('Recons')
-                    tmp = np.reshape(recons,(-1,280,28)) # (10,280,28)
-                    img = np.hstack([tmp[i] for i in range(10)])
+                    tmp = np.reshape(recons,(-1,28*batch_size_sqrt,28)) 
+                    img = np.hstack([tmp[i] for i in range(batch_size_sqrt)])
                     axarr[0,2].imshow(img, cmap='gray')
+                    axarr[0,2].axis('off')
 
 
-                    batch, recons, prior_x_ = model.get_recons_and_priors(test_x, path_to_load_variables=parameter_path+saved_parameter_file)
+                    #Test set
+                    batch, recons, prior_x_ = model.get_recons_and_priors(test_x, batch_size, path_to_load_variables=parameter_path+saved_parameter_file)
+
+                    # Average over weights 
+                    recons_means = np.mean(recons, axis=0)
+                    recons_means = np.reshape(recons_means, [batch_size, x_size]) #[N,X]
+                    prior_x_means = np.mean(prior_x_, axis=0)
+                    prior_x_means = np.reshape(prior_x_means, [batch_size, x_size]) #[N,X]
+
+                    #get variance of predictions
+                    if m=='bvae':
+                        recons_std = np.std(recons, axis=0)
+                        recons_std = np.reshape(recons_std, [batch_size, x_size]) #[N,X]
+                        recons_means[batch_size/2:] = recons_std[:batch_size/2]
+
+                        prior_x_std = np.std(prior_x_, axis=0)
+                        prior_x_std = np.reshape(prior_x_std, [batch_size, x_size]) #[N,X]
+                        prior_x_means[batch_size/2:] = prior_x_std[:batch_size/2]
+
+                    recons = recons_means
+                    prior_x_ = prior_x_means
 
 
                     axarr[1,0].set_ylabel('Test')
-                    tmp = np.reshape(prior_x_,(-1,280,28)) # (10,280,28)
-                    img = np.hstack([tmp[i] for i in range(10)])
+                    tmp = np.reshape(prior_x_,(-1,28*batch_size_sqrt,28)) 
+                    img = np.hstack([tmp[i] for i in range(batch_size_sqrt)])
                     axarr[1,0].imshow(img, cmap='gray')
+                    # axarr[1,0].axis('off')
+                    axarr[1,0].set_yticklabels([])
+                    axarr[1,0].set_xticklabels([])
 
-                    tmp = np.reshape(batch,(-1,280,28)) # (10,280,28)
-                    img = np.hstack([tmp[i] for i in range(10)])
+                    tmp = np.reshape(batch,(-1,28*batch_size_sqrt,28)) 
+                    img = np.hstack([tmp[i] for i in range(batch_size_sqrt)])
                     axarr[1,1].imshow(img, cmap='gray')
+                    axarr[1,1].axis('off')
 
-                    tmp = np.reshape(recons,(-1,280,28)) # (10,280,28)
-                    img = np.hstack([tmp[i] for i in range(10)])
+                    tmp = np.reshape(recons,(-1,28*batch_size_sqrt,28)) 
+                    img = np.hstack([tmp[i] for i in range(batch_size_sqrt)])
                     axarr[1,2].imshow(img, cmap='gray')
+                    axarr[1,2].axis('off')
 
                     plt.grid('off')
                     # plt.show()
+                    f.text(.05,.5,m)
+
                     plt.savefig(experiment_log_path+ m + '_k' + str(k_training) + '_z'+str(z_size) + '_epochs'+str(epochs)+'_smalldata.png')
                     print 'saved fig to' + experiment_log_path+ m + '_k' + str(k_training) + '_z'+str(z_size) + '_epochs'+str(epochs)+'_smalldata.png'
 
@@ -292,15 +343,9 @@ if __name__ == '__main__':
 
                 if eval_:
 
+                    hyperparams['n_W_particles'] = S_evaluation
+                    hyperparams['n_z_particles'] = k_evaluation
 
-                    hyperparams = {
-                        'learning_rate': .001,
-                        'x_size': x_size,
-                        'z_size': z_size,
-                        'encoder_net': [x_size, h1_size, z_size*2],
-                        'decoder_net': [z_size, h1_size, x_size],
-                        'n_W_particles': S_evaluation,
-                        'n_z_particles': k_evaluation}
 
                     #Initialize model
                     if m == 'bvae':
@@ -328,18 +373,18 @@ if __name__ == '__main__':
                             # myfile.write('time to evaluate '+  str(time_to_eval) +'\n')
 
                             myfile.write('Train set\n')
-                            myfile.write('%10s' % 'elbo'+ '%10s' %'log_px' + '%10s' %'log_pz'+'%10s' %'log_qz'+ '%10s' %'log_pW'+'%10s' %'log_qW'+'\n')
+                            myfile.write('%11s' % 'elbo'+ '%11s' %'log_px' + '%11s' %'log_pz'+'%11s' %'log_qz'+ '%11s' %'log_pW'+'%11s' %'log_qW'+'\n')
                             results_str = ''
                             for val in train_results:
-                                results_str += '%10.2f' % val
+                                results_str += '%11.2f' % val
                             myfile.write(results_str +'\n')
 
 
                             myfile.write('Test set\n')
-                            myfile.write('%10s' % 'iwae_elbo'+ '%10s' %'log_px' + '%10s' %'log_pz'+'%10s' %'log_qz'+ '%10s' %'log_pW'+'%10s' %'log_qW'+'\n')
+                            myfile.write('%11s' % 'iwae_elbo'+ '%11s' %'log_px' + '%11s' %'log_pz'+'%11s' %'log_qz'+ '%11s' %'log_pW'+'%11s' %'log_qW'+'\n')
                             results_str = ''
                             for val in test_results:
-                                results_str += '%10.2f' % val
+                                results_str += '%11.2f' % val
                             myfile.write(results_str +'\n')
                         
 

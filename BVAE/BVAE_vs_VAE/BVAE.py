@@ -35,6 +35,8 @@ class BVAE(object):
         self.n_W_particles = hyperparams['n_W_particles']  #S
         self.n_z_particles = hyperparams['n_z_particles']  #P
 
+        self.qW_weight = hyperparams['qW_weight']
+
         #Placeholders - Inputs/Targets
         self.x = tf.placeholder(tf.float32, [None, self.x_size])
         self.batch_size = tf.shape(self.x)[0]   #B
@@ -142,7 +144,7 @@ class BVAE(object):
         self.z_elbo = self.log_px + self.log_pz - self.log_qz 
 
         #Calc elbo
-        elbo = self.log_px + self.log_pz - self.log_qz + self.batch_frac*(self.log_pW - self.log_qW)
+        elbo = self.log_px + self.log_pz - self.log_qz + self.batch_frac*(self.log_pW - (self.log_qW*self.qW_weight))
 
         return elbo
 
@@ -431,7 +433,7 @@ class BVAE(object):
             return means, logvars
 
 
-    def get_recons_and_priors(self, data, path_to_load_variables=''):
+    def get_recons_and_priors(self, data, batch_size, path_to_load_variables=''):
 
 
         with tf.Session() as self.sess:
@@ -443,7 +445,6 @@ class BVAE(object):
                 self.saver.restore(self.sess, path_to_load_variables)
                 print 'loaded variables ' + path_to_load_variables
 
-            batch_size = 100
             data_index = 0
             batch = []
             rs=np.random.RandomState(0)
