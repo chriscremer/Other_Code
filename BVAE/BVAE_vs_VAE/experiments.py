@@ -46,10 +46,11 @@ def load_mnist(location):
 
 if __name__ == '__main__':
 
-    save_log = 1
-    train_ = 1
-    eval_ = 1
-    plot_histo = 0
+    save_log = 0
+    train_ = 0
+    plot_train = 0
+    eval_ = 0
+    plot_histo = 1
     viz_sammples = 0
 
     # Paths
@@ -73,7 +74,7 @@ if __name__ == '__main__':
     # Training settings
     x_size = 784   #f_height=28f_width=28
     n_batch = 50
-    epochs = 50000
+    epochs = 80000
     lr = .001
     h1_size = 100  #hidden layer size
     S_training = 1  #number of weight samples
@@ -85,7 +86,7 @@ if __name__ == '__main__':
     # list_of_k_samples = [1]
     # z_sizes = [30] #[10,100]#[10,50,100]   #latent layer size
     qW_weights = [.0000001, 1.]
-    lmbas = [0., 1.]
+    lmbas = [0.] #[0., 1.]
 
     # Test settings
     S_evaluation = 5 #2  
@@ -113,8 +114,10 @@ if __name__ == '__main__':
                     'learning_rate': lr,
                     'x_size': x_size,
                     'z_size': z_size,
-                    'encoder_net': [x_size, h1_size, z_size*2],
-                    'decoder_net': [z_size, h1_size, x_size],
+                    # 'encoder_net': [x_size, h1_size, z_size*2],
+                    # 'decoder_net': [z_size, h1_size, x_size],
+                    'encoder_net': [x_size, z_size*2],
+                    'decoder_net': [z_size, x_size],
                     # 'n_W_particles': S_training,
                     # 'n_z_particles': k_training,
                     'qW_weight': qW_weight,
@@ -127,8 +130,8 @@ if __name__ == '__main__':
                 sci_not = sci_not.replace(".", "")
                 sci_not = sci_not.replace("0", "")
                 # print sci_not
-
-                saved_parameter_file = m + '_qW_' + str(sci_not) + '_lmba'+str(int(lmba)) + '_epochs'+str(epochs)+'_smalldata.ckpt' 
+                exp_settings_name = m + '_qW_' + str(sci_not) + '_lmba'+str(int(lmba)) + '_epochs'+str(epochs)+'_smalldata_smalldec'
+                saved_parameter_file = exp_settings_name+'.ckpt' 
                 print 'Current:', saved_parameter_file
                 if save_log:
                     with open(experiment_log, "a") as myfile:
@@ -153,7 +156,7 @@ if __name__ == '__main__':
 
                     start = time.time()
 
-                    model.train(train_x=train_x, valid_x=valid_x,
+                    values, labels = model.train(train_x=train_x, valid_x=valid_x,
                                 epochs=epochs, batch_size=n_batch,
                                 display_step=[500,3000],
                                 path_to_load_variables='',
@@ -167,6 +170,34 @@ if __name__ == '__main__':
                     #     f.write('Time to train '+  str(time_to_train) + '\n')
 
 
+
+                    if plot_train:
+
+                        plt.clf()
+
+                        print values.shape
+
+                        # from scipy.interpolate import interp1d
+                        # f = interp1d(x, y)
+
+                        #normalize values
+                        x_normed = (values - values.min(0)) / values.ptp(0)
+
+
+                        for vals in x_normed.T[1:]:
+                            plt.plot(values.T[0], vals)
+                            # print vals
+
+                        plt.grid('off')
+                        plt.legend(labels[1:], loc='best', fontsize=7)
+                        plt.xlabel('Epochs')
+                        plt.ylabel('Normalized Values')
+                        plt.title(exp_settings_name)
+
+                        # plt.show()
+
+                        plt.savefig(experiment_log_path+exp_settings_name+'_train.png')
+                        print 'saved fig to' + experiment_log_path+exp_settings_name+'_train.png'
 
 
                 
@@ -189,28 +220,64 @@ if __name__ == '__main__':
                         model = VAE(hyperparams) 
 
 
+                    
+
+
                     # PLOT HISTOGRAMS
                     means, logvars = model.get_means_logvars(path_to_load_variables=parameter_path+saved_parameter_file)
                     
-                    for list_ in means:
-                        print list_.shape
-                        print np.mean(list_)
 
-                        list_ = np.reshape(list_, [-1])
-                        plt.hist(list_, 100, facecolor='green', alpha=0.75)
-                        plt.show()
 
-                    for list_ in logvars:
-                        print list_.shape
-                        print np.mean(list_)
 
-                        list_ = np.reshape(list_, [-1])
-                        plt.hist(list_, 100, facecolor='green', alpha=0.75)
-                        plt.show()
+                    plt.clf()
+                    f,axarr=plt.subplots(1,2,figsize=(12,6))
 
-                    print np.mean(means)
-                    print np.mean(logvars)
+                    all_means = []
+                    for l in range(len(means)):
+                        for l2 in range(len(means[l])):
+                            all_means = all_means + list(means[l][l2])
+
+
+                    all_logvars = []
+                    for l in range(len(logvars)):
+                        for l2 in range(len(logvars[l])):
+                            all_logvars = all_logvars + list(logvars[l][l2])
+        
+
+                    axarr[0].hist(all_means, 100, facecolor='green', alpha=0.75)  #normed=True
+                    axarr[0].set_title('Decoder Means')
+                    axarr[0].set_xlim([-3.,3.])
+
+                    axarr[1].hist(all_logvars, 100, facecolor='green', alpha=0.75) #normed=True
+                    axarr[1].set_title('Decoder Logvars')
+                    axarr[1].set_xlim([-8.,1.])
+
+
+                    f.text(.02,.95,exp_settings_name)
+
+
+                    # for list_ in means:
+                    #     print list_.shape
+                    #     print np.mean(list_)
+
+                    #     list_ = np.reshape(list_, [-1])
+                    #     plt.hist(list_, 100, facecolor='green', alpha=0.75)
+                    #     # plt.show()
+
+                    # for list_ in logvars:
+                    #     print list_.shape
+                    #     print np.mean(list_)
+
+                    #     list_ = np.reshape(list_, [-1])
+                    #     plt.hist(list_, 100, facecolor='green', alpha=0.75)
+                    #     # plt.show()
+
+                    # print np.mean(means)
+                    # print np.mean(logvars)
                     # fsafsa
+
+                    plt.savefig(experiment_log_path+exp_settings_name+'_histo.png')
+                    print 'saved fig to' + experiment_log_path+exp_settings_name+'_histo.png'
 
 
 
@@ -235,6 +302,7 @@ if __name__ == '__main__':
                     batch_size=36
                     batch_size_sqrt = int(np.sqrt(batch_size))
 
+                    plt.clf()
                     f,axarr=plt.subplots(2,3,figsize=(12,6))
 
 

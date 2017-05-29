@@ -313,6 +313,15 @@ class BVAE(object):
                 self.saver.restore(self.sess, path_to_load_variables)
                 print 'loaded variables ' + path_to_load_variables
 
+            # elbos = []
+            # logpxs=[]
+            # logpzs=[]
+            # logqzs=[]
+            # logpWs=[]
+            # logqWs=[]
+            # l2_sums=[]
+            values =[]
+
             #start = time.time()
             for epoch in range(epochs):
 
@@ -332,10 +341,10 @@ class BVAE(object):
                                                             self.batch_frac: 1./float(n_datapoints)})
                     # Display logs per epoch step
                     if step % display_step[1] == 0 and epoch % display_step[0] == 0:
-                        elbo,log_px,log_pz,log_qz,log_pW,log_qW = self.sess.run((self.elbo, 
+                        elbo,log_px,log_pz,log_qz,log_pW,log_qW,l2_sum = self.sess.run((self.elbo, 
                                                                                     self.log_px, self.log_pz, 
                                                                                     self.log_qz, self.log_pW, 
-                                                                                    self.log_qW), 
+                                                                                    self.log_qW, self.l2_sum), 
                                                         feed_dict={self.x: batch, 
                                                             self.batch_frac: 1./float(n_datapoints)})
                         print ("Epoch", str(epoch+1)+'/'+str(epochs), 
@@ -343,9 +352,15 @@ class BVAE(object):
                                 "elbo={:.4f}".format(float(elbo)),
                                 log_px,log_pz,log_qz,log_pW,log_qW)
 
+                        values.append([epoch, elbo,log_px,log_pz,-log_qz,log_pW,-log_qW,-l2_sum])
+
             if path_to_save_variables != '':
                 self.saver.save(self.sess, path_to_save_variables)
                 print 'Saved variables to ' + path_to_save_variables
+
+        labels = ['epoch', 'elbo','log_px','log_pz','-log_qz','log_pW','-log_qW','-l2_sum']
+
+        return np.array(values), labels
 
 
 
