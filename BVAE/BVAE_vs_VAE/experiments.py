@@ -46,11 +46,11 @@ def load_mnist(location):
 
 if __name__ == '__main__':
 
-    save_log = 0
+    save_log = 1
     train_ = 0
     plot_train = 0
-    eval_ = 0
-    plot_histo = 1
+    eval_ = 1
+    plot_histo = 0
     viz_sammples = 0
 
     # Paths
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     list_of_models = ['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
     # list_of_k_samples = [1]
     # z_sizes = [30] #[10,100]#[10,50,100]   #latent layer size
-    qW_weights = [.0000001, 1.]
+    qW_weights = [1.]#[.0000001, 1.]
     lmbas = [0.] #[0., 1.]
 
     # Test settings

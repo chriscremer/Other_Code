@@ -37,12 +37,12 @@ class BNN(object):
 
     def init_weights(self):
 
-        def xavier_init(fan_in, fan_out, constant=1): 
-            """ Xavier initialization of network weights"""
-            # https://stackoverflow.com/questions/33640581/how-to-do-xavier-initialization-on-tensorflow
-            low = -constant*np.sqrt(6.0/(fan_in + fan_out)) 
-            high = constant*np.sqrt(6.0/(fan_in + fan_out))
-            return tf.random_uniform((fan_in, fan_out), minval=low, maxval=high, dtype=tf.float32)
+        # def xavier_init(fan_in, fan_out, constant=1): 
+        #     """ Xavier initialization of network weights"""
+        #     # https://stackoverflow.com/questions/33640581/how-to-do-xavier-initialization-on-tensorflow
+        #     low = -constant*np.sqrt(6.0/(fan_in + fan_out)) 
+        #     high = constant*np.sqrt(6.0/(fan_in + fan_out))
+        #     return tf.random_uniform((fan_in, fan_out), minval=low, maxval=high, dtype=tf.float32)
 
         W_means = []
         W_logvars = []
@@ -53,9 +53,10 @@ class BNN(object):
             output_size_i = self.net[layer_i+1] #plus 1 because we want layer i+1
 
             #Define variables [IS,OS]
-            W_means.append(tf.Variable(xavier_init(input_size_i, output_size_i)))
-            # W_logvars.append(tf.Variable(xavier_init(input_size_i, output_size_i) - 10.))
+            # W_means.append(tf.Variable(xavier_init(input_size_i, output_size_i)))
+            W_means.append(tf.Variable(tf.random_normal([input_size_i, output_size_i], stddev=0.1)))
 
+            # W_logvars.append(tf.Variable(xavier_init(input_size_i, output_size_i) - 10.))
             W_logvars.append(tf.Variable(tf.random_normal([input_size_i, output_size_i], stddev=0.1))-5.)
 
         return W_means, W_logvars
@@ -81,6 +82,8 @@ class BNN(object):
             #Sample weights [IS,OS]*[IS,OS]=[IS,OS]
             eps = tf.random_normal((input_size_i, output_size_i), 0, 1, seed=self.rs)
             W = tf.add(W_means, tf.multiply(tf.sqrt(tf.exp(W_logvars)), eps))
+
+            # W = W_means
 
             #Compute probs of samples  [1]
             flat_w = tf.reshape(W,[input_size_i*output_size_i]) #[IS*OS]

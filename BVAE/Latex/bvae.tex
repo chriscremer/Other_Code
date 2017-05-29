@@ -49,9 +49,9 @@
 \begin{align}
     p(x) &= \int_{\theta} \int_{z} p(x,z,\theta) \\
     &= E_{q(\theta,z|x)} \left[ \frac{p(x,z,\theta)}{q(\theta,z|x)} \right ] \\
-    &= E_{q(\theta,z|x)} \left[ \frac{p(x,z)p(\theta)}{q(z|x)q(\theta)} \right ] \\
-    log(p(x)) &= log \left( E_{q(\theta,z|x)} \left[ \frac{p(x,z)p(\theta)}{q(z|x)q(\theta)} \right ] \right) \\
-    &\geq  E_{q(\theta,z|x)} \left[ log \left( \frac{p(x,z)p(\theta)}{q(z|x)q(\theta)} \right) \right ] 
+    &= E_{q(\theta,z|x)} \left[ \frac{p(x,z)p(\theta)}{q(z|x,\theta)q(\theta)} \right ] \\
+    log(p(x)) &= log \left( E_{q(\theta,z|x)} \left[ \frac{p(x,z)p(\theta)}{q(z|x,\theta)q(\theta)} \right ] \right) \\
+    &\geq  E_{q(\theta,z|x)} \left[ log \left( \frac{p(x,z)p(\theta)}{q(z|x,\theta)q(\theta)} \right) \right ] 
 \end{align}
 
 
@@ -64,9 +64,9 @@
     &= \int_{\theta} \int_{z} p(x',z'|\theta) p(\theta|x) \\
     q(x'|x) &= \int_{\theta} \int_{z} p(x',z'|\theta) q(\theta) \\
     &= E_{q(\theta)} \left[ \int_{z} p(x',z'|\theta) \right] \\
-    &= E_{q(\theta)} \left[ E_{q(z'|x')} \left[ \frac{p(x',z'|\theta)}{q(z'|x')} \right] \right]  \\
-	log(q(x'|x)) &= log \left(  E_{q(\theta)} \left[ E_{q(z'|x')} \left[ \frac{p(x',z'|\theta)}{q(z'|x')}  \right ] \right ] \right) \\
-    &\geq   E_{q(\theta)} \left[ E_{q(z'|x')} \left[ log \left( \frac{p(x',z'|\theta)}{q(z'|x')} \right) \right ] \right ] 
+    &= E_{q(\theta)} \left[ E_{q(z'|x')} \left[ \frac{p(x',z'|\theta)}{q(z'|x',\theta)} \right] \right]  \\
+	log(q(x'|x)) &= log \left(  E_{q(\theta)} \left[ E_{q(z'|x')} \left[ \frac{p(x',z'|\theta)}{q(z'|x',\theta)}  \right ] \right ] \right) \\
+    &\geq   E_{q(\theta)} \left[ E_{q(z'|x')} \left[ log \left( \frac{p(x',z'|\theta)}{q(z'|x',\theta)} \right) \right ] \right ] 
 \end{align}
 
 
