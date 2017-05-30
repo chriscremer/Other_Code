@@ -24,7 +24,7 @@ class NN(object):
 
         #Model hyperparameters
         self.act_func = tf.nn.softplus #tf.tanh
-        self.learning_rate = .0001
+        self.learning_rate = .001
         self.rs = 0
         self.input_size = network_architecture[0]
         self.output_size = network_architecture[-1]
