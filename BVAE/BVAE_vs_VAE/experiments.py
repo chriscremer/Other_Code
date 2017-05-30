@@ -15,7 +15,9 @@ import matplotlib.pyplot as plt
 # import os
 # from scipy.stats import multivariate_normal as norm
 
-from BVAE import BVAE
+# from BVAE import BVAE
+from BVAE_anneal import BVAE
+
 from VAE import VAE
 from VAE import VAE_no_reg
 
@@ -74,7 +76,7 @@ if __name__ == '__main__':
     # Training settings
     x_size = 784   #f_height=28f_width=28
     n_batch = 50
-    epochs = 80000
+    epochs = 40000
     lr = .001
     h1_size = 100  #hidden layer size
     S_training = 1  #number of weight samples
