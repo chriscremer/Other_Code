@@ -1,6 +1,4 @@
 
-
-
 # MNF  Bayesian Neural Network
 
 #step 1: add auxiliary variable z, complete.
