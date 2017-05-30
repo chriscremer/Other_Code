@@ -1,9 +1,11 @@
 
 
 
-# MNF
+# MNF  Bayesian Neural Network
 
-#Bayesian Neural Network
+#step 1: add auxiliary variable z, complete.
+#step 2: add flows to q(z) and r(z|W)
+
 
 import numpy as np
 import numpy.random as npr
@@ -33,10 +35,11 @@ class MNF(object):
         self.net = network_architecture
 
         #Placeholders - Inputs/Targets [B,X]
-        self.batch_size = tf.placeholder(tf.int32, None)
+        # self.batch_size = tf.placeholder(tf.int32, None)
         self.n_particles = tf.placeholder(tf.int32, None)
         self.batch_fraction_of_dataset = tf.placeholder(tf.float32, None)
         self.x = tf.placeholder(tf.float32, [None, self.input_size])
+        self.batch_size = tf.shape(self.x)[0]
         self.y = tf.placeholder(tf.float32, [None, self.output_size])
 
         #Feedforward: [B,P,Y], [P], [P]
@@ -121,12 +124,13 @@ class MNF(object):
 
         net = self.net
 
-        def xavier_init(fan_in, fan_out, constant=1): 
-            """ Xavier initialization of network weights"""
-            # https://stackoverflow.com/questions/33640581/how-to-do-xavier-initialization-on-tensorflow
-            low = -constant*np.sqrt(6.0/(fan_in + fan_out)) 
-            high = constant*np.sqrt(6.0/(fan_in + fan_out))
-            return tf.random_uniform((fan_in, fan_out), minval=low, maxval=high, dtype=tf.float32)
+        # def xavier_init(fan_in, fan_out, constant=1): 
+        #     """ Xavier initialization of network weights"""
+        #     # https://stackoverflow.com/questions/33640581/how-to-do-xavier-initialization-on-tensorflow
+        #     low = -constant*np.sqrt(6.0/(fan_in + fan_out)) 
+        #     high = constant*np.sqrt(6.0/(fan_in + fan_out))
+        #     return tf.random_uniform((fan_in, fan_out), minval=low, maxval=high, dtype=tf.float32)
+        
 
         #[B,X]
         cur_val = x
@@ -137,29 +141,76 @@ class MNF(object):
 
         log_p_W_sum = 0
         log_q_W_sum = 0
+        log_q_z_sum = 0
+        log_r_z_sum = 0
 
         for layer_i in range(len(net)-1):
 
             input_size_i = net[layer_i]+1 #plus 1 for bias
             output_size_i = net[layer_i+1] #plus 1 because we want layer i+1
 
+            z_means = tf.Variable(tf.random_normal([input_size_i], stddev=0.1))
+            z_logvars = tf.Variable(tf.random_normal([input_size_i], stddev=0.1) - 5.)
+
+            #Sample z   [I]
+            eps = tf.random_normal([input_size_i], 0, 1, seed=self.rs)
+            z = tf.add(z_means, tf.multiply(tf.sqrt(tf.exp(z_logvars)), eps))
+            z = tf.reshape(z, [input_size_i, 1])  #[I,1]
+
             #Define variables [IS,OS]
-            W_means = tf.Variable(xavier_init(input_size_i, output_size_i))
-            W_logvars = tf.Variable(xavier_init(input_size_i, output_size_i) - 10.)
+            # W_means = tf.Variable(xavier_init(input_size_i, output_size_i))
+            W_means = tf.Variable(tf.random_normal([input_size_i, output_size_i], stddev=0.1))
+            #[I,O]
+            W_means = W_means * z
+
+            # W_logvars = tf.Variable(xavier_init(input_size_i, output_size_i) - 5.)
+            W_logvars = tf.Variable(tf.random_normal([input_size_i, output_size_i], stddev=0.1) - 5.)
 
             #Sample weights [IS,OS]*[P,IS,OS]=[P,IS,OS]
             eps = tf.random_normal((self.n_particles, input_size_i, output_size_i), 0, 1, seed=self.rs)
             W = tf.add(W_means, tf.multiply(tf.sqrt(tf.exp(W_logvars)), eps))
 
-            #Compute probs of samples  [B,P,1]
+            #Compute probs of samples 
+
+            flat_z = tf.reshape(z,[1,input_size_i]) #[1,I]
+            #q(z)  [1]
+            log_q_z_sum += self.log_normal(flat_z, z_means, z_logvars)
+            # r(z|W)
+            c = tf.Variable(tf.random_normal([1, 1, input_size_i], stddev=0.1)) #[1,1,I]
+            c = tf.tile(c, [self.n_particles, 1, 1]) #[P,1,I]
+            cW = tf.matmul(c, W) # [P,1,O]
+            cW = tf.tanh(cW)
+            b1 = tf.Variable(tf.random_normal([1,input_size_i,1], stddev=0.1)) #[1,I,1]
+            b1 = tf.tile(b1, [self.n_particles, 1,1]) #[P,I,1]
+            b1cW = tf.matmul(b1, cW) #[P,I,O] 
+            ones = tf.ones([self.n_particles, output_size_i, 1]) / tf.to_float(output_size_i) #[P,O,1]
+            b1cW = tf.matmul(b1cW, ones) #[P,I,1]
+            b1cW = tf.reshape(b1cW, [self.n_particles*input_size_i]) #[P*I]
+
+            b2 = tf.Variable(tf.random_normal([1,input_size_i,1], stddev=0.1)) #[1,I,1]
+            b2 = tf.tile(b2, [self.n_particles, 1,1]) #[P,I,1]
+            b2cW = tf.matmul(b2, cW) #[P,I,O] 
+            b2cW = tf.matmul(b2cW, ones) #[P,I,1]
+            b2cW = tf.reshape(b2cW, [self.n_particles*input_size_i]) #[P*I]
+
+
+            flat_z = tf.tile(flat_z, [1,self.n_particles])
+            print flat_z
+            print b1cW
+            print b2cW
+            log_r_z_sum += self.log_normal(flat_z, b1cW, b2cW) #[1]
+
+
+
             flat_w = tf.reshape(W,[self.n_particles,input_size_i*output_size_i]) #[P,IS*OS]
             flat_W_means = tf.reshape(W_means, [input_size_i*output_size_i]) #[IS*OS]
             flat_W_logvars = tf.reshape(W_logvars, [input_size_i*output_size_i]) #[IS*OS]
+            # p(W) q(W|z)  [P]
             log_p_W_sum += self.log_normal(flat_w, tf.zeros([input_size_i*output_size_i]), tf.log(tf.ones([input_size_i*output_size_i])))
             log_q_W_sum += self.log_normal(flat_w, flat_W_means, flat_W_logvars)
 
-            if layer_i==0:
-                self.debug_pw = self.log_normal(flat_w, tf.zeros([input_size_i*output_size_i]), tf.log(tf.ones([input_size_i*output_size_i])))
+            # if layer_i==0:
+            #     self.debug_pw = self.log_normal(flat_w, tf.zeros([input_size_i*output_size_i]), tf.log(tf.ones([input_size_i*output_size_i])))
 
             #Concat 1 to input for biases  [B,P,X]->[B,P,X+1]
             cur_val = tf.concat([cur_val,tf.ones([self.batch_size,self.n_particles, 1])], axis=2)
@@ -178,7 +229,7 @@ class MNF(object):
             #[B,P,1,X']->[B,P,X']
             cur_val = tf.reshape(cur_val, [self.batch_size,self.n_particles,output_size_i])
 
-        return cur_val, log_p_W_sum, log_q_W_sum
+        return cur_val, log_p_W_sum + log_r_z_sum - log_q_z_sum, log_q_W_sum
 
 
     def objective(self, logpy, logpW, logqW, batch_frac):
@@ -275,7 +326,6 @@ class MNF(object):
                 if step % display_step[1] == 0 and epoch % display_step[0] ==0:
 
                     cost,logpy,logpW,logqW,pred = self.sess.run((self.elbo,self.logpy, self.logpW, self.logqW,self.prediction), feed_dict={self.x: batch, self.y: batch_y, 
-                                                        self.batch_size: batch_size, 
                                                         self.n_particles:n_particles, 
                                                         self.batch_fraction_of_dataset: 1./float(n_datapoints)})
 
@@ -331,7 +381,6 @@ class MNF(object):
 
             # Fit training using batch data
             iwae = self.sess.run((self.iwae_elbo_test), feed_dict={self.x: batch, self.y: batch_y, 
-                                                    self.batch_size: batch_size,
                                                     self.n_particles: n_particles})
 
             test_iwaes.append(iwae)
@@ -352,7 +401,7 @@ if __name__ == '__main__':
 
     net = [784,20,10] 
 
-    model = BNN(net)
+    model = MNF(net)
 
     print 'Loading data'
     with open(home+'/Documents/MNIST_data/mnist.pkl','rb') as f:
@@ -365,9 +414,14 @@ if __name__ == '__main__':
     test_x = mnist_data[2][0]
     test_y = mnist_data[2][1]
 
+    # train_x = train_x[:100]
+    # train_y = train_y[:100]
+
     # path_to_load_variables=home+'/Documents/tmp/vars.ckpt' 
     path_to_load_variables=''
-    path_to_save_variables=home+'/Documents/tmp/vars2.ckpt'
+    # path_to_save_variables=home+'/Documents/tmp/vars2.ckpt'
+    path_to_save_variables=''
+
 
     print 'Training'
     model.train(train_x=train_x, train_y=train_y, 
