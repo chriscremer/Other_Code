@@ -55,7 +55,7 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     n_batch = 50
     y_size = 10
-    epochs = 4000 #25000
+    epochs = 10000 #25000
     h1_size = 200
     S_training = 1  #number of weight samples
 
