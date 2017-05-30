@@ -1,12 +1,12 @@
 
 
 
+
+
 # MNF  Bayesian Neural Network
 
 #step 1: add auxiliary variable z, complete.
-#step 2: add flows to q(z) and r(z|W), in progress, currently have one flow for each.
-
-# time to test it vs BNN and NN
+#step 2: add flows to q(z) and r(z|W)
 
 
 import numpy as np
@@ -116,12 +116,6 @@ class MNF(object):
         return -log_likelihood
 
 
-    def random_bernoulli(self, shape, p=0.5):
-        if isinstance(shape, (list, tuple)):
-            shape = tf.stack(shape)
-        return tf.where(tf.random_uniform(shape) < p, tf.ones(shape), tf.zeros(shape))
-
-
     def model(self, x):
         '''
         x: [B,X]
@@ -183,33 +177,6 @@ class MNF(object):
             flat_z = tf.reshape(z,[1,input_size_i]) #[1,I]
             #q(z)  [1]
             log_q_z_sum += self.log_normal(flat_z, z_means, z_logvars)
-
-
-            #Flows z0 -> zT
-            z = flat_z  #[1,I]
-            mask = self.random_bernoulli(tf.shape(z), p=0.5)
-            f = tf.Variable(tf.random_normal([input_size_i, 30], stddev=0.1))
-            g = tf.Variable(tf.random_normal([30, input_size_i], stddev=0.1))
-            k = tf.Variable(tf.random_normal([30, input_size_i], stddev=0.1))
-
-            h = tf.matmul((mask * z), f)  #[1,30]
-            h = tf.tanh(h)
-            mew_ = tf.matmul(h,g)  #[1,I]
-            sig_ = tf.nn.sigmoid(tf.matmul(h,k))  #[1,I]
-
-            z = (mask * z) + (1-mask)*(z*sig_ + (1-sig_)*mew_)
-
-            logdet = tf.reduce_sum((1-mask)*tf.log(sig_), axis=1)
-
-
-            # print log_q_z_sum
-            # print logdet
-            log_q_z_sum -= logdet
-
-
-
-
-
             # r(z|W)
             c = tf.Variable(tf.random_normal([1, 1, input_size_i], stddev=0.1)) #[1,1,I]
             c = tf.tile(c, [self.n_particles, 1, 1]) #[P,1,I]
@@ -229,25 +196,11 @@ class MNF(object):
             b2cW = tf.reshape(b2cW, [self.n_particles*input_size_i]) #[P*I]
 
 
-            #Flows zT -> zB
-            mask = self.random_bernoulli(tf.shape(z), p=0.5)
-            f = tf.Variable(tf.random_normal([input_size_i, 30], stddev=0.1))
-            g = tf.Variable(tf.random_normal([30, input_size_i], stddev=0.1))
-            k = tf.Variable(tf.random_normal([30, input_size_i], stddev=0.1))
-
-            h = tf.matmul((mask * z), f)  #[1,30]
-            h = tf.tanh(h)
-            mew_ = tf.matmul(h,g)  #[1,I]
-            sig_ = tf.nn.sigmoid(tf.matmul(h,k))  #[1,I]
-
-            z = (mask * z) + (1-mask)*(z*sig_ + (1-sig_)*mew_)
-            logdet = tf.reduce_sum((1-mask)*tf.log(sig_), axis=1)
-
-            flat_zb = tf.tile(z, [1,self.n_particles])
-
-            log_r_z_sum += self.log_normal(flat_zb, b1cW, b2cW) #[1]
-            log_r_z_sum += logdet
-
+            flat_z = tf.tile(flat_z, [1,self.n_particles])
+            print flat_z
+            print b1cW
+            print b2cW
+            log_r_z_sum += self.log_normal(flat_z, b1cW, b2cW) #[1]
 
 
 

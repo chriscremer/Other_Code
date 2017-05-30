@@ -16,6 +16,7 @@ home = expanduser("~")
 
 from BNN2 import BNN
 from NN2 import NN
+from MNF import MNF
 
 
 
@@ -60,7 +61,7 @@ if __name__ == '__main__':
     S_training = 1  #number of weight samples
 
     #Experimental Variables
-    list_of_models = ['bnn', 'nn'] #['nn', 'bnn']
+    list_of_models = ['mnf', 'bnn', 'nn'] #['nn', 'bnn']
 
     # Test settings
     S_evaluation = 5 #2
@@ -119,6 +120,8 @@ if __name__ == '__main__':
             model = NN(net)
         elif m == 'bnn':
             model = BNN(net)
+        elif m == 'mnf':
+            model = MNF(net)
 
         start = time.time()
         info = model.eval(test_x, test_y, path_to_load_variables=parameter_path+saved_parameter_file, 
