@@ -98,7 +98,10 @@ if __name__ == '__main__':
             model = NN(net)
         elif m == 'bnn':
             model = BNN(net)
+        elif m == 'mnf':
+            model = MNF(net)
 
+            
         start = time.time()
         model.train(train_x=train_x, train_y=train_y, 
                     epochs=epochs, batch_size=n_batch, n_particles=S_training, display_step=[1000,5000],
