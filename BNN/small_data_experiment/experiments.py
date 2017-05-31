@@ -56,9 +56,12 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     n_batch = 50
     y_size = 10
-    epochs = 20000 #25000
-    h1_size = 200
+    epochs = 40000 #25000
+    h1_size = 2
     S_training = 1  #number of weight samples
+
+    net = [x_size,h1_size,y_size] 
+    # net = [x_size,y_size] 
 
     #Experimental Variables
     list_of_models = ['mnf', 'bnn', 'nn'] #['nn', 'bnn']
@@ -91,7 +94,8 @@ if __name__ == '__main__':
         #Train 
         print 'Training'
 
-        net = [x_size,h1_size,y_size] 
+
+
 
         #Initialize model
         if m == 'nn':
@@ -101,7 +105,7 @@ if __name__ == '__main__':
         elif m == 'mnf':
             model = MNF(net)
 
-            
+
         start = time.time()
         model.train(train_x=train_x, train_y=train_y, 
                     epochs=epochs, batch_size=n_batch, n_particles=S_training, display_step=[1000,5000],
