@@ -3,6 +3,10 @@
 
 *.aux
 *.log
+*.dvi
+*.out
+*.blg
+*.bbl
 
 *.ipynb_checkpoints
 
