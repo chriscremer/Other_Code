@@ -48,10 +48,10 @@ def load_mnist(location):
 
 if __name__ == '__main__':
 
-    save_log = 1
-    train_ = 0
-    plot_train = 0
-    eval_ = 1
+    save_log = 0
+    train_ = 1
+    plot_train = 1
+    eval_ = 0
     plot_histo = 0
     viz_sammples = 0
 
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     # Training settings
     x_size = 784   #f_height=28f_width=28
     n_batch = 50
-    epochs = 40000
+    epochs = 30000
     lr = .001
     h1_size = 100  #hidden layer size
     S_training = 1  #number of weight samples
@@ -88,7 +88,7 @@ if __name__ == '__main__':
     # list_of_k_samples = [1]
     # z_sizes = [30] #[10,100]#[10,50,100]   #latent layer size
     qW_weights = [1.]#[.0000001, 1.]
-    lmbas = [0.] #[0., 1.]
+    lmbas = [0.] #[0., 1.]  #amound of reg I think on encoder
 
     # Test settings
     S_evaluation = 5 #2  
@@ -158,13 +158,22 @@ if __name__ == '__main__':
 
                     start = time.time()
 
-                    values, labels = model.train(train_x=train_x, valid_x=valid_x,
+                    # values, labels = model.train(train_x=train_x, valid_x=valid_x,
+                    #             epochs=epochs, batch_size=n_batch,
+                    #             display_step=[500,3000],
+                    #             path_to_load_variables='',
+                    #             # path_to_load_variables=parameter_path+to_load_parameter_file,
+                    #             path_to_save_variables=parameter_path+saved_parameter_file)
+
+                    values, labels, test_values, test_labels = model.train2(train_x=train_x, valid_x=test_x,
                                 epochs=epochs, batch_size=n_batch,
-                                display_step=[500,3000],
+                                # display_step=[500,3000],
+                                display_step=[1000,3000],
+
                                 path_to_load_variables='',
                                 # path_to_load_variables=parameter_path+to_load_parameter_file,
-
                                 path_to_save_variables=parameter_path+saved_parameter_file)
+
 
                     time_to_train = time.time() - start
                     print 'Time to train', time_to_train
@@ -175,31 +184,120 @@ if __name__ == '__main__':
 
                     if plot_train:
 
+                        # #IF ONLY TRAIN VALUES
+                        # plt.clf()
+
+                        # print values.shape
+                        # print test_values.shape
+
+                        # # from scipy.interpolate import interp1d
+                        # # f = interp1d(x, y)
+
+                        # #normalize values
+                        # x_normed = (values - values.min(0)) / values.ptp(0)
+
+                        # for vals in x_normed.T[1:]:
+                        #     plt.plot(values.T[0], vals)
+                        #     # print vals
+
+                        # plt.grid('off')
+                        # plt.legend(labels[1:], loc='best', fontsize=7)
+                        # plt.xlabel('Epochs')
+                        # plt.ylabel('Normalized Values')
+                        # plt.title(exp_settings_name)
+
+                        # # plt.show()
+
+                        # plt.savefig(experiment_log_path+exp_settings_name+'_train.png')
+                        # print 'saved fig to' + experiment_log_path+exp_settings_name+'_train.png'
+
+
+
+                        #IF TRAIN AND TEST VALUES
+
                         plt.clf()
+                        fig = plt.figure(figsize=(12,5), facecolor='white')
 
-                        print values.shape
-
-                        # from scipy.interpolate import interp1d
-                        # f = interp1d(x, y)
+                        ax1 = plt.subplot2grid((1, 2), (0, 0))#, colspan=3)
 
                         #normalize values
                         x_normed = (values - values.min(0)) / values.ptp(0)
 
-
                         for vals in x_normed.T[1:]:
-                            plt.plot(values.T[0], vals)
+                            ax1.plot(values.T[0], vals)
                             # print vals
 
-                        plt.grid('off')
-                        plt.legend(labels[1:], loc='best', fontsize=7)
-                        plt.xlabel('Epochs')
-                        plt.ylabel('Normalized Values')
-                        plt.title(exp_settings_name)
+                        # ax1.set_grid('off')
+                        ax1.legend(labels[1:], loc='best', fontsize=7)
+                        ax1.set_xlabel('Epochs')
+                        ax1.set_ylabel('Normalized Values')
+                        ax1.set_title(exp_settings_name + 'train', fontsize=7)
+                        # ax1.set_xticklabels(fontsize=7)
+                        ax1.tick_params(labelsize=6)
 
                         # plt.show()
 
-                        plt.savefig(experiment_log_path+exp_settings_name+'_train.png')
-                        print 'saved fig to' + experiment_log_path+exp_settings_name+'_train.png'
+
+                        #TEST
+                        ax2 = plt.subplot2grid((1, 2), (0, 1))#, colspan=3)
+
+                        #normalize values
+                        x_normed = (test_values - test_values.min(0)) / test_values.ptp(0)
+
+                        for vals in x_normed.T[1:]:
+                            ax2.plot(test_values.T[0], vals)
+                            # print vals
+
+                        # ax1.set_grid('off')
+                        ax2.legend(test_labels[1:], loc='best', fontsize=7)
+                        ax2.set_xlabel('Epochs')
+                        # ax2.set_ylabel('Normalized Values')
+                        ax2.set_title(exp_settings_name + 'test', fontsize=7)
+                        # ax2.set_xticklabels(fontsize=7)
+                        ax1.tick_params(labelsize=6)
+
+
+
+
+                        plt.savefig(experiment_log_path+exp_settings_name+'_train_test.png')
+                        print 'saved fig to' + experiment_log_path+exp_settings_name+'_train_test.png'
+
+
+
+
+
+                        # #Concatenate the frames
+                        # batch_index = 0
+                        # for i in range(len(seq_batch[batch_index])):
+                        #     if i ==0:
+                        #         concat = seq_batch[batch_index][i]
+
+                        #     else:
+                        #         concat = np.concatenate([concat,np.ones([concat.shape[0],1])], axis=1)
+                        #         concat = np.concatenate([concat,seq_batch[batch_index][i]], axis=1)
+
+
+
+                        # ax1.imshow(concat, cmap='gray')
+
+                        # # axarr[0].hist(all_means, 100, facecolor='green', alpha=0.75)  #normed=True
+                        # # axarr[0].set_title('Decoder Means')
+                        # # axarr[0].set_xlim([-3.,3.])
+
+                        # # plt.grid('off')
+                        # # axarr[1,0].axis('off')
+                        # ax1.set_yticklabels([])
+                        # ax1.set_xticklabels([])
+
+                        # plt.show()
+
+
+
+
+
+
+
+
 
 
                 

@@ -373,6 +373,142 @@ class BVAE(object):
 
 
 
+
+
+
+
+
+    def train2(self, train_x, valid_x=[], display_step=[1,100], 
+                path_to_load_variables='', path_to_save_variables='', 
+                epochs=10, batch_size=20):
+        '''
+        Train. THis train also computes the test scores
+        Display step: [0] every x epochs, [1] every x steps
+        '''
+        with tf.Session() as self.sess:
+            # self.sess = tf.Session()
+            random_seed=1
+            rs=np.random.RandomState(random_seed)
+            n_datapoints = len(train_x)
+            n_datapoints_valid = len(valid_x)
+            arr = np.arange(n_datapoints)
+
+            if path_to_load_variables == '':
+                self.sess.run(self.init_vars)
+            else:
+                #Load variables
+                self.saver.restore(self.sess, path_to_load_variables)
+                print 'loaded variables ' + path_to_load_variables
+
+            values =[]
+            valid_values =[]
+
+            logqW_temp = 0.
+
+            #start = time.time()
+            for epoch in range(epochs):
+
+                #shuffle the data
+                rs.shuffle(arr)
+                train_x = train_x[arr]
+
+                data_index = 0
+                for step in range(n_datapoints/batch_size):
+
+
+                    #Make batch
+                    batch = []
+                    while len(batch) != batch_size:
+                        batch.append(train_x[data_index]) 
+                        data_index +=1
+
+
+                    # Fit training using batch data
+                    _ = self.sess.run((self.optimizer), feed_dict={self.x: batch, 
+                                                            self.batch_frac: 1./float(n_datapoints),
+                                                            self.log_qW_temp: logqW_temp})
+
+
+
+
+                    # Display logs per epoch step
+                    if step % display_step[1] == 0 and epoch % display_step[0] == 0:
+
+                        #Get scores on training set
+                        elbo,log_px,log_pz,log_qz,log_pW,log_qW,l2_sum = self.sess.run((self.elbo, 
+                                                                                    self.log_px, self.log_pz, 
+                                                                                    self.log_qz, self.log_pW, 
+                                                                                    self.log_qW, self.l2_sum), 
+                                                        feed_dict={self.x: batch, 
+                                                            self.batch_frac: 1./float(n_datapoints),
+                                                            self.log_qW_temp: logqW_temp})
+                        print ("Epoch", str(epoch+1)+'/'+str(epochs), 
+                                'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
+                                "elbo={:.4f}".format(float(elbo)),
+                                log_px,log_pz,log_qz,log_pW,log_qW)
+
+                        values.append([epoch, elbo,log_px,log_pz,-log_qz,log_pW,-log_qW,-l2_sum])
+
+
+
+
+                        #Run over test set, just a subset, all would take too long I think, maybe not becasue using less particles..
+                        iwae_elbos = []
+                        logpxs=[]
+                        logpzs=[]
+                        logqzs=[]
+                        logpWs=[]
+                        logqWs=[]
+                        l2_sums=[]
+
+                        data_index = 0
+                        for step in range(n_datapoints_valid/batch_size):
+
+                            #Make batch
+                            batch = []
+                            while len(batch) != batch_size:
+                                batch.append(valid_x[data_index]) 
+                                data_index +=1
+                            # Calc iwae elbo on test set
+                            iwae_elbo, log_px,log_pz,log_qz,log_pW,log_qW,l2_sum = self.sess.run((self.iwae_elbo_test,
+                                                                                        self.log_px, self.log_pz, 
+                                                                                        self.log_qz, self.log_pW, 
+                                                                                        self.log_qW, self.l2_sum), 
+                                                                    feed_dict={self.x: batch, self.log_qW_temp: logqW_temp})
+                            iwae_elbos.append(iwae_elbo)
+                            logpxs.append(log_px)
+                            logpzs.append(log_pz)
+                            logqzs.append(log_qz)
+                            logpWs.append(log_pW)
+                            logqWs.append(log_qW)
+                            l2_sums.append(l2_sum)
+
+                        test_results = [epoch, np.mean(iwae_elbos), np.mean(logpxs), np.mean(logpzs), -np.mean(logqzs), np.mean(logpWs), -np.mean(logqWs), -np.mean(l2_sums)]
+
+                        valid_values.append(test_results)
+
+                        
+
+            if path_to_save_variables != '':
+                self.saver.save(self.sess, path_to_save_variables)
+                print 'Saved variables to ' + path_to_save_variables
+
+        labels = ['epoch', 'elbo','log_px','log_pz','-log_qz','log_pW','-log_qW','-l2_sum']
+        test_labels = ['epoch', 'test_iwae_elbo','test_log_px','test_log_pz','-test_log_qz','test_log_pW','-test_log_qW','-test_l2_sum']
+
+        return np.array(values), labels, np.array(valid_values), test_labels
+
+
+
+
+
+
+
+
+
+
+
+
     def eval(self, data, display_step=5, path_to_load_variables='',
              batch_size=20, data2=[]):
         '''

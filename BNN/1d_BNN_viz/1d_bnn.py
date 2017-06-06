@@ -278,6 +278,7 @@ if __name__ == '__main__':
     n_particles = 2
     net = [1,20,20,1]
 
+    #epsilon for viewing constant weights
     eps = []
     rs = npr.RandomState(0)
     for p in range(5):
