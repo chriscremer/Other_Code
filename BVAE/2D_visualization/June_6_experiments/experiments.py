@@ -10,9 +10,8 @@ from plotting_functions import plot_kde
 
 from variational_q_models import Factorized_Gaussian_model as FGM
 from variational_q_models import IW_model as IWM
+from variational_q_models import AV_mode as AVM
 
-
-# from scipy.stats import norm
 
 
 
@@ -24,11 +23,16 @@ from variational_q_models import IW_model as IWM
 
 if __name__ == '__main__':
 
+
+
     random_seed = 1
 
     posteriors = [ttp.log_posterior_0, ttp.log_posterior_1, 
                     ttp.log_posterior_2, ttp.log_posterior_3]
 
+
+    model = AVM(posteriors[0])
+    
 
     fig = plt.figure(figsize=(8,8), facecolor='white')
 

@@ -3,6 +3,7 @@
 
 
 import tensorflow as tf
+slim=tf.contrib.slim
 import math
 import numpy as np
 
@@ -99,23 +100,6 @@ class Factorized_Gaussian_model(object):
 
 
 
-
-
-
-    # def run_log_post(self, z):
-
-    #     return self.sess.run(self.logp, feed_dict={self.z: z})
-
-
-
-
-
-
-
-
-
-
-
 class IW_model(Factorized_Gaussian_model):
 
     def __init__(self, log_posterior, n_samples=3):
@@ -169,6 +153,60 @@ class IW_model(Factorized_Gaussian_model):
         samps = np.reshape(samps, [n_samples, 2])
 
         return samps
+
+
+
+
+
+
+
+
+class AV_model(Factorized_Gaussian_model):
+
+    def __init__(self, log_posterior):
+
+        tf.reset_default_graph()
+
+        v_size = 10
+        z_size = 2
+    
+        qv_mean = tf.Variable(tf.zeros([v_size]))
+        qv_logvar = tf.Variable(tf.ones([v_size])-3.)
+
+        #Sample v
+        eps = tf.random_normal((1,v_size), 0, 1, dtype=tf.float32) 
+        v = tf.add(mean, tf.multiply(tf.sqrt(tf.exp(logvar)), eps)) 
+
+        net = slim.stack(v,slim.fully_connected,[30])
+        net = slim.fully_connected(net,z_size*2,activation_fn=None) #[1,4]
+
+        print net
+
+
+        fasf
+
+
+        #Sample v
+        eps = tf.random_normal((1,2), 0, 1, dtype=tf.float32) 
+        self.z = tf.add(mean, tf.multiply(tf.sqrt(tf.exp(logvar)), eps)) 
+
+        log_q_z = log_normal(self.z, mean, logvar) 
+        log_p_z = log_posterior(self.z)
+
+        self.elbo = log_p_z - log_q_z
+
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=.001, 
+                                                epsilon=1e-02).minimize(-self.elbo)
+
+        init_vars = tf.global_variables_initializer()
+        tf.get_default_graph().finalize()
+
+        self.sess = tf.Session()
+        self.sess.run(init_vars)
+
+
+
+
 
 
 
