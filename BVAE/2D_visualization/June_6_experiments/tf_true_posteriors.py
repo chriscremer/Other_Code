@@ -5,6 +5,7 @@ import math
 
 
 
+
 def log_normal(x, mean, log_var):
     '''
     x is [P, D]
@@ -62,6 +63,40 @@ def log_posterior_3(x):
     prob = (tf.exp(log_normal(x, [-4.,4], [0., 0.])))
     prob = tf.maximum(prob, tf.exp(-40.))
     return tf.log(prob)
+
+
+
+
+def logprob_two_moons(x):
+    # z1 = z[:, 0]
+    # z2 = z[:, 1]
+    z1 = tf.slice(x, [0,0], [-1, 1]) #[P,1]
+    z2 = tf.slice(x, [0,1], [-1, 1]) #[P,1] 
+
+    term1 = - 0.5 * ((tf.sqrt(z1**2 + z2**2) - 2 ) / 0.4)**2  #[P,1]
+    term1 = tf.reshape(term1, [-1])
+
+    term2 = -0.5 * ((z1 - 2) / 0.6)**2
+    term3 = -0.5 * ((z1 + 2) / 0.6)**2
+    term4 = tf.concat([term2, term3], axis=1) #[P,2]
+    term5 = tf.reduce_logsumexp(term4, axis=1) #[P]
+
+    term6 = term1 + term5
+
+    return term6
+
+
+
+def logprob_wiggle(x):
+    # z1 = z[:, 0]
+    # z2 = z[:, 1]
+    z1 = tf.slice(x, [0,0], [-1, 1]) #[P,1]
+    z2 = tf.slice(x, [0,1], [-1, 1]) #[P,1] 
+
+    return -0.5 * (z2 - tf.sin(2.0 * math.pi * z1 / 4.0) / 0.4 )**2 - 0.2 * (z1**2 + z2**2)
+
+
+
 
 
 def log_proposal(x):

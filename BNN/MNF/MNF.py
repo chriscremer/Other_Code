@@ -7,6 +7,10 @@
 # time to test it vs BNN and NN
 
 
+# WAIT THIS IS WRONG -> IM not using the flows ie I use z then do the flows, should be other way around!
+# Needs fixing!
+
+
 
 import numpy as np
 import numpy.random as npr

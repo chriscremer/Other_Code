@@ -6,7 +6,7 @@
 # MNF  Bayesian Neural Network
 
 #step 1: add auxiliary variable z, complete.
-#step 2: add flows to q(z) and r(z|W)
+
 
 
 import numpy as np
