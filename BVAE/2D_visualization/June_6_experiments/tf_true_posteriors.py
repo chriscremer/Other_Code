@@ -93,7 +93,10 @@ def logprob_wiggle(x):
     z1 = tf.slice(x, [0,0], [-1, 1]) #[P,1]
     z2 = tf.slice(x, [0,1], [-1, 1]) #[P,1] 
 
-    return -0.5 * (z2 - tf.sin(2.0 * math.pi * z1 / 4.0) / 0.4 )**2 - 0.2 * (z1**2 + z2**2)
+    aaa =  -0.5 * (z2 - tf.sin(2.0 * math.pi * z1 / 4.0) / 0.4 )**2 - 0.2 * (z1**2 + z2**2)
+    aaa = tf.reshape(aaa, [-1])
+
+    return aaa
 
 
 
@@ -106,22 +109,22 @@ def log_proposal(x):
 
 class posterior_class(object):
 
-	def __init__(self, log_posterior):
+    def __init__(self, log_posterior):
 
-		tf.reset_default_graph()
-
-
-		self.z = tf.placeholder(tf.float32, [None, 2])
-		self.logp = log_posterior(self.z)
+        tf.reset_default_graph()
 
 
-		tf.get_default_graph().finalize()
+        self.z = tf.placeholder(tf.float32, [None, 2])
+        self.logp = log_posterior(self.z)
 
-		self.sess = tf.Session()
 
-	def run_log_post(self, z):
+        tf.get_default_graph().finalize()
 
-		return self.sess.run(self.logp, feed_dict={self.z: z})
+        self.sess = tf.Session()
+
+    def run_log_post(self, z):
+
+        return self.sess.run(self.logp, feed_dict={self.z: z})
 
 
 

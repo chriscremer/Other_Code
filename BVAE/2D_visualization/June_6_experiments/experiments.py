@@ -36,13 +36,31 @@ if __name__ == '__main__':
     #                 ttp.log_posterior_2, ttp.log_posterior_3]
     # posterior_names = ['RIWA', 'top_bot', 'vert_hori', 'top_left']
 
-    posteriors = [ttp.logprob_two_moons, ttp.logprob_wiggle]
-    posterior_names = ['two_moons', 'wiggles']
+    # posteriors = []
+    # posterior_names = ['two_moons', 'wiggles']
 
+    posteriors = [ttp.log_posterior_0, ttp.log_posterior_1, 
+                    ttp.log_posterior_2, ttp.log_posterior_3,
+                        ttp.logprob_two_moons, ttp.logprob_wiggle]
+    posterior_names = ['RIWA', 'top_bot', 'vert_hori', 'top_left', 'two_moons', 'wiggles']
     
+    # posteriors = [ttp.log_posterior_0, ttp.log_posterior_1, ttp.log_posterior_3, ttp.logprob_two_moons]
+    # posterior_names = ['RIWA', 'top_bot',  'top_left', 'two_moons']
+
+    # posteriors = [ttp.log_posterior_3, ttp.logprob_two_moons]
+    # posterior_names = ['top_left', 'two_moons']
+
+    # posteriors = [ttp.log_posterior_3]
+    # posterior_names = ['top_left']
 
     models = [FGM, IWM, AVM, NFM, HVM, AFM, HFM]
     model_names = ['FG', 'IW', 'AV', 'NF', 'HV', 'AF', 'HF']
+
+    # models = [AVM, NFM, AFM]
+    # model_names = ['AV', 'NF', 'AF']
+
+    # models = [AVM]
+    # model_names = ['AV']
 
     # models = [HFM, HFM2, HFM3]
     # model_names = ['HF','HF2','HF3']
@@ -72,13 +90,16 @@ if __name__ == '__main__':
             print model_names[q_i]
             ax = plt.subplot2grid((rows,columns), (p_i,q_i+1), frameon=False)#, colspan=3)
             model = models[q_i](posteriors[p_i])
-            model.train(10000, save_to=home+'/Documents/tmp/vars.ckpt')
+            # model.train(10000, save_to=home+'/Documents/tmp/vars.ckpt')
+            model.train(10000, save_to='')
             samps = model.sample(1000)
             plot_kde(ax, samps, cmap='Reds')
             plot_isocontours(ax, posterior.run_log_post, cmap='Blues', alpha=alpha)
             if p_i == 0: ax.annotate(model_names[q_i], xytext=(.38, 1.1), xy=(0, 1), textcoords='axes fraction')
 
-    plt.show()
+    # plt.show()
+    plt.savefig(home+'/Documents/tmp/plots.png')
+    print 'saved'
 
 
 

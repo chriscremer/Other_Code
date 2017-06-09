@@ -63,23 +63,43 @@ class Factorized_Gaussian_model(object):
 
         best_100_elbo = -1
         worse_count = 0
+
+        # type_ = 0
+        # if hasattr(self, 'log_p_z') and hasattr(self, 'log_r_v') and hasattr(self, 'log_q_z') and hasattr(self, 'log_q_v'):
+        #     type_ = 2
+        # elif hasattr(self, 'elbo') and hasattr(self, 'log_p_z') and hasattr(self, 'log_q_z'):
+        #     type_ = 1
+
         elbos = []
         for i in range(iters):
 
             # stop if the last 100 hasnt improved
             if i % 200 == 0 and i != 0:
                 elbo_100 = np.mean(elbos)
-                if elbo_100 < best_100_elbo and best_100_elbo != -1:
+                if elbo_100 <= best_100_elbo and best_100_elbo != -1:
                     worse_count +=1
                     print i, elbo_100,worse_count
-                    if worse_count == 10:
+                    if worse_count == 5:
                         print 'done training'
                         break
                 else:
                     best_100_elbo = elbo_100
                     worse_count = 0
                     elbos = []
+
+                    # if type_ ==1:
+                    #     elbo__, log_pz__, log_qz__ = self.sess.run((self.elbo, self.log_p_z, self.log_q_z))
+                    #     print i, elbo_100, '---elbo:', elbo__, ', logpz:', log_pz__, 'logqz:', log_qz__
+                    # elif type_ ==2:
+                    #     elbo__, log_pz__, log_qz__, log_rv__, log_qv__ = self.sess.run((self.elbo, self.log_p_z, self.log_q_z, self.log_r_v, self.log_q_v))
+                    #     print i, elbo_100, '---elbo:', elbo__, ', logpz:', log_pz__, 'logqz:', log_qz__ ,', logrv:', log_rv__, 'logqv:', log_qv__
+                    # else:
+                    #     print i, elbo_100
+
                     print i, elbo_100
+
+                    # mean, logvar, mean2, logvar2 = self.sess.run((self.qz_mean, self.qz_logvar, self.qv_mean, self.qv_logvar))
+                    # print mean, logvar, mean2, logvar2
 
                     if save_to != '':
                         self.saver.save(self.sess, save_to)
@@ -178,40 +198,45 @@ class AV_model(Factorized_Gaussian_model):
 
         tf.reset_default_graph()
 
-        v_size = 10
+        v_size = 1
         z_size = 2
+
+        layer_size = 10
     
         #q(v)
-        qv_mean = tf.Variable(tf.zeros([v_size]))
-        qv_logvar = tf.Variable(tf.ones([v_size])-3.)
+        self.qv_mean = tf.Variable(tf.zeros([v_size]))
+        self.qv_logvar = tf.Variable(tf.ones([v_size])-1.)
 
         #Sample v
         eps = tf.random_normal((1,v_size), 0, 1, dtype=tf.float32) 
-        v = tf.add(qv_mean, tf.multiply(tf.sqrt(tf.exp(qv_logvar)), eps)) 
+        v = tf.add(self.qv_mean, tf.multiply(tf.sqrt(tf.exp(self.qv_logvar)), eps)) 
 
         #q(z|v)
-        net = slim.stack(v,slim.fully_connected,[30,30])
+        net = slim.stack(v,slim.fully_connected,[layer_size, layer_size])
         net = slim.fully_connected(net,z_size*2,activation_fn=None) #[1,4]
-        qz_mean = tf.slice(net, [0,0], [1,2])
-        qz_logvar = tf.slice(net, [0,1], [1,2])
+        self.qz_mean = tf.slice(net, [0,0], [1,2])
+        self.qz_logvar = tf.slice(net, [0,z_size], [1,2])
 
         #Sample z
         eps = tf.random_normal((1,z_size), 0, 1, dtype=tf.float32) 
-        self.z = tf.add(qz_mean, tf.multiply(tf.sqrt(tf.exp(qz_logvar)), eps)) 
+        self.z = tf.add(self.qz_mean, tf.multiply(tf.sqrt(tf.exp(self.qz_logvar)), eps)) 
 
         #r(v|z)
-        net = slim.stack(self.z,slim.fully_connected,[30,30])
+        net = slim.stack(self.z,slim.fully_connected,[layer_size, layer_size])
         net = slim.fully_connected(net,v_size*2,activation_fn=None) #[1,20]
         rv_mean = tf.slice(net, [0,0], [1,v_size])
-        rv_logvar = tf.slice(net, [0,1], [1,v_size])        
+        rv_logvar = tf.slice(net, [0,v_size], [1,v_size])        
 
         #logprobs
-        log_q_v = log_normal(v, qv_mean, qv_logvar) 
-        log_q_z = log_normal(self.z, qz_mean, qz_logvar) 
-        log_r_v = log_normal(v, rv_mean, rv_logvar) 
-        log_p_z = log_posterior(self.z)
+        self.log_q_v = log_normal(v, self.qv_mean, self.qv_logvar) 
 
-        self.elbo = log_p_z + log_r_v - log_q_z - log_q_v
+        self.log_q_z = log_normal(self.z, self.qz_mean, self.qz_logvar) 
+
+        self.log_r_v = log_normal(v, rv_mean, rv_logvar) 
+
+        self.log_p_z = log_posterior(self.z)
+
+        self.elbo = self.log_p_z + self.log_r_v - self.log_q_z - self.log_q_v
 
         self.optimizer = tf.train.AdamOptimizer(learning_rate=.001, 
                                                 epsilon=1e-02).minimize(-self.elbo)
@@ -320,7 +345,7 @@ class Hamiltonian_Variational_model(Factorized_Gaussian_model):
         net = slim.stack(v0,slim.fully_connected,[30,30])
         net = slim.fully_connected(net,z_size*2,activation_fn=None) #[1,4]
         qz0_mean = tf.slice(net, [0,0], [1,2])
-        qz0_logvar = tf.slice(net, [0,1], [1,2])
+        qz0_logvar = tf.slice(net, [0,z_size], [1,2])
 
         #Sample z
         eps = tf.random_normal((1,z_size), 0, 1, dtype=tf.float32) 
@@ -338,7 +363,7 @@ class Hamiltonian_Variational_model(Factorized_Gaussian_model):
         net = slim.stack(self.z,slim.fully_connected,[30,30])
         net = slim.fully_connected(net,v_size*2,activation_fn=None)
         rvT_mean = tf.slice(net, [0,0], [1,v_size])
-        rvT_logvar = tf.slice(net, [0,1], [1,v_size])   
+        rvT_logvar = tf.slice(net, [0,v_size], [1,v_size])   
 
         #logprobs
         log_q_v0 = log_normal(v0, qv0_mean, qv0_logvar) 
@@ -424,7 +449,7 @@ class Auxiliary_Flow_model(Factorized_Gaussian_model):
         net = slim.stack(v0,slim.fully_connected,[30,30])
         net = slim.fully_connected(net,z_size*2,activation_fn=None) #[1,4]
         qz0_mean = tf.slice(net, [0,0], [1,2])
-        qz0_logvar = tf.slice(net, [0,1], [1,2])
+        qz0_logvar = tf.slice(net, [0,z_size], [1,2])
 
         #Sample z
         eps = tf.random_normal((1,z_size), 0, 1, dtype=tf.float32) 
@@ -444,7 +469,7 @@ class Auxiliary_Flow_model(Factorized_Gaussian_model):
         net = slim.stack(self.z,slim.fully_connected,[30,30])
         net = slim.fully_connected(net,v_size*2,activation_fn=None)
         rvT_mean = tf.slice(net, [0,0], [1,v_size])
-        rvT_logvar = tf.slice(net, [0,1], [1,v_size])   
+        rvT_logvar = tf.slice(net, [0,v_size], [1,v_size])   
 
         #logprobs
         log_q_v0 = log_normal(v0, qv0_mean, qv0_logvar) 
@@ -525,7 +550,7 @@ class Hamiltonian_Flow_model(Factorized_Gaussian_model):
         net = slim.stack(v0,slim.fully_connected,[30,30])
         net = slim.fully_connected(net,z_size*2,activation_fn=None) #[1,4]
         qz0_mean = tf.slice(net, [0,0], [1,2])
-        qz0_logvar = tf.slice(net, [0,1], [1,2])
+        qz0_logvar = tf.slice(net, [0,z_size], [1,2])
 
         #Sample z
         eps = tf.random_normal((1,z_size), 0, 1, dtype=tf.float32) 
@@ -545,7 +570,7 @@ class Hamiltonian_Flow_model(Factorized_Gaussian_model):
         net = slim.stack(self.z,slim.fully_connected,[30,30])
         net = slim.fully_connected(net,v_size*2,activation_fn=None)
         rvT_mean = tf.slice(net, [0,0], [1,v_size])
-        rvT_logvar = tf.slice(net, [0,1], [1,v_size])   
+        rvT_logvar = tf.slice(net, [0,v_size], [1,v_size])   
 
         #logprobs
         log_q_v0 = log_normal(v0, qv0_mean, qv0_logvar) 
@@ -632,7 +657,7 @@ class Hamiltonian_Flow_model2(Factorized_Gaussian_model):
         net = slim.stack(v0,slim.fully_connected,[30,30])
         net = slim.fully_connected(net,z_size*2,activation_fn=None) #[1,4]
         qz0_mean = tf.slice(net, [0,0], [1,2])
-        qz0_logvar = tf.slice(net, [0,1], [1,2])
+        qz0_logvar = tf.slice(net, [0,z_size], [1,2])
 
         #Sample z
         eps = tf.random_normal((1,z_size), 0, 1, dtype=tf.float32) 
@@ -652,7 +677,7 @@ class Hamiltonian_Flow_model2(Factorized_Gaussian_model):
         net = slim.stack(self.z,slim.fully_connected,[30,30])
         net = slim.fully_connected(net,v_size*2,activation_fn=None)
         rvT_mean = tf.slice(net, [0,0], [1,v_size])
-        rvT_logvar = tf.slice(net, [0,1], [1,v_size])   
+        rvT_logvar = tf.slice(net, [0,v_size], [1,v_size])   
 
         #logprobs
         log_q_v0 = log_normal(v0, qv0_mean, qv0_logvar) 
@@ -738,7 +763,7 @@ class Hamiltonian_Flow_model3(Factorized_Gaussian_model):
         net = slim.stack(v0,slim.fully_connected,[30,30])
         net = slim.fully_connected(net,z_size*2,activation_fn=None) #[1,4]
         qz0_mean = tf.slice(net, [0,0], [1,2])
-        qz0_logvar = tf.slice(net, [0,1], [1,2])
+        qz0_logvar = tf.slice(net, [0,z_size], [1,2])
 
         #Sample z
         eps = tf.random_normal((1,z_size), 0, 1, dtype=tf.float32) 
@@ -758,7 +783,7 @@ class Hamiltonian_Flow_model3(Factorized_Gaussian_model):
         net = slim.stack(self.z,slim.fully_connected,[30,30])
         net = slim.fully_connected(net,v_size*2,activation_fn=None)
         rvT_mean = tf.slice(net, [0,0], [1,v_size])
-        rvT_logvar = tf.slice(net, [0,1], [1,v_size])   
+        rvT_logvar = tf.slice(net, [0,v_size], [1,v_size])   
 
         #logprobs
         log_q_v0 = log_normal(v0, qv0_mean, qv0_logvar) 
