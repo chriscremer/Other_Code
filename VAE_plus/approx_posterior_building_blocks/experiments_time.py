@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 # sys.path.insert(0, './BVAE_adding_eval_use_this')
 
 
-# from VAE import VAE
+from VAE import VAE
 # from VAE import VAE_no_reg
 
 
@@ -42,7 +42,7 @@ def load_mnist(location):
 
 if __name__ == '__main__':
 
-    save_log = 0
+    save_log = 1
     train_ = 1
     # plot_train = 0
     # eval_ = 0
@@ -129,6 +129,7 @@ if __name__ == '__main__':
     # sci_not = sci_not.replace("0", "")
     # print sci_not
     # exp_settings_name = m + '_qW_' + str(sci_not) + '_lmba'+str(int(lmba)) + '_epochs'+str(epochs) #+'_smalldata_smalldec'
+    m = 'VAE'
     exp_settings_name = m + '_epochs'+str(epochs) #+'_smalldata_smalldec'
     saved_parameter_file = exp_settings_name+'.ckpt' 
     print 'Current:', saved_parameter_file
@@ -141,7 +142,7 @@ if __name__ == '__main__':
         #Train 
         print 'Training'
 
-        hyperparams['n_W_particles'] = S_training
+        # hyperparams['n_W_particles'] = S_training
         hyperparams['n_z_particles'] = k_training
 
         #Initialize model
@@ -154,14 +155,16 @@ if __name__ == '__main__':
 
         # start = time.time()
 
-        values, labels, test_values, test_labels = model.train(train_x=train_x, valid_x=test_x,
-                    epochs=epochs, batch_size=n_batch,
-                    # display_step=[500,3000],
-                    display_step=5,
-
+        train_scores, test_scores, times_ = model.train3(train_x=train_x, valid_x=test_x,
+                    batch_size=n_batch, max_time=100, check_every=30,
                     path_to_load_variables='',
-                    # path_to_load_variables=parameter_path+to_load_parameter_file,
                     path_to_save_variables=parameter_path+saved_parameter_file)
+        
+        with open(experiment_log, "a") as myfile:
+            myfile.write('train scores'+  str(train_scores) +'\n')
+            myfile.write('test scores'+  str(test_scores) +'\n')
+            myfile.write('times_'+  str(times_) +'\n')
+
 
 
         # time_to_train = time.time() - start
@@ -567,7 +570,7 @@ if __name__ == '__main__':
                         
 
 
-                print
+                # print
 
 
 

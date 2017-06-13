@@ -69,19 +69,20 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     n_batch = 50
 
-    epochs = 50  # will be using time instead
-    max_time = 1000000
+    epochs = 100  # will be using time instead
+    # max_time = 1000000
 
     lr = .001
     h1_size = 100  #hidden layer size
-    k_training = 5 #number of z samples
+    # k_training = 5 #number of z samples
     # z_size = 30
     lmba = .0000001
 
     #Experimental Variables
     list_of_models = ['IWAE', 'VAE'] #['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
     # list_of_k_samples = [1]
-    z_sizes = [5,100] #[10,100]#[10,50,100]   #latent layer size
+    z_sizes = [5,50,100] #[10,100]#[10,50,100]   #latent layer size
+    k_trainings = [1,5,10]
     # qW_weights = [.0000001, 1.] #[.0000001]#[1.]#
     # lmbas = [0.] #[0., 1.] #l2 weight on the encoder
 
@@ -105,124 +106,126 @@ if __name__ == '__main__':
 
         for m in list_of_models:
 
-
-            hyperparams = {
-                'learning_rate': lr,
-                'x_size': x_size,
-                'z_size': z_size,
-                'encoder_net': [x_size, h1_size, z_size*2],
-                'decoder_net': [z_size, h1_size, x_size],
-                'lmba': lmba
-                }
+            for k_training in k_trainings:
 
 
-
-            # to_load_parameter_file = m + '_k' + str(k_training) + '_z'+str(z_size) + '_epochs'+str(90000)+'_smalldata.ckpt' 
-            
-            # sci_not = '{:2e}'.format(qW_weight)
-            # sci_not = sci_not.replace(".", "")
-            # sci_not = sci_not.replace("0", "")
-            # print sci_not
-            # exp_settings_name = m + '_qW_' + str(sci_not) + '_lmba'+str(int(lmba)) + '_epochs'+str(epochs) #+'_smalldata_smalldec'
-            exp_settings_name = m +'_k'+str(k_training) +'_z'+str(z_size)+ '_epochs'+str(epochs) #+'_smalldata_smalldec'
-            saved_parameter_file = exp_settings_name+'.ckpt' 
-            print 'Current:', saved_parameter_file
-
-            if save_log:
-                with open(experiment_log, "a") as myfile:
-                    myfile.write('\n\n' + saved_parameter_file +'\n')
-
-            if train_:
-                #Train 
-                print 'Training'
-
-                # hyperparams['n_W_particles'] = S_training
-                hyperparams['n_z_particles'] = k_training
-
-                #Initialize model
-                if m == 'VAE':
-                    model = VAE(hyperparams)   
-                if m == 'IWAE':
-                    model = IWAE(hyperparams)   
-                start = time.time()
-
-                model.train(train_x=train_x, valid_x=[],
-                            epochs=epochs, batch_size=n_batch,
-                            display_step=5,
-                            path_to_load_variables='',
-                            path_to_save_variables=parameter_path+saved_parameter_file)
-
-
-                time_to_train = time.time() - start
-                print 'Time to train', time_to_train
-                with open(experiment_log, "a") as f:
-                    f.write('Time to train '+  str(time_to_train) + '\n')
+                hyperparams = {
+                    'learning_rate': lr,
+                    'x_size': x_size,
+                    'z_size': z_size,
+                    'encoder_net': [x_size, h1_size, z_size*2],
+                    'decoder_net': [z_size, h1_size, x_size],
+                    'lmba': lmba
+                    }
 
 
 
-            if eval_:
-
-                hyperparams['n_z_particles'] = k_evaluation
-
-
-                #Initialize model
-                if m == 'VAE':
-                    model = VAE(hyperparams)   
-                if m == 'IWAE':
-                    model = IWAE(hyperparams)   
-
-
-                #Evaluate
-                print 'Evaluating'
-
-                start = time.time()
-                # test_results, train_results, test_labels, train_labels = model.eval(data=test_x, batch_size=n_batch_eval, display_step=100,
-                #                         path_to_load_variables=parameter_path+saved_parameter_file, data2=train_x)
-                test_results, train_results = model.eval(data=test_x, batch_size=n_batch_eval, display_step=100,
-                                        path_to_load_variables=parameter_path+saved_parameter_file, data2=train_x)
-
-                time_to_eval = time.time() - start
-                print 'time to evaluate', time_to_eval
-                print 'Results: ' + str(test_results) + 'train:' +str(train_results) +' for ' + saved_parameter_file
+                # to_load_parameter_file = m + '_k' + str(k_training) + '_z'+str(z_size) + '_epochs'+str(90000)+'_smalldata.ckpt' 
                 
+                # sci_not = '{:2e}'.format(qW_weight)
+                # sci_not = sci_not.replace(".", "")
+                # sci_not = sci_not.replace("0", "")
+                # print sci_not
+                # exp_settings_name = m + '_qW_' + str(sci_not) + '_lmba'+str(int(lmba)) + '_epochs'+str(epochs) #+'_smalldata_smalldec'
+                exp_settings_name = m +'_k'+str(k_training) +'_z'+str(z_size)+ '_epochs'+str(epochs) #+'_smalldata_smalldec'
+                saved_parameter_file = exp_settings_name+'.ckpt' 
+                print 'Current:', saved_parameter_file
+
                 if save_log:
                     with open(experiment_log, "a") as myfile:
+                        myfile.write('\n\n' + saved_parameter_file +'\n')
 
-                        myfile.write('time to evaluate '+  str(time_to_eval) +'\n')
-                        myfile.write('test set LL '+  str(test_results)+ '  train set LL '+  str(train_results)  +'\n')
+                if train_:
+                    #Train 
+                    print 'Training'
+
+                    # hyperparams['n_W_particles'] = S_training
+                    hyperparams['n_z_particles'] = k_training
+
+                    #Initialize model
+                    if m == 'VAE':
+                        model = VAE(hyperparams)   
+                    if m == 'IWAE':
+                        model = IWAE(hyperparams)   
+                    start = time.time()
+
+                    model.train(train_x=train_x, valid_x=[],
+                                epochs=epochs, batch_size=n_batch,
+                                display_step=5,
+                                path_to_load_variables='',
+                                path_to_save_variables=parameter_path+saved_parameter_file)
 
 
-                    # myfile.write('Train set\n')
-                    # labels_str = ''
-                    # for val in train_labels:
-                    #     labels_str += '%11s' % val
-                    # myfile.write(labels_str +'\n')
-                    # # myfile.write('%11s' % 'elbo'+ '%11s' %'log_px' + '%11s' %'log_pz'+'%11s' %'log_qz'+ '%11s' %'log_pW'+'%11s' %'log_qW'+'\n')
-                    # results_str = ''
-                    # for val in train_results:
-                    #     results_str += '%11.2f' % val
-                    # myfile.write(results_str +'\n')
+                    time_to_train = time.time() - start
+                    print 'Time to train', time_to_train
+                    with open(experiment_log, "a") as f:
+                        f.write('Time to train '+  str(time_to_train) + '\n')
 
 
-                    # myfile.write('Test set\n')
-                    # labels_str = ''
-                    # for val in test_labels:
-                    #     labels_str += '%11s' % val
-                    # myfile.write(labels_str +'\n')
 
-                    # # myfile.write('%11s' % 'iwae_elbo'+ '%11s' %'log_px' + '%11s' %'log_pz'+'%11s' %'log_qz'+ '%11s' %'log_pW'+'%11s' %'log_qW'+'\n')
+                if eval_:
+
+                    hyperparams['n_z_particles'] = k_evaluation
+
+
+                    #Initialize model
+                    if m == 'VAE':
+                        model = VAE(hyperparams)   
+                    if m == 'IWAE':
+                        model = IWAE(hyperparams)   
+
+
+                    #Evaluate
+                    print 'Evaluating'
+
+                    start = time.time()
+                    # test_results, train_results, test_labels, train_labels = model.eval(data=test_x, batch_size=n_batch_eval, display_step=100,
+                    #                         path_to_load_variables=parameter_path+saved_parameter_file, data2=train_x)
+                    test_results, train_results = model.eval(data=test_x, batch_size=n_batch_eval, display_step=100,
+                                            path_to_load_variables=parameter_path+saved_parameter_file, data2=train_x)
+
+                    time_to_eval = time.time() - start
+                    print 'time to evaluate', time_to_eval
+                    print 'Results: ' + str(test_results) + 'train:' +str(train_results) +' for ' + saved_parameter_file
                     
-                    # results_str = ''
-                    # for val in test_results:
-                    #     results_str += '%11.2f' % val
-                    # myfile.write(results_str +'\n')
-                
+                    if save_log:
+                        with open(experiment_log, "a") as myfile:
+
+                            myfile.write('time to evaluate '+  str(time_to_eval) +'\n')
+                            myfile.write('test set LL '+  str(test_results)+ '  train set LL '+  str(train_results)  +'\n')
+
+
+                        # myfile.write('Train set\n')
+                        # labels_str = ''
+                        # for val in train_labels:
+                        #     labels_str += '%11s' % val
+                        # myfile.write(labels_str +'\n')
+                        # # myfile.write('%11s' % 'elbo'+ '%11s' %'log_px' + '%11s' %'log_pz'+'%11s' %'log_qz'+ '%11s' %'log_pW'+'%11s' %'log_qW'+'\n')
+                        # results_str = ''
+                        # for val in train_results:
+                        #     results_str += '%11.2f' % val
+                        # myfile.write(results_str +'\n')
+
+
+                        # myfile.write('Test set\n')
+                        # labels_str = ''
+                        # for val in test_labels:
+                        #     labels_str += '%11s' % val
+                        # myfile.write(labels_str +'\n')
+
+                        # # myfile.write('%11s' % 'iwae_elbo'+ '%11s' %'log_px' + '%11s' %'log_pz'+'%11s' %'log_qz'+ '%11s' %'log_pW'+'%11s' %'log_qW'+'\n')
+                        
+                        # results_str = ''
+                        # for val in test_results:
+                        #     results_str += '%11.2f' % val
+                        # myfile.write(results_str +'\n')
+                    
 
 
 
 
 
-                #     if plot_train:
+                    #     if plot_train:
 
                 #         # #IF ONLY TRAIN VALUES
                 #         # plt.clf()

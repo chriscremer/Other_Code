@@ -385,6 +385,7 @@ class VAE(object):
             random_seed=1
             rs=np.random.RandomState(random_seed)
             n_datapoints = len(train_x)
+            n_datapoints2 = len(valid_x)
             arr = np.arange(n_datapoints)
 
             if path_to_load_variables == '':
@@ -399,59 +400,67 @@ class VAE(object):
             test_scores = []
 
 
-            prev_time = time.time()
+            start_time = time.time()
             time_passed = 0.
             next_checkpoint = check_every
-            for epoch in range(epochs):
+            # for epoch in range(epochs):
+            epoch = 0
+            while 1:
+                epoch +=1
+            
+
 
                 #check time
-                time_passed += time.time()-prev_time
+                time_passed += time.time()-start_time
+
+
                 if time_passed > next_checkpoint:
                     #get results
                     print 'Epoch' + str(epoch) + 'time passed' + str(time_passed)
 
 
                     iwae_elbos = []
-                    train_elbo = []
-
                     data_index = 0
                     for step in range(n_datapoints/batch_size):
 
                         #Make batch
                         batch = []
                         while len(batch) != batch_size:
-                            batch.append(data[data_index]) 
+                            batch.append(train_x[data_index]) 
                             data_index +=1
 
                         iwae_elbo = self.sess.run((self.iwae_elbo_test),feed_dict={self.x: batch})
                         iwae_elbos.append(iwae_elbo)
 
-                    test_scores.append(np.mean(iwae_elbos))
+                    test_score = np.mean(iwae_elbos)
+                    print 'test:'+ str(test_score)
+                    test_scores.append(test_score)
 
 
                     #get training info too
-                    
+                    train_elbo = []
                     data_index = 0
                     for step in range(n_datapoints2/batch_size):
                         batch = []
                         while len(batch) != batch_size:
-                            batch.append(data2[data_index]) 
+                            batch.append(valid_x[data_index]) 
                             data_index +=1
              
                         elbo = self.sess.run((self.iwae_elbo_test), feed_dict={self.x: batch})
                         train_elbo.append(elbo)
 
-                    train_scores.append(np.mean(train_elbo))
+                    train_score = np.mean(train_elbo)
+                    print 'train:'+ str(train_score)
+                    train_scores.append(train_score)
+                    times_.append(time_passed)
+
+                    next_checkpoint += check_every
+
+                    if time_passed > max_time:
+                        break
 
 
-
-
-
-
-
-
-
-
+                start_time = time.time()
 
                 #shuffle the data
                 rs.shuffle(arr)
@@ -491,6 +500,8 @@ class VAE(object):
                 self.saver.save(self.sess, path_to_save_variables)
                 print 'Saved variables to ' + path_to_save_variables
 
+
+            return train_scores, test_scores, times_
 
 
 
