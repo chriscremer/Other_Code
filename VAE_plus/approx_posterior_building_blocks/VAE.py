@@ -15,6 +15,7 @@ from utils import log_bernoulli as log_bern
 
 from NN import NN
 # from BNN import BNN
+import time
 
 
 class VAE(object):
@@ -372,6 +373,126 @@ class VAE(object):
 
 
 
+    def train3(self, train_x, valid_x=[], 
+                path_to_load_variables='', path_to_save_variables='', 
+                max_time=1201, check_every=300, batch_size=20):
+        '''
+        Train.
+        After x time, get test and train scores so can compare models relative to compute time
+        '''
+        with tf.Session() as self.sess:
+            # self.sess = tf.Session()
+            random_seed=1
+            rs=np.random.RandomState(random_seed)
+            n_datapoints = len(train_x)
+            arr = np.arange(n_datapoints)
+
+            if path_to_load_variables == '':
+                self.sess.run(self.init_vars)
+            else:
+                #Load variables
+                self.saver.restore(self.sess, path_to_load_variables)
+                print 'loaded variables ' + path_to_load_variables
+
+            times_ = []
+            train_scores = []
+            test_scores = []
+
+
+            prev_time = time.time()
+            time_passed = 0.
+            next_checkpoint = check_every
+            for epoch in range(epochs):
+
+                #check time
+                time_passed += time.time()-prev_time
+                if time_passed > next_checkpoint:
+                    #get results
+                    print 'Epoch' + str(epoch) + 'time passed' + str(time_passed)
+
+
+                    iwae_elbos = []
+                    train_elbo = []
+
+                    data_index = 0
+                    for step in range(n_datapoints/batch_size):
+
+                        #Make batch
+                        batch = []
+                        while len(batch) != batch_size:
+                            batch.append(data[data_index]) 
+                            data_index +=1
+
+                        iwae_elbo = self.sess.run((self.iwae_elbo_test),feed_dict={self.x: batch})
+                        iwae_elbos.append(iwae_elbo)
+
+                    test_scores.append(np.mean(iwae_elbos))
+
+
+                    #get training info too
+                    
+                    data_index = 0
+                    for step in range(n_datapoints2/batch_size):
+                        batch = []
+                        while len(batch) != batch_size:
+                            batch.append(data2[data_index]) 
+                            data_index +=1
+             
+                        elbo = self.sess.run((self.iwae_elbo_test), feed_dict={self.x: batch})
+                        train_elbo.append(elbo)
+
+                    train_scores.append(np.mean(train_elbo))
+
+
+
+
+
+
+
+
+
+
+
+                #shuffle the data
+                rs.shuffle(arr)
+                train_x = train_x[arr]
+
+                data_index = 0
+                for step in range(n_datapoints/batch_size):
+                    #Make batch
+                    batch = []
+                    while len(batch) != batch_size:
+                        batch.append(train_x[data_index]) 
+                        data_index +=1
+                    # Fit training using batch data
+                    _ = self.sess.run((self.optimizer), feed_dict={self.x: batch})
+                    # Display logs per epoch step
+                    # if step % display_step[1] == 0 and epoch % display_step[0] == 0:
+
+                # if epoch % display_step == 0:
+
+                #     elbo,log_px,log_pz,log_qz,l2_sum = self.sess.run((self.elbo, 
+                #                                                                 self.log_px, self.log_pz, 
+                #                                                                 self.log_qz, 
+                #                                                                 # self.log_pW, 
+                #                                                                 # self.log_qW, 
+                #                                                                 self.l2_sum), 
+                #                                     feed_dict={self.x: batch})
+
+                    # print ("Epoch", str(epoch+1)+'/'+str(epochs), 
+                    #         'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
+                    #         "elbo={:.4f}".format(float(elbo)),
+                    #         log_px,log_pz,log_qz)#,log_pW,log_qW)
+
+
+                        # values.append([epoch, elbo,log_px,log_pz,-log_qz,log_pW,-log_qW,-l2_sum])
+
+            if path_to_save_variables != '':
+                self.saver.save(self.sess, path_to_save_variables)
+                print 'Saved variables to ' + path_to_save_variables
+
+
+
 
 
     # def train(self, train_x, valid_x=[], display_step=[1,100], 
@@ -634,10 +755,11 @@ class VAE(object):
             test_results = np.mean(iwae_elbos)
 
             #get training info too
-            batch = []
+            
             # rs=np.random.RandomState(0)
             data_index = 0
             for step in range(n_datapoints2/batch_size):
+                batch = []
                 while len(batch) != batch_size:
                     # batch.append(data2[rs.randint(0,len(data2))]) 
                     batch.append(data2[data_index]) 

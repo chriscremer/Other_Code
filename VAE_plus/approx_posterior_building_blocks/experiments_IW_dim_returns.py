@@ -183,7 +183,7 @@ if __name__ == '__main__':
 
                 time_to_eval = time.time() - start
                 print 'time to evaluate', time_to_eval
-                print 'Results: ' + str(test_results) + ' for ' + saved_parameter_file
+                print 'Results: ' + str(test_results) + 'train:' +str(train_results) ' for ' + saved_parameter_file
                 
                 if save_log:
                     with open(experiment_log, "a") as myfile:
