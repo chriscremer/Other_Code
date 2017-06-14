@@ -69,7 +69,7 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     n_batch = 50
 
-    epochs = 200  # will be using time instead
+    epochs = 300  # will be using time instead
     # max_time = 1000000
 
     lr = .001
