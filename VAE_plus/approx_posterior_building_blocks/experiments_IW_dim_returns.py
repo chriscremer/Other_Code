@@ -81,15 +81,17 @@ if __name__ == '__main__':
     #Experimental Variables
     list_of_models = ['IWAE'] #['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
     # list_of_k_samples = [1]
-    z_sizes = [2,5,50,100] #[10,100]#[10,50,100]   #latent layer size
+    # z_sizes = [2,5,50,100] #[10,100]#[10,50,100]   #latent layer size
+    z_sizes = [5] #[10,100]#[10,50,100]   #latent layer size
+
     k_trainings = [1,2,10,50]
     # qW_weights = [.0000001, 1.] #[.0000001]#[1.]#
     # lmbas = [0.] #[0., 1.] #l2 weight on the encoder
 
     # Test settings
     # S_evaluation = 5 #2  
-    k_evaluation = 200 #500
-    n_batch_eval = 5 #2
+    k_evaluation = 1000 #500
+    n_batch_eval = 1 #2
 
 
     #Experiment log

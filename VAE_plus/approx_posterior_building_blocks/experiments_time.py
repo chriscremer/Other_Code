@@ -79,7 +79,9 @@ if __name__ == '__main__':
     lmba = .0000001
 
     #Experimental Variables
-    list_of_models = ['VAE'] #['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
+    list_of_models_names = ['VAE', 'IWAE'] #['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
+    list_of_models = [VAE, IWAE]
+    list_of_hypers = []
     # list_of_k_samples = [1]
     # z_sizes = [30] #[10,100]#[10,50,100]   #latent layer size
     # qW_weights = [.0000001, 1.] #[.0000001]#[1.]#
@@ -101,23 +103,12 @@ if __name__ == '__main__':
         print 'Saving experiment log to ' + experiment_log
 
 
-    # for qW_weight in qW_weights:
-
-    #     for m in list_of_models:
-
-    #         for lmba in lmbas:
-
     hyperparams = {
         'learning_rate': lr,
         'x_size': x_size,
         'z_size': z_size,
         'encoder_net': [x_size, h1_size, z_size*2],
         'decoder_net': [z_size, h1_size, x_size],
-        # 'encoder_net': [x_size, z_size*2],
-        # 'decoder_net': [z_size, x_size],
-        # 'n_W_particles': S_training,
-        # 'n_z_particles': k_training,
-        # 'qW_weight': qW_weight,
         'lmba': lmba
         }
 
@@ -159,7 +150,7 @@ if __name__ == '__main__':
                     batch_size=n_batch, max_time=100, check_every=30,
                     path_to_load_variables='',
                     path_to_save_variables=parameter_path+saved_parameter_file)
-        
+
         with open(experiment_log, "a") as myfile:
             myfile.write('train scores'+  str(train_scores) +'\n')
             myfile.write('test scores'+  str(test_scores) +'\n')

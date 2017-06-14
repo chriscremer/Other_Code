@@ -731,15 +731,6 @@ class VAE(object):
                 print 'loaded variables ' + path_to_load_variables
 
             iwae_elbos = []
-            # logpxs=[]
-            # logpzs=[]
-            # logqzs=[]
-            # logpWs=[]
-            # logqWs=[]
-            # l2_sums=[]
-
-            train_elbo = []
-
             data_index = 0
             for step in range(n_datapoints/batch_size):
 
@@ -765,8 +756,10 @@ class VAE(object):
             # test_labels = ['iwae_elbo','log_px','log_pz','log_qz','log_pW','log_qW','l2_sum']
             test_results = np.mean(iwae_elbos)
 
+
+
             #get training info too
-            
+            train_elbo = []
             # rs=np.random.RandomState(0)
             data_index = 0
             for step in range(n_datapoints2/batch_size):
