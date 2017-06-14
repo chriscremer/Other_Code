@@ -73,7 +73,7 @@ if __name__ == '__main__':
     # max_time = 1000000
 
     lr = .001
-    h1_size = 100  #hidden layer size
+    h1_size = 200  #hidden layer size
     # k_training = 5 #number of z samples
     # z_size = 30
     lmba = .0000001
@@ -81,8 +81,8 @@ if __name__ == '__main__':
     #Experimental Variables
     list_of_models = ['IWAE'] #['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
     # list_of_k_samples = [1]
-    # z_sizes = [2,5,50,100] #[10,100]#[10,50,100]   #latent layer size
-    z_sizes = [5] #[10,100]#[10,50,100]   #latent layer size
+    z_sizes = [2,10,50,100] #[10,100]#[10,50,100]   #latent layer size
+    # z_sizes = [5] #[10,100]#[10,50,100]   #latent layer size
 
     k_trainings = [1,2,10,50]
     # qW_weights = [.0000001, 1.] #[.0000001]#[1.]#
@@ -115,8 +115,8 @@ if __name__ == '__main__':
                     'learning_rate': lr,
                     'x_size': x_size,
                     'z_size': z_size,
-                    'encoder_net': [x_size, h1_size, z_size*2],
-                    'decoder_net': [z_size, h1_size, x_size],
+                    'encoder_net': [x_size, h1_size,h1_size, z_size*2],
+                    'decoder_net': [z_size, h1_size,h1_size, x_size],
                     'lmba': lmba
                     }
 
