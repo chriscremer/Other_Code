@@ -119,7 +119,7 @@ if __name__ == '__main__':
 
     print 'Training'
     model.train(train_x=train_x,
-                epochs=1, batch_size=20, display_step=[1,1000],
+                epochs=1, batch_size=20, display_step=5,
                 path_to_load_variables=path_to_load_variables,
                 path_to_save_variables=path_to_save_variables)
 

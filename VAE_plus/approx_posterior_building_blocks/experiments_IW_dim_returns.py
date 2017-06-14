@@ -69,7 +69,7 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     n_batch = 50
 
-    epochs = 100  # will be using time instead
+    epochs = 200  # will be using time instead
     # max_time = 1000000
 
     lr = .001
@@ -79,10 +79,10 @@ if __name__ == '__main__':
     lmba = .0000001
 
     #Experimental Variables
-    list_of_models = ['IWAE', 'VAE'] #['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
+    list_of_models = ['IWAE'] #['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
     # list_of_k_samples = [1]
-    z_sizes = [5,50,100] #[10,100]#[10,50,100]   #latent layer size
-    k_trainings = [1,5,10]
+    z_sizes = [2,5,50,100] #[10,100]#[10,50,100]   #latent layer size
+    k_trainings = [1,2,10,50]
     # qW_weights = [.0000001, 1.] #[.0000001]#[1.]#
     # lmbas = [0.] #[0., 1.] #l2 weight on the encoder
 
