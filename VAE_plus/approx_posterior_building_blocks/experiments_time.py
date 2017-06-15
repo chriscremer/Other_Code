@@ -212,7 +212,7 @@ if __name__ == '__main__':
             # start = time.time()
 
             train_scores, test_scores, times_ = model.train3(train_x=train_x, valid_x=test_x,
-                        batch_size=n_batch, max_time=1800, check_every=100,
+                        batch_size=n_batch, max_time=1800, check_every=360,
                         path_to_load_variables='',
                         path_to_save_variables=parameter_path+saved_parameter_file,
                         n_batch_eval=n_batch_eval)
