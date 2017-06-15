@@ -72,7 +72,7 @@ if __name__ == '__main__':
     n_batch = 100
 
     epochs = 9999999  # will be using time instead
-    max_time = 1000000
+    # max_time = 1000000
 
     lr = .001
     h1_size = 100  #hidden layer size

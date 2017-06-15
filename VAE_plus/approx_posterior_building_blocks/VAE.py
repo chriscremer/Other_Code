@@ -410,6 +410,7 @@ class VAE(object):
             next_checkpoint = check_every
             # for epoch in range(epochs):
             epoch = 0
+
             while 1:
                 epoch +=1
             
@@ -429,8 +430,8 @@ class VAE(object):
                     print 'getting test results'
                     for step in range(n_datapoints2/n_batch_eval):
 
-                        if step % 1000 == 0:
-                            print step, n_datapoints2/n_batch_eval
+                        # if step % 1000 == 0:
+                        #     print step, n_datapoints2/n_batch_eval
 
                         #Make batch
                         batch = []
@@ -452,8 +453,8 @@ class VAE(object):
                     print 'getting train results'
                     # for step in range(n_datapoints2/n_batch_eval):
                     for step in range(10000):
-                        if step % 1000 == 0:
-                            print step, 10000
+                        # if step % 1000 == 0:
+                        #     print step, 10000
                         batch = []
                         while len(batch) != n_batch_eval:
                             batch.append(train_x[data_index]) 
@@ -473,6 +474,8 @@ class VAE(object):
                         break
 
 
+
+                print 'training'
                 start_time = time.time()
 
                 #shuffle the data
@@ -491,15 +494,17 @@ class VAE(object):
                     # Display logs per epoch step
                     # if step % display_step[1] == 0 and epoch % display_step[0] == 0:
 
-                # if epoch % display_step == 0:
+                if epoch % 5 == 0:
 
-                #     elbo,log_px,log_pz,log_qz,l2_sum = self.sess.run((self.elbo, 
-                #                                                                 self.log_px, self.log_pz, 
-                #                                                                 self.log_qz, 
-                #                                                                 # self.log_pW, 
-                #                                                                 # self.log_qW, 
-                #                                                                 self.l2_sum), 
-                #                                     feed_dict={self.x: batch})
+                    elbo = self.sess.run((self.elbo, 
+                                                                                # self.log_px, self.log_pz, 
+                                                                                # self.log_qz, 
+                                                                                # self.log_pW, 
+                                                                                # self.log_qW, 
+                                                                                # self.l2_sum
+                                                                                ), 
+                                                    feed_dict={self.x: batch})
+                    print 'epoch', epoch, 'elbo', elbo
 
                     # print ("Epoch", str(epoch+1)+'/'+str(epochs), 
                     #         'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
