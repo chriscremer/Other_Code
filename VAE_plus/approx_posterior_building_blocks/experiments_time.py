@@ -103,8 +103,8 @@ if __name__ == '__main__':
         'z_size': z_size,
         'encoder_net': [x_size, h1_size, z_size*2],
         'decoder_net': [z_size, h1_size, x_size],
-        'n_z_particles': k_training,
-        'n_z_particles_test': k_evaluation
+        # 'n_z_particles': k_training,
+        # 'n_z_particles_test': k_evaluation
         }
     list_of_hypers.append(hyperparams)
 
@@ -114,8 +114,8 @@ if __name__ == '__main__':
         'z_size': z_size,
         'encoder_net': [x_size, h1_size, z_size*2],
         'decoder_net': [z_size, h1_size, x_size],
-        'n_z_particles': k_training,
-        'n_z_particles_test': k_evaluation
+        # 'n_z_particles': k_training,
+        # 'n_z_particles_test': k_evaluation
         }
     list_of_hypers.append(hyperparams)
 
@@ -125,8 +125,8 @@ if __name__ == '__main__':
         'z_size': z_size,
         'encoder_net': [x_size, h1_size, z_size*2],
         'decoder_net': [z_size, h1_size, x_size],
-        'n_z_particles': k_training,
-        'n_z_particles_test': k_evaluation
+        # 'n_z_particles': k_training,
+        # 'n_z_particles_test': k_evaluation
         }
     list_of_hypers.append(hyperparams)
 
@@ -136,8 +136,8 @@ if __name__ == '__main__':
         'z_size': z_size,
         'encoder_net': [x_size, h1_size, z_size*2],
         'decoder_net': [z_size, h1_size, x_size],
-        'n_z_particles': k_training,
-        'n_z_particles_test': k_evaluation
+        # 'n_z_particles': k_training,
+        # 'n_z_particles_test': k_evaluation
         }
     list_of_hypers.append(hyperparams)
 
@@ -212,7 +212,7 @@ if __name__ == '__main__':
             # start = time.time()
 
             train_scores, test_scores, times_ = model.train3(train_x=train_x, valid_x=test_x,
-                        batch_size=n_batch, max_time=1800, check_every=450,
+                        batch_size=n_batch, max_time=1800, check_every=100,
                         path_to_load_variables='',
                         path_to_save_variables=parameter_path+saved_parameter_file,
                         n_batch_eval=n_batch_eval)

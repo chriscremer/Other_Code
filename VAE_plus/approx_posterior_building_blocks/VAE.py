@@ -35,9 +35,12 @@ class VAE(object):
         self.x_size = hyperparams['x_size']  #X
         self.rs = 0
         # self.n_W_particles = hyperparams['n_W_particles']  #S
-        self.n_z_particles = hyperparams['n_z_particles']  #P
-        self.n_z_particles_test = hyperparams['n_z_particles_test']  #P
 
+        # self.n_z_particles = hyperparams['n_z_particles']  #P
+        # self.n_z_particles_test = hyperparams['n_z_particles_test']  #P
+
+        self.n_z_particles = tf.placeholder(tf.int32, [])
+        # self.n_z_particles_test = tf.placeholder(tf.int32, [])
 
         # self.qW_weight = hyperparams['qW_weight']
         # self.lmba = hyperparams['lmba']
@@ -61,7 +64,7 @@ class VAE(object):
         self.elbo = self.objective(log_px, log_pz, log_qz)
 
         #Test
-        log_px, log_pz, log_qz = self.log_probs(self.x, self.encoder, self.decoder, self.n_z_particles_test)
+        # log_px, log_pz, log_qz = self.log_probs(self.x, self.encoder, self.decoder, self.n_z_particles_test)
         self.iwae_elbo_test = self.iwae_objective_test(log_px, log_pz, log_qz)
 
         # Minimize negative ELBO
@@ -380,7 +383,8 @@ class VAE(object):
 
     def train3(self, train_x, valid_x=[], 
                 path_to_load_variables='', path_to_save_variables='', 
-                max_time=1201, check_every=300, batch_size=20,n_batch_eval=1):
+                max_time=1201, check_every=300, batch_size=20,n_batch_eval=1,
+                k_train=1, k_test=200):
         '''
         Train.
         After x time, get test and train scores so can compare models relative to compute time
@@ -439,7 +443,8 @@ class VAE(object):
                             batch.append(valid_x[data_index]) 
                             data_index +=1
 
-                        iwae_elbo = self.sess.run((self.iwae_elbo_test),feed_dict={self.x: batch})
+                        iwae_elbo = self.sess.run((self.iwae_elbo_test),feed_dict={self.x: batch, 
+                                                                        self.n_z_particles: k_test})
                         test_elbos.append(iwae_elbo)
 
                     test_score = np.mean(test_elbos)
@@ -460,7 +465,8 @@ class VAE(object):
                             batch.append(train_x[data_index]) 
                             data_index +=1
              
-                        elbo = self.sess.run((self.iwae_elbo_test), feed_dict={self.x: batch})
+                        elbo = self.sess.run((self.iwae_elbo_test), feed_dict={self.x: batch, 
+                                                                    self.n_z_particles: k_test})
                         train_elbo.append(elbo)
 
                     train_score = np.mean(train_elbo)
@@ -492,7 +498,8 @@ class VAE(object):
                         batch.append(train_x[data_index]) 
                         data_index +=1
                     # Fit training using batch data
-                    _ = self.sess.run((self.optimizer), feed_dict={self.x: batch})
+                    _ = self.sess.run((self.optimizer), feed_dict={self.x: batch, 
+                                                                    self.n_z_particles: k_train})
                     # Display logs per epoch step
                     # if step % display_step[1] == 0 and epoch % display_step[0] == 0:
 
@@ -505,7 +512,8 @@ class VAE(object):
                                                                                 # self.log_qW, 
                                                                                 # self.l2_sum
                                                                                 ), 
-                                                    feed_dict={self.x: batch})
+                                                    feed_dict={self.x: batch, 
+                                                                    self.n_z_particles: k_train})
                     print 'epoch', epoch, 'elbo', elbo, 'time', time_passed
 
                     # print ("Epoch", str(epoch+1)+'/'+str(epochs), 
