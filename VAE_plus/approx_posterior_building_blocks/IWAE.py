@@ -23,60 +23,85 @@ from VAE import VAE
 class IWAE(VAE):
 
 
-    def __init__(self, hyperparams):
+    # def __init__(self, hyperparams):
 
-        tf.reset_default_graph()
+    #     tf.reset_default_graph()
 
-        #Model hyperparameters
-        self.learning_rate = hyperparams['learning_rate']
-        self.encoder_act_func = tf.nn.elu #tf.nn.softplus #tf.tanh
-        self.decoder_act_func = tf.tanh
-        self.encoder_net = hyperparams['encoder_net']
-        self.decoder_net = hyperparams['decoder_net']
-        self.z_size = hyperparams['z_size']  #Z
-        self.x_size = hyperparams['x_size']  #X
-        self.rs = 0
-        # self.n_W_particles = hyperparams['n_W_particles']  #S
-        self.n_z_particles = hyperparams['n_z_particles']  #P
+    #     #Model hyperparameters
+    #     self.learning_rate = hyperparams['learning_rate']
+    #     self.encoder_act_func = tf.nn.elu #tf.nn.softplus #tf.tanh
+    #     self.decoder_act_func = tf.tanh
+    #     self.encoder_net = hyperparams['encoder_net']
+    #     self.decoder_net = hyperparams['decoder_net']
+    #     self.z_size = hyperparams['z_size']  #Z
+    #     self.x_size = hyperparams['x_size']  #X
+    #     self.rs = 0
+    #     # self.n_W_particles = hyperparams['n_W_particles']  #S
+    #     self.n_z_particles = hyperparams['n_z_particles']  #P
 
-        # self.qW_weight = hyperparams['qW_weight']
-        self.lmba = hyperparams['lmba']
+    #     # self.qW_weight = hyperparams['qW_weight']
+    #     self.lmba = hyperparams['lmba']
 
-        #Placeholders - Inputs/Targets
-        self.x = tf.placeholder(tf.float32, [None, self.x_size])
-        self.batch_size = tf.shape(self.x)[0]   #B
-        self.batch_frac = tf.placeholder(tf.float32, None)
+    #     #Placeholders - Inputs/Targets
+    #     self.x = tf.placeholder(tf.float32, [None, self.x_size])
+    #     self.batch_size = tf.shape(self.x)[0]   #B
+    #     self.batch_frac = tf.placeholder(tf.float32, None)
 
        
-        self.encoder = NN(self.encoder_net, self.encoder_act_func, self.batch_size)
-        self.decoder = NN(self.decoder_net, self.decoder_act_func, self.batch_size)
+    #     self.encoder = NN(self.encoder_net, self.encoder_act_func, self.batch_size)
+    #     self.decoder = NN(self.decoder_net, self.decoder_act_func, self.batch_size)
 
-        self.l2_sum = self.encoder.weight_decay()
-
-
-
-
-        #Objective
-        log_px, log_pz, log_qz = self.log_probs(self.x, self.encoder, self.decoder)
-
-        #ONLY CHANGE FROM VAE
-        self.elbo = self.iwae_objective_test(log_px, log_pz, log_qz)
-        # self.iwae_elbo = self.iwae_objective(*log_probs)
-
-        self.iwae_elbo_test = self.iwae_objective_test(log_px, log_pz, log_qz)
-
-        # Minimize negative ELBO
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, 
-                                                epsilon=1e-02).minimize(-self.elbo)
+    #     self.l2_sum = self.encoder.weight_decay()
 
 
 
-        #Finalize Initilization
-        self.init_vars = tf.global_variables_initializer()
-        self.saver = tf.train.Saver()
-        tf.get_default_graph().finalize()
-        self.sess = tf.Session()
 
+    #     #Objective
+    #     log_px, log_pz, log_qz = self.log_probs(self.x, self.encoder, self.decoder)
+
+    #     #ONLY CHANGE FROM VAE
+    #     self.elbo = self.iwae_objective_test(log_px, log_pz, log_qz)
+    #     # self.iwae_elbo = self.iwae_objective(*log_probs)
+
+    #     self.iwae_elbo_test = self.iwae_objective_test(log_px, log_pz, log_qz)
+
+    #     # Minimize negative ELBO
+    #     self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, 
+    #                                             epsilon=1e-02).minimize(-self.elbo)
+
+
+
+    #     #Finalize Initilization
+    #     self.init_vars = tf.global_variables_initializer()
+    #     self.saver = tf.train.Saver()
+    #     tf.get_default_graph().finalize()
+    #     self.sess = tf.Session()
+
+
+    def objective(self, log_px, log_pz, log_qz):
+        '''
+        log_px, log_pz, log_qz: [S,P,B]
+        Output: [1]
+        '''
+
+        self.log_px = tf.reduce_mean(log_px)
+        self.log_pz = tf.reduce_mean(log_pz)
+        self.log_qz = tf.reduce_mean(log_qz)
+
+        # Log mean exp over S and P, mean over B
+        # temp_elbo = tf.reduce_mean(log_px + log_pz - log_qz, axis=1)   #[P]
+        temp_elbo = log_px + log_pz - log_qz  #[P,B]
+
+        # log_pW = tf.reshape(log_pW, [self.n_W_particles, 1]) #[S,1]
+        # log_qW = tf.reshape(log_qW, [self.n_W_particles, 1]) #[S,1]
+        # temp_elbo = temp_elbo #+ (self.batch_frac*(log_pW - log_qW)) #broadcast, [S,P]
+        # temp_elbo = tf.reshape(temp_elbo, [self.n_W_particles*self.n_z_particles]) #[SP]
+        max_ = tf.reduce_max(temp_elbo, axis=0) #[B]
+        iwae_elbo = tf.log(tf.reduce_mean(tf.exp(temp_elbo-max_), axis=0)) + max_  #[1]
+
+        iwae_elbo = tf.reduce_mean(iwae_elbo) #over batch
+
+        return iwae_elbo
 
 
 
@@ -98,6 +123,7 @@ if __name__ == '__main__':
         'decoder_net': [z_size, 20, x_size],
         # 'n_W_particles': 1,
         'n_z_particles': 1,
+        'n_z_particles_test': 10,
         'lmba': .0000001}
 
     model = IWAE(hyperparams)

@@ -13,7 +13,9 @@ import matplotlib.pyplot as plt
 
 
 from VAE import VAE
-# from VAE import VAE_no_reg
+from IWAE import IWAE
+from HVI import HVI
+from NF import NF
 
 
 
@@ -75,13 +77,11 @@ if __name__ == '__main__':
     lr = .001
     h1_size = 100  #hidden layer size
     k_training = 1 #number of z samples
-    z_size = 30
+    z_size = 20
     lmba = .0000001
+    k_evaluation = 200
+    n_batch_eval = 1 #2
 
-    #Experimental Variables
-    list_of_models_names = ['VAE', 'IWAE'] #['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
-    list_of_models = [VAE, IWAE]
-    list_of_hypers = []
     # list_of_k_samples = [1]
     # z_sizes = [30] #[10,100]#[10,50,100]   #latent layer size
     # qW_weights = [.0000001, 1.] #[.0000001]#[1.]#
@@ -89,8 +89,61 @@ if __name__ == '__main__':
 
     # Test settings
     # S_evaluation = 5 #2  
-    k_evaluation = 100 #500
-    n_batch_eval = 1 #2
+
+
+
+    #Experimental Variables
+    list_of_models_names = ['NF', 'HVI',  'VAE', 'IWAE'] #['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
+    list_of_models = [NF, HVI, VAE, IWAE]
+    list_of_hypers = []
+
+    hyperparams = {
+        'learning_rate': lr,
+        'x_size': x_size,
+        'z_size': z_size,
+        'encoder_net': [x_size, h1_size, z_size*2],
+        'decoder_net': [z_size, h1_size, x_size],
+        'n_z_particles': k_training,
+        'n_z_particles_test': k_evaluation
+        }
+    list_of_hypers.append(hyperparams)
+
+    hyperparams = {
+        'learning_rate': lr,
+        'x_size': x_size,
+        'z_size': z_size,
+        'encoder_net': [x_size, h1_size, z_size*2],
+        'decoder_net': [z_size, h1_size, x_size],
+        'n_z_particles': k_training,
+        'n_z_particles_test': k_evaluation
+        }
+    list_of_hypers.append(hyperparams)
+
+    hyperparams = {
+        'learning_rate': lr,
+        'x_size': x_size,
+        'z_size': z_size,
+        'encoder_net': [x_size, h1_size, z_size*2],
+        'decoder_net': [z_size, h1_size, x_size],
+        'n_z_particles': k_training,
+        'n_z_particles_test': k_evaluation
+        }
+    list_of_hypers.append(hyperparams)
+
+    hyperparams = {
+        'learning_rate': lr,
+        'x_size': x_size,
+        'z_size': z_size,
+        'encoder_net': [x_size, h1_size, z_size*2],
+        'decoder_net': [z_size, h1_size, x_size],
+        'n_z_particles': k_training,
+        'n_z_particles_test': k_evaluation
+        }
+    list_of_hypers.append(hyperparams)
+
+
+
+
 
 
     #Experiment log
@@ -103,14 +156,15 @@ if __name__ == '__main__':
         print 'Saving experiment log to ' + experiment_log
 
 
-    hyperparams = {
-        'learning_rate': lr,
-        'x_size': x_size,
-        'z_size': z_size,
-        'encoder_net': [x_size, h1_size, z_size*2],
-        'decoder_net': [z_size, h1_size, x_size],
-        'lmba': lmba
-        }
+    # hyperparams = {
+    #     'learning_rate': lr,
+    #     'x_size': x_size,
+    #     'z_size': z_size,
+    #     'encoder_net': [x_size, h1_size, z_size*2],
+    #     'decoder_net': [z_size, h1_size, x_size],
+    #     'n_z_particles': k_training,
+    #     'n_z_particles_test': k_evaluation
+    #     }
 
 
     # to_load_parameter_file = m + '_k' + str(k_training) + '_z'+str(z_size) + '_epochs'+str(90000)+'_smalldata.ckpt' 
@@ -120,41 +174,53 @@ if __name__ == '__main__':
     # sci_not = sci_not.replace("0", "")
     # print sci_not
     # exp_settings_name = m + '_qW_' + str(sci_not) + '_lmba'+str(int(lmba)) + '_epochs'+str(epochs) #+'_smalldata_smalldec'
-    m = 'VAE'
-    exp_settings_name = m + '_epochs'+str(epochs) #+'_smalldata_smalldec'
-    saved_parameter_file = exp_settings_name+'.ckpt' 
-    print 'Current:', saved_parameter_file
+    # m = 'VAE'
 
-    if save_log:
-        with open(experiment_log, "a") as myfile:
-            myfile.write('\n\n' + saved_parameter_file +'\n')
 
-    if train_:
-        #Train 
-        print 'Training'
+    for i in range(len(list_of_models_names)):
 
-        # hyperparams['n_W_particles'] = S_training
-        hyperparams['n_z_particles'] = k_training
+        m_name = list_of_models_names[i]
+        m_model = list_of_models[i]
+        m_hyper = list_of_hypers[i]
 
-        #Initialize model
-        # if m == 'bvae':
-        #     model = BVAE(hyperparams)
-        # elif m == 'vae_no_reg':
-        #     model = VAE_no_reg(hyperparams)
-        if m == 'VAE':
-            model = VAE(hyperparams)   
 
-        # start = time.time()
+        exp_settings_name = m_name + '_epochs'+str(epochs) #+'_smalldata_smalldec'
+        saved_parameter_file = exp_settings_name+'.ckpt' 
+        print 'Current:', saved_parameter_file
 
-        train_scores, test_scores, times_ = model.train3(train_x=train_x, valid_x=test_x,
-                    batch_size=n_batch, max_time=100, check_every=30,
-                    path_to_load_variables='',
-                    path_to_save_variables=parameter_path+saved_parameter_file)
+        if save_log:
+            with open(experiment_log, "a") as myfile:
+                myfile.write('\n\n' + saved_parameter_file +'\n')
 
-        with open(experiment_log, "a") as myfile:
-            myfile.write('train scores'+  str(train_scores) +'\n')
-            myfile.write('test scores'+  str(test_scores) +'\n')
-            myfile.write('times_'+  str(times_) +'\n')
+        if train_:
+            #Train 
+            print 'Training'
+
+            # hyperparams['n_W_particles'] = S_training
+            # hyperparams['n_z_particles'] = k_training
+
+            #Initialize model
+            # if m == 'bvae':
+            #     model = BVAE(hyperparams)
+            # elif m == 'vae_no_reg':
+            #     model = VAE_no_reg(hyperparams)
+            # if m == 'VAE':
+            
+
+            model = m_model(m_hyper)   
+
+            # start = time.time()
+
+            train_scores, test_scores, times_ = model.train3(train_x=train_x, valid_x=test_x,
+                        batch_size=n_batch, max_time=1800, check_every=450,
+                        path_to_load_variables='',
+                        path_to_save_variables=parameter_path+saved_parameter_file,
+                        n_batch_eval=n_batch_eval)
+
+            with open(experiment_log, "a") as myfile:
+                myfile.write('train scores'+  str(train_scores) +'\n')
+                myfile.write('test scores'+  str(test_scores) +'\n')
+                myfile.write('times_'+  str(times_) +'\n')
 
 
 

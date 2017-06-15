@@ -10,7 +10,7 @@ import numpy as np
 
 class NN(object):
 
-    def __init__(self, network_architecture, act_func, batch_size):
+    def __init__(self, network_architecture, act_func, batch_size=0):
         
         #Model hyperparameters
         self.act_func = act_func

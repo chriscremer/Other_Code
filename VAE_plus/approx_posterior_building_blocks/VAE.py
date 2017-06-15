@@ -36,9 +36,11 @@ class VAE(object):
         self.rs = 0
         # self.n_W_particles = hyperparams['n_W_particles']  #S
         self.n_z_particles = hyperparams['n_z_particles']  #P
+        self.n_z_particles_test = hyperparams['n_z_particles_test']  #P
+
 
         # self.qW_weight = hyperparams['qW_weight']
-        self.lmba = hyperparams['lmba']
+        # self.lmba = hyperparams['lmba']
 
         #Placeholders - Inputs/Targets
         self.x = tf.placeholder(tf.float32, [None, self.x_size])
@@ -49,17 +51,17 @@ class VAE(object):
         self.encoder = NN(self.encoder_net, self.encoder_act_func, self.batch_size)
         self.decoder = NN(self.decoder_net, self.decoder_act_func, self.batch_size)
 
-        self.l2_sum = self.encoder.weight_decay()
+        # self.l2_sum = self.encoder.weight_decay()
 
 
 
 
         #Objective
-        log_px, log_pz, log_qz = self.log_probs(self.x, self.encoder, self.decoder)
-
+        log_px, log_pz, log_qz = self.log_probs(self.x, self.encoder, self.decoder, self.n_z_particles)
         self.elbo = self.objective(log_px, log_pz, log_qz)
-        # self.iwae_elbo = self.iwae_objective(*log_probs)
 
+        #Test
+        log_px, log_pz, log_qz = self.log_probs(self.x, self.encoder, self.decoder, self.n_z_particles_test)
         self.iwae_elbo_test = self.iwae_objective_test(log_px, log_pz, log_qz)
 
         # Minimize negative ELBO
@@ -85,7 +87,33 @@ class VAE(object):
         self.sess = tf.Session()
 
 
-    def log_probs(self, x, encoder, decoder):
+
+    def sample_z(self, x, encoder, decoder,k):
+        '''
+        x: [B,X]
+        z: [P,B,Z]
+        log_pz: [P,B]
+        log_qz: [P,B]
+        '''
+
+        #Encode
+        z_mean_logvar = encoder.feedforward(x) #[B,Z*2]
+        z_mean = tf.slice(z_mean_logvar, [0,0], [self.batch_size, self.z_size]) #[B,Z] 
+        z_logvar = tf.slice(z_mean_logvar, [0,self.z_size], [self.batch_size, self.z_size]) #[B,Z]
+
+        #Sample z  [P,B,Z]
+        eps = tf.random_normal((k, self.batch_size, self.z_size), 0, 1, seed=self.rs) 
+        z = tf.add(z_mean, tf.multiply(tf.sqrt(tf.exp(z_logvar)), eps)) #broadcast, [P,B,Z]
+
+        # Calc log probs [P,B]
+        log_pz = log_norm(z, tf.zeros([self.batch_size, self.z_size]), 
+                                tf.log(tf.ones([self.batch_size, self.z_size])))
+        log_qz = log_norm(z, z_mean, z_logvar)
+
+        return z, log_pz, log_qz
+
+
+    def log_probs(self, x, encoder, decoder, k):
 
         # log_px_list = []
         # log_pz_list = []
@@ -99,14 +127,14 @@ class VAE(object):
         # W, log_pW, log_qW = decoder.sample_weights()
 
         # Sample z   [P,B,Z], [P,B], [P,B]
-        z, log_pz, log_qz = self.sample_z(x, encoder, decoder)
+        z, log_pz, log_qz = self.sample_z(x, encoder, decoder, k)
         # z: [PB,Z]
-        z = tf.reshape(z, [self.n_z_particles*self.batch_size, self.z_size])
+        z = tf.reshape(z, [k*self.batch_size, self.z_size])
 
         # Decode [PB,X]
         y = decoder.feedforward(z)
         # y: [P,B,X]
-        y = tf.reshape(y, [self.n_z_particles, self.batch_size, self.x_size])
+        y = tf.reshape(y, [k, self.batch_size, self.x_size])
 
         # Likelihood p(x|z)  [P,B]
         log_px = log_bern(x,y)
@@ -224,30 +252,6 @@ class VAE(object):
 
 
 
-    def sample_z(self, x, encoder, decoder):
-        '''
-        x: [B,X]
-        z: [P,B,Z]
-        log_pz: [P,B]
-        log_qz: [P,B]
-        '''
-
-        #Encode
-        z_mean_logvar = encoder.feedforward(x) #[B,Z*2]
-        z_mean = tf.slice(z_mean_logvar, [0,0], [self.batch_size, self.z_size]) #[B,Z] 
-        z_logvar = tf.slice(z_mean_logvar, [0,self.z_size], [self.batch_size, self.z_size]) #[B,Z]
-
-        #Sample z  [P,B,Z]
-        eps = tf.random_normal((self.n_z_particles, self.batch_size, self.z_size), 0, 1, seed=self.rs) 
-        z = tf.add(z_mean, tf.multiply(tf.sqrt(tf.exp(z_logvar)), eps)) #broadcast, [P,B,Z]
-
-        # Calc log probs [P,B]
-        log_pz = log_norm(z, tf.zeros([self.batch_size, self.z_size]), 
-                                tf.log(tf.ones([self.batch_size, self.z_size])))
-        log_qz = log_norm(z, z_mean, z_logvar)
-
-        return z, log_pz, log_qz
-
 
 
     # def get_x_samples(self, x, encoder, decoder):
@@ -347,12 +351,13 @@ class VAE(object):
 
                 if epoch % display_step == 0:
 
-                    elbo,log_px,log_pz,log_qz,l2_sum = self.sess.run((self.elbo, 
+                    elbo,log_px,log_pz,log_qz = self.sess.run((self.elbo, 
                                                                                 self.log_px, self.log_pz, 
                                                                                 self.log_qz, 
                                                                                 # self.log_pW, 
                                                                                 # self.log_qW, 
-                                                                                self.l2_sum), 
+                                                                                #self.l2_sum
+                                                                                ), 
                                                     feed_dict={self.x: batch})
 
                     print ("Epoch", str(epoch+1)+'/'+str(epochs), 
@@ -375,7 +380,7 @@ class VAE(object):
 
     def train3(self, train_x, valid_x=[], 
                 path_to_load_variables='', path_to_save_variables='', 
-                max_time=1201, check_every=300, batch_size=20):
+                max_time=1201, check_every=300, batch_size=20,n_batch_eval=1):
         '''
         Train.
         After x time, get test and train scores so can compare models relative to compute time
@@ -419,20 +424,24 @@ class VAE(object):
                     print 'Epoch' + str(epoch) + 'time passed' + str(time_passed)
 
 
-                    iwae_elbos = []
+                    test_elbos = []
                     data_index = 0
-                    for step in range(n_datapoints/batch_size):
+                    print 'getting test results'
+                    for step in range(n_datapoints2/n_batch_eval):
+
+                        if step % 1000 == 0:
+                            print step, n_datapoints2/n_batch_eval
 
                         #Make batch
                         batch = []
-                        while len(batch) != batch_size:
-                            batch.append(train_x[data_index]) 
+                        while len(batch) != n_batch_eval:
+                            batch.append(valid_x[data_index]) 
                             data_index +=1
 
                         iwae_elbo = self.sess.run((self.iwae_elbo_test),feed_dict={self.x: batch})
-                        iwae_elbos.append(iwae_elbo)
+                        test_elbos.append(iwae_elbo)
 
-                    test_score = np.mean(iwae_elbos)
+                    test_score = np.mean(test_elbos)
                     print 'test:'+ str(test_score)
                     test_scores.append(test_score)
 
@@ -440,10 +449,14 @@ class VAE(object):
                     #get training info too
                     train_elbo = []
                     data_index = 0
-                    for step in range(n_datapoints2/batch_size):
+                    print 'getting train results'
+                    # for step in range(n_datapoints2/n_batch_eval):
+                    for step in range(10000):
+                        if step % 1000 == 0:
+                            print step, 10000
                         batch = []
-                        while len(batch) != batch_size:
-                            batch.append(valid_x[data_index]) 
+                        while len(batch) != n_batch_eval:
+                            batch.append(train_x[data_index]) 
                             data_index +=1
              
                         elbo = self.sess.run((self.iwae_elbo_test), feed_dict={self.x: batch})
@@ -987,6 +1000,7 @@ if __name__ == '__main__':
         'decoder_net': [z_size, 20, x_size],
         # 'n_W_particles': 1,
         'n_z_particles': 1,
+        'n_z_particles_test': 10,
         'lmba': .0000001}
 
     model = VAE(hyperparams)
