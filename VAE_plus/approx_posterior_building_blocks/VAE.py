@@ -473,9 +473,11 @@ class VAE(object):
                     if time_passed > max_time:
                         break
 
+                    print 'training'
 
 
-                print 'training'
+
+                
                 start_time = time.time()
 
                 #shuffle the data
