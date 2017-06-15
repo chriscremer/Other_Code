@@ -21,6 +21,8 @@ class NN(object):
 
         self.Ws = self.init_weights()
 
+        print 'made NN'
+
 
 
 

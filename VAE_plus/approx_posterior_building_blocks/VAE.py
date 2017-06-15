@@ -496,7 +496,7 @@ class VAE(object):
                     # Display logs per epoch step
                     # if step % display_step[1] == 0 and epoch % display_step[0] == 0:
 
-                if epoch % 5 == 0:
+                if epoch % 2 == 0:
 
                     elbo = self.sess.run((self.elbo, 
                                                                                 # self.log_px, self.log_pz, 
@@ -506,7 +506,7 @@ class VAE(object):
                                                                                 # self.l2_sum
                                                                                 ), 
                                                     feed_dict={self.x: batch})
-                    print 'epoch', epoch, 'elbo', elbo
+                    print 'epoch', epoch, 'elbo', elbo, 'time', time_passed
 
                     # print ("Epoch", str(epoch+1)+'/'+str(epochs), 
                     #         'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
