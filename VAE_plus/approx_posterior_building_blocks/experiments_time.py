@@ -75,7 +75,7 @@ if __name__ == '__main__':
     # max_time = 1000000
 
     lr = .001
-    h1_size = 300  #hidden layer size
+    h1_size = 100  #hidden layer size
     k_training = 1 #number of z samples
     z_size = 20
     lmba = .0000001
