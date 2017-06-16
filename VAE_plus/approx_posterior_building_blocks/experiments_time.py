@@ -75,7 +75,7 @@ if __name__ == '__main__':
     # max_time = 1000000
 
     lr = .001
-    h1_size = 100  #hidden layer size
+    h1_size = 300  #hidden layer size
     k_training = 1 #number of z samples
     z_size = 20
     lmba = .0000001
@@ -93,8 +93,8 @@ if __name__ == '__main__':
 
 
     #Experimental Variables
-    list_of_models_names = ['NF', 'HVI',  'VAE']#, 'IWAE'] #['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
-    list_of_models = [NF, HVI, VAE]#, IWAE]
+    list_of_models_names = ['NF', 'HVI', 'VAE']#, 'IWAE'] #['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
+    list_of_models = [ NF,HVI, VAE]#, IWAE]
     list_of_hypers = []
 
     hyperparams = {
@@ -186,6 +186,9 @@ if __name__ == '__main__':
 
         exp_settings_name = m_name + '_epochs'+str(epochs) #+'_smalldata_smalldec'
         saved_parameter_file = exp_settings_name+'.ckpt' 
+
+        saved_parameter_file_save_to = exp_settings_name+'_2.ckpt' 
+
         print 'Current:', saved_parameter_file
 
         if save_log:
@@ -213,8 +216,10 @@ if __name__ == '__main__':
 
             train_scores, test_scores, times_ = model.train3(train_x=train_x, valid_x=test_x,
                         batch_size=n_batch, max_time=4000, check_every=500,
-                        path_to_load_variables='',
-                        path_to_save_variables=parameter_path+saved_parameter_file,
+                        # path_to_load_variables='',
+                        path_to_load_variables=parameter_path+saved_parameter_file,
+
+                        path_to_save_variables=parameter_path+saved_parameter_file_save_to,
                         n_batch_eval=n_batch_eval)
 
             with open(experiment_log, "a") as myfile:
