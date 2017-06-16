@@ -185,7 +185,7 @@ if __name__ == '__main__':
 
 
         exp_settings_name = m_name + '_epochs'+str(epochs) #+'_smalldata_smalldec'
-        saved_parameter_file = exp_settings_name+'.ckpt' 
+        saved_parameter_file = exp_settings_name+'_2.ckpt' 
 
         saved_parameter_file_save_to = exp_settings_name+'_2.ckpt' 
 

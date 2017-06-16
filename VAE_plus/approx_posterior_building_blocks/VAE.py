@@ -503,7 +503,7 @@ class VAE(object):
                     # Display logs per epoch step
                     # if step % display_step[1] == 0 and epoch % display_step[0] == 0:
 
-                if epoch % 2 == 0:
+                if epoch % 10 == 0:
 
                     elbo = self.sess.run((self.elbo, 
                                                                                 # self.log_px, self.log_pz, 
