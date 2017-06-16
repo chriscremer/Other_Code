@@ -79,7 +79,7 @@ if __name__ == '__main__':
     k_training = 1 #number of z samples
     z_size = 20
     lmba = .0000001
-    k_evaluation = 200
+    k_evaluation = 500
     n_batch_eval = 1 #2
 
     # list_of_k_samples = [1]
@@ -93,8 +93,8 @@ if __name__ == '__main__':
 
 
     #Experimental Variables
-    list_of_models_names = ['NF', 'HVI',  'VAE', 'IWAE'] #['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
-    list_of_models = [NF, HVI, VAE, IWAE]
+    list_of_models_names = ['NF', 'HVI',  'VAE']#, 'IWAE'] #['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
+    list_of_models = [NF, HVI, VAE]#, IWAE]
     list_of_hypers = []
 
     hyperparams = {
@@ -130,16 +130,16 @@ if __name__ == '__main__':
         }
     list_of_hypers.append(hyperparams)
 
-    hyperparams = {
-        'learning_rate': lr,
-        'x_size': x_size,
-        'z_size': z_size,
-        'encoder_net': [x_size, h1_size, z_size*2],
-        'decoder_net': [z_size, h1_size, x_size],
-        # 'n_z_particles': k_training,
-        # 'n_z_particles_test': k_evaluation
-        }
-    list_of_hypers.append(hyperparams)
+    # hyperparams = {
+    #     'learning_rate': lr,
+    #     'x_size': x_size,
+    #     'z_size': z_size,
+    #     'encoder_net': [x_size, h1_size, z_size*2],
+    #     'decoder_net': [z_size, h1_size, x_size],
+    #     # 'n_z_particles': k_training,
+    #     # 'n_z_particles_test': k_evaluation
+    #     }
+    # list_of_hypers.append(hyperparams)
 
 
 
@@ -212,7 +212,7 @@ if __name__ == '__main__':
             # start = time.time()
 
             train_scores, test_scores, times_ = model.train3(train_x=train_x, valid_x=test_x,
-                        batch_size=n_batch, max_time=1800, check_every=360,
+                        batch_size=n_batch, max_time=4000, check_every=500,
                         path_to_load_variables='',
                         path_to_save_variables=parameter_path+saved_parameter_file,
                         n_batch_eval=n_batch_eval)
