@@ -215,7 +215,7 @@ if __name__ == '__main__':
             # start = time.time()
 
             train_scores, test_scores, times_ = model.train3(train_x=train_x, valid_x=test_x,
-                        batch_size=n_batch, max_time=4000, check_every=500,
+                        batch_size=n_batch, max_time=12000, check_every=1000,
                         # path_to_load_variables='',
                         path_to_load_variables=parameter_path+saved_parameter_file,
 
