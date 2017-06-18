@@ -348,7 +348,7 @@ class VAE(object):
                         batch.append(train_x[data_index]) 
                         data_index +=1
                     # Fit training using batch data
-                    _ = self.sess.run((self.optimizer), feed_dict={self.x: batch})
+                    _ = self.sess.run((self.optimizer), feed_dict={self.x: batch, self.n_z_particles: k_training})
                     # Display logs per epoch step
                     # if step % display_step[1] == 0 and epoch % display_step[0] == 0:
 
