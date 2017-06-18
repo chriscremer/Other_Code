@@ -305,7 +305,7 @@ class VAE(object):
 
     def train(self, train_x, valid_x=[], display_step=5, 
                 path_to_load_variables='', path_to_save_variables='', 
-                epochs=10, batch_size=20, k_training):
+                epochs=10, batch_size=20, k_training=1):
         '''
         Train.
         Display step: every x epochs
@@ -742,7 +742,7 @@ class VAE(object):
 
 
     def eval(self, data, display_step=5, path_to_load_variables='',
-             batch_size=20, data2=[], k_eval):
+             batch_size=20, data2=[], k_eval=10):
         '''
         Evaluate.
         '''
