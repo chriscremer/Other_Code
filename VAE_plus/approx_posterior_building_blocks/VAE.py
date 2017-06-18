@@ -802,7 +802,7 @@ class VAE(object):
                                                                         # self.log_px, self.log_pz, 
                                                                         # self.log_qz, self.l2_sum
                                                                         ), 
-                                                feed_dict={self.x: batch})
+                                                feed_dict={self.x: batch, self.n_z_particles: k_eval})
 
                 train_elbo.append(elbo)
 
