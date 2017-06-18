@@ -155,7 +155,8 @@ if __name__ == '__main__':
                                 epochs=epochs, batch_size=n_batch,
                                 display_step=5,
                                 path_to_load_variables='',
-                                path_to_save_variables=parameter_path+saved_parameter_file)
+                                path_to_save_variables=parameter_path+saved_parameter_file,
+                                k_training=k_training)
 
 
                     time_to_train = time.time() - start
@@ -184,7 +185,7 @@ if __name__ == '__main__':
                     # test_results, train_results, test_labels, train_labels = model.eval(data=test_x, batch_size=n_batch_eval, display_step=100,
                     #                         path_to_load_variables=parameter_path+saved_parameter_file, data2=train_x)
                     test_results, train_results = model.eval(data=test_x, batch_size=n_batch_eval, display_step=100,
-                                            path_to_load_variables=parameter_path+saved_parameter_file, data2=train_x)
+                                            path_to_load_variables=parameter_path+saved_parameter_file, data2=train_x, k_eval=k_evaluation)
 
                     time_to_eval = time.time() - start
                     print 'time to evaluate', time_to_eval

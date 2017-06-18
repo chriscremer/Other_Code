@@ -305,7 +305,7 @@ class VAE(object):
 
     def train(self, train_x, valid_x=[], display_step=5, 
                 path_to_load_variables='', path_to_save_variables='', 
-                epochs=10, batch_size=20):
+                epochs=10, batch_size=20, k_training):
         '''
         Train.
         Display step: every x epochs
@@ -361,7 +361,7 @@ class VAE(object):
                                                                                 # self.log_qW, 
                                                                                 #self.l2_sum
                                                                                 ), 
-                                                    feed_dict={self.x: batch})
+                                                    feed_dict={self.x: batch, self.n_z_particles: k_training})
 
                     print ("Epoch", str(epoch+1)+'/'+str(epochs), 
                             'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
@@ -742,7 +742,7 @@ class VAE(object):
 
 
     def eval(self, data, display_step=5, path_to_load_variables='',
-             batch_size=20, data2=[]):
+             batch_size=20, data2=[], k_eval):
         '''
         Evaluate.
         '''
@@ -773,7 +773,7 @@ class VAE(object):
                 iwae_elbo = self.sess.run((self.iwae_elbo_test),
                                                                             # self.log_px, self.log_pz, 
                                                                             # self.log_qz, self.l2_sum), 
-                                                        feed_dict={self.x: batch})
+                                                        feed_dict={self.x: batch, self.n_z_particles: k_eval})
                 iwae_elbos.append(iwae_elbo)
                 # logpxs.append(log_px)
                 # logpzs.append(log_pz)
