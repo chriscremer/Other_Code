@@ -3,6 +3,8 @@
 # HVI
 
 
+#FOUDN BUG, im only taking gradient of p(x|z), shoild be p(x,z)
+
 
 import numpy as np
 import tensorflow as tf
