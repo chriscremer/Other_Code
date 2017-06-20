@@ -15,7 +15,10 @@ results_train = []
 
 
 #Parse file
-file_ = home+ '/Documents/tmp/'+ 'experiment_2017-06-14_131123.txt'
+
+# file_ = home+ '/Documents/tmp/'+ 'experiment_2017-06-14_131123.txt'
+file_ = home+ '/Downloads/'+ 'experiment_2017-06-18_190607.txt'
+
 with open(file_,'r') as f:
 	for line in f:
 		if 'IWAE' in line:
@@ -81,7 +84,7 @@ print zs
 
 # x = [2,5,50,100]
 x = np.array(zs)
-x = np.log(x)
+# x = np.log(x)
 
 # k1 = [146.385,119.5,96.755,96.5477]
 # k2 = [143.474,119.15,95.8045,96.0346]

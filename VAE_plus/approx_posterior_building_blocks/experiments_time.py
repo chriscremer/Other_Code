@@ -79,7 +79,7 @@ if __name__ == '__main__':
     k_training = 1 #number of z samples
     z_size = 20
     lmba = .0000001
-    k_evaluation = 500
+    # k_evaluation = 500
     n_batch_eval = 1 #2
 
     # list_of_k_samples = [1]
@@ -215,12 +215,13 @@ if __name__ == '__main__':
             # start = time.time()
 
             train_scores, test_scores, times_ = model.train3(train_x=train_x, valid_x=test_x,
-                        batch_size=n_batch, max_time=12000, check_every=1000,
+                        batch_size=n_batch, max_time=12000, check_every=2000,
                         # path_to_load_variables='',
                         path_to_load_variables=parameter_path+saved_parameter_file,
 
                         path_to_save_variables=parameter_path+saved_parameter_file_save_to,
-                        n_batch_eval=n_batch_eval)
+                        n_batch_eval=n_batch_eval.
+                        k_test=1000)
 
             with open(experiment_log, "a") as myfile:
                 myfile.write('train scores'+  str(train_scores) +'\n')

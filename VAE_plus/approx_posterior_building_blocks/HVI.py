@@ -4,6 +4,7 @@
 
 
 #FOUDN BUG, im only taking gradient of p(x|z), shoild be p(x,z)
+# fixed
 
 
 import numpy as np
@@ -138,7 +139,10 @@ class HVI(VAE):
 
         log_px = log_bern(x,x_mean) #[P,B]
 
-        return log_px
+        log_pz = log_norm(z, tf.zeros([self.batch_size, self.z_size]), 
+                                tf.log(tf.ones([self.batch_size, self.z_size])))
+
+        return log_px + log_pz
 
 
 
