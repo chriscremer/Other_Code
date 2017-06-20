@@ -220,7 +220,7 @@ if __name__ == '__main__':
                         path_to_load_variables=parameter_path+saved_parameter_file,
 
                         path_to_save_variables=parameter_path+saved_parameter_file_save_to,
-                        n_batch_eval=n_batch_eval.
+                        n_batch_eval=n_batch_eval,
                         k_test=1000)
 
             with open(experiment_log, "a") as myfile:
