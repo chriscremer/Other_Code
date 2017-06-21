@@ -93,8 +93,8 @@ if __name__ == '__main__':
 
 
     #Experimental Variables
-    list_of_models_names = ['NF', 'HVI', 'VAE']#, 'IWAE'] #['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
-    list_of_models = [ NF,HVI, VAE]#, IWAE]
+    list_of_models_names = ['HVI', 'VAE']#'NF',  #, 'IWAE'] #['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
+    list_of_models = [ HVI, VAE]#, IWAE] #NF,
     list_of_hypers = []
 
     hyperparams = {
@@ -119,16 +119,16 @@ if __name__ == '__main__':
         }
     list_of_hypers.append(hyperparams)
 
-    hyperparams = {
-        'learning_rate': lr,
-        'x_size': x_size,
-        'z_size': z_size,
-        'encoder_net': [x_size, h1_size, z_size*2],
-        'decoder_net': [z_size, h1_size, x_size],
-        # 'n_z_particles': k_training,
-        # 'n_z_particles_test': k_evaluation
-        }
-    list_of_hypers.append(hyperparams)
+    # hyperparams = {
+    #     'learning_rate': lr,
+    #     'x_size': x_size,
+    #     'z_size': z_size,
+    #     'encoder_net': [x_size, h1_size, z_size*2],
+    #     'decoder_net': [z_size, h1_size, x_size],
+    #     # 'n_z_particles': k_training,
+    #     # 'n_z_particles_test': k_evaluation
+    #     }
+    # list_of_hypers.append(hyperparams)
 
     # hyperparams = {
     #     'learning_rate': lr,
@@ -185,7 +185,9 @@ if __name__ == '__main__':
 
 
         exp_settings_name = m_name + '_epochs'+str(epochs) #+'_smalldata_smalldec'
-        saved_parameter_file = exp_settings_name+'_2.ckpt' 
+        # saved_parameter_file = exp_settings_name+'_2.ckpt' 
+        # saved_parameter_file = '' 
+
 
         saved_parameter_file_save_to = exp_settings_name+'_2.ckpt' 
 
@@ -215,9 +217,9 @@ if __name__ == '__main__':
             # start = time.time()
 
             train_scores, test_scores, times_ = model.train3(train_x=train_x, valid_x=test_x,
-                        batch_size=n_batch, max_time=12000, check_every=2000,
-                        # path_to_load_variables='',
-                        path_to_load_variables=parameter_path+saved_parameter_file,
+                        batch_size=n_batch, max_time=15000, check_every=3000,
+                        path_to_load_variables='',
+                        # path_to_load_variables=parameter_path+saved_parameter_file,
 
                         path_to_save_variables=parameter_path+saved_parameter_file_save_to,
                         n_batch_eval=n_batch_eval,
