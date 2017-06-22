@@ -218,8 +218,8 @@ if __name__ == '__main__':
 
             train_scores, test_scores, times_ = model.train3(train_x=train_x, valid_x=test_x,
                         batch_size=n_batch, max_time=15000, check_every=3000,
-                        path_to_load_variables='',
-                        # path_to_load_variables=parameter_path+saved_parameter_file,
+                        # path_to_load_variables='',
+                        path_to_load_variables=parameter_path+saved_parameter_file,
 
                         path_to_save_variables=parameter_path+saved_parameter_file_save_to,
                         n_batch_eval=n_batch_eval,
