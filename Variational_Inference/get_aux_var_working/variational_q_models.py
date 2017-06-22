@@ -109,7 +109,7 @@ class Factorized_Gaussian_model(object):
         for i in range(iters):
 
             # stop if the last 100 hasnt improved
-            if i % 2000 == 0 and i != 0:
+            if i % 5000 == 0 and i != 0:
                 elbo_100 = np.mean(elbos)
                 if elbo_100 <= best_100_elbo and best_100_elbo != -1:
                     worse_count +=1
@@ -235,8 +235,8 @@ class AV_model(Factorized_Gaussian_model):
 
 
         net = slim.fully_connected(net,z_size*2,activation_fn=None) #[1,4]
-        self.qz_mean = tf.slice(net, [0,0], [1,2])
-        self.qz_logvar = tf.slice(net, [0,z_size], [1,2]) -6
+        self.qz_mean = tf.slice(net, [0,0], [1,z_size])
+        self.qz_logvar = tf.slice(net, [0,z_size], [1,z_size]) -6
 
         #Sample z
         eps = tf.random_normal((1,z_size), 0, 1, dtype=tf.float32) 
