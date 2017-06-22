@@ -1,6 +1,8 @@
 
 
 
+# added score function, which works.
+
 
 import tensorflow as tf
 slim=tf.contrib.slim
@@ -26,6 +28,21 @@ def log_normal(x, mean, log_var):
 
 
 
+def log_normal_eps(eps, log_var):
+    '''
+    x is [P, D]
+    mean is [D]
+    log_var is [D]
+    return [P]
+    '''
+    term1 = 2 * tf.log(2*math.pi)
+    term2 = tf.reduce_sum(log_var) #sum over dimensions, [1]
+    term3 = tf.square(eps) 
+    term3 = tf.reduce_sum(term3, 1) #sum over dimensions, [P]
+    all_ = term1 + term2 + term3
+    log_normal = -.5 * all_  
+    return log_normal
+
 
 
 class Factorized_Gaussian_model(object):
@@ -34,20 +51,26 @@ class Factorized_Gaussian_model(object):
 
         tf.reset_default_graph()
     
-        mean = tf.Variable([0.,0.])
-        logvar = tf.Variable([.1,.1])
+        self.mean = tf.Variable([0.,0.])
+        self.logvar = tf.Variable([.1,.1])
 
         #Sample
         eps = tf.random_normal((1,2), 0, 1, dtype=tf.float32) 
-        self.z = tf.add(mean, tf.multiply(tf.sqrt(tf.exp(logvar)), eps)) 
+        self.z = tf.add(self.mean, tf.multiply(tf.sqrt(tf.exp(self.logvar)), eps)) 
 
-        log_q_z = log_normal(self.z, mean, logvar) 
-        log_p_z = log_posterior(self.z)
+        # self.log_q_z = log_normal(self.z, self.mean, self.logvar) 
+        self.log_q_z = log_normal_eps(eps, self.logvar)
+        log_p_z = tf.stop_gradient(log_posterior(self.z))
 
-        self.elbo = log_p_z - log_q_z
+        self.elbo = log_p_z - self.log_q_z
 
         self.optimizer = tf.train.AdamOptimizer(learning_rate=.001, 
                                                 epsilon=1e-02).minimize(-self.elbo)
+
+
+        self.grad_mean = tf.gradients(self.elbo, self.mean)
+        self.grad_logvar = tf.gradients(self.elbo, self.logvar)
+
 
         init_vars = tf.global_variables_initializer()
         self.saver = tf.train.Saver()
@@ -79,7 +102,14 @@ class Factorized_Gaussian_model(object):
                 if elbo_100 <= best_100_elbo and best_100_elbo != -1:
                     worse_count +=1
                     print i, elbo_100,worse_count
-                    if worse_count == 5:
+
+                    # print self.sess.run((self.log_q_z, self.log_q_eps))
+                    print self.sess.run((self.mean, self.logvar))
+                    # print self.sess.run((self.grad_mean, self.grad_logvar))
+                    print self.sess.run((self.grad_logvar))
+
+
+                    if worse_count == 10:
                         print 'done training'
                         break
                 else:
@@ -97,6 +127,13 @@ class Factorized_Gaussian_model(object):
                     #     print i, elbo_100
 
                     print i, elbo_100
+
+                    # print self.sess.run((self.log_q_z, self.log_q_eps))
+                    print self.sess.run((self.mean, self.logvar))
+                    # print self.sess.run((self.grad_mean, self.grad_logvar))
+                    print self.sess.run((self.grad_logvar))
+
+
 
                     # mean, logvar, mean2, logvar2 = self.sess.run((self.qz_mean, self.qz_logvar, self.qv_mean, self.qv_logvar))
                     # print mean, logvar, mean2, logvar2
@@ -124,6 +161,96 @@ class Factorized_Gaussian_model(object):
         samps = np.reshape(samps, [n_samples, 2])
 
         return samps
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class Fac_Gaus_Score_Func(Factorized_Gaussian_model):
+
+    def __init__(self, log_posterior):
+
+
+        tf.reset_default_graph()
+    
+        self.mean = tf.Variable([0.,0.])
+        self.logvar = tf.Variable([.1,.1])
+
+        #Sample
+        eps = tf.random_normal((1,2), 0, 1, dtype=tf.float32) 
+        self.z = tf.stop_gradient(tf.add(self.mean, tf.multiply(tf.sqrt(tf.exp(self.logvar)), eps)))
+
+        self.log_q_z = log_normal(self.z, self.mean, self.logvar) 
+        # self.log_q_z = log_normal_eps(eps, self.logvar)
+        self.log_p_z = tf.stop_gradient(log_posterior(self.z))
+
+        
+        self.elbo = self.log_p_z - self.log_q_z
+
+
+        # self.optimizer = tf.train.AdamOptimizer(learning_rate=.001, 
+        #                                         epsilon=1e-02).minimize(-self.elbo)
+
+
+
+        opt = tf.train.AdamOptimizer(learning_rate=.001, epsilon=1e-02) #.minimize(-self.elbo)
+        # opt = tf.train.RMSPropOptimizer(learning_rate=.001, epsilon=1e-02) #.minimize(-self.elbo)
+
+
+        grads = opt.compute_gradients(self.log_q_z)
+
+        # compute policy gradients
+        for i, (grad, var) in enumerate(grads):
+            if grad is not None:
+                grads[i] = (grad * -self.elbo, var)
+                # grads[i] = (grad * self.log_p_z, var)
+
+
+
+        self.optimizer = opt.apply_gradients(grads)
+
+
+
+
+        self.grad_mean = tf.gradients(self.elbo, self.mean)
+        self.grad_logvar = tf.gradients(self.elbo, self.logvar)
+
+
+        init_vars = tf.global_variables_initializer()
+        self.saver = tf.train.Saver()
+
+        tf.get_default_graph().finalize()
+
+        self.sess = tf.Session()
+        self.sess.run(init_vars)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -184,6 +311,17 @@ class IW_model(Factorized_Gaussian_model):
         samps = np.reshape(samps, [n_samples, 2])
 
         return samps
+
+
+
+
+
+
+
+
+
+
+
 
 
 

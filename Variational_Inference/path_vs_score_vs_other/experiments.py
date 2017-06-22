@@ -1,4 +1,17 @@
 
+
+
+
+
+#this experiment shows that the score function works
+
+
+
+
+
+
+
+
 import numpy as np
 
 import matplotlib as mpl
@@ -21,6 +34,8 @@ from variational_q_models import Auxiliary_Flow_model as AFM
 from variational_q_models import Hamiltonian_Flow_model as HFM
 from variational_q_models import Hamiltonian_Flow_model2 as HFM2
 from variational_q_models import Hamiltonian_Flow_model3 as HFM3
+from variational_q_models import Fac_Gaus_Score_Func as FGSF
+
 
 
 
@@ -65,8 +80,11 @@ if __name__ == '__main__':
     # models = [FGM, IWM, AVM, NFM, HVM, AFM, HFM]
     # model_names = ['FG', 'IW', 'AV', 'NF', 'HV', 'AF', 'HF']
 
-    models = [FGM]
-    model_names = ['FG']
+    # models = [FGM, FGSF]
+    # model_names = ['FG', 'SF']
+
+    models = [FGSF]
+    model_names = ['SF']
 
     # models = [AVM, NFM, AFM]
     # model_names = ['AV', 'NF', 'AF']
@@ -103,7 +121,7 @@ if __name__ == '__main__':
             ax = plt.subplot2grid((rows,columns), (p_i,q_i+1), frameon=False)#, colspan=3)
             model = models[q_i](posteriors[p_i])
             # model.train(10000, save_to=home+'/Documents/tmp/vars.ckpt')
-            model.train(10000, save_to='')
+            model.train(15000, save_to='')
             samps = model.sample(1000)
             plot_kde(ax, samps, cmap='Reds')
             plot_isocontours(ax, posterior.run_log_post, cmap='Blues', alpha=alpha)
