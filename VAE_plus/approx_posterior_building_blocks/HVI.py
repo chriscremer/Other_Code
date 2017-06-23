@@ -194,7 +194,7 @@ if __name__ == '__main__':
             model.sess.run(model.init_vars)
         else:
             #Load variables
-            model.saver.restore(self.sess, path_to_load_variables)
+            model.saver.restore(model.sess, path_to_load_variables)
             print 'loaded variables ' + path_to_load_variables
 
     print model.sess.run(model.step_size)
