@@ -157,16 +157,26 @@ if __name__ == '__main__':
     x_size = 784
     z_size = 10
 
+    # hyperparams = {
+    #     'learning_rate': .0001,
+    #     'x_size': x_size,
+    #     'z_size': z_size,
+    #     'encoder_net': [x_size, 20, z_size*2],
+    #     'decoder_net': [z_size, 20, x_size],
+    #     # 'n_W_particles': 1,
+    #     'n_z_particles': 1,
+    #     'n_z_particles_test': 10,
+    #     'lmba': .0000001}
+
     hyperparams = {
-        'learning_rate': .0001,
+        'learning_rate': lr,
         'x_size': x_size,
         'z_size': z_size,
-        'encoder_net': [x_size, 20, z_size*2],
-        'decoder_net': [z_size, 20, x_size],
-        # 'n_W_particles': 1,
-        'n_z_particles': 1,
-        'n_z_particles_test': 10,
-        'lmba': .0000001}
+        'encoder_net': [x_size, h1_size, z_size*2],
+        'decoder_net': [z_size, h1_size, x_size],
+        # 'n_z_particles': k_training,
+        # 'n_z_particles_test': k_evaluation
+        }
 
     model = HVI(hyperparams)
 
