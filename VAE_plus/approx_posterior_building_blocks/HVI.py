@@ -221,7 +221,7 @@ if __name__ == '__main__':
             model.saver.restore(model.sess, path_to_load_variables)
             print 'loaded variables ' + path_to_load_variables
 
-    print model.sess.run(model.step_size)
+        print model.sess.run(model.step_size)
 
     fsada
 
