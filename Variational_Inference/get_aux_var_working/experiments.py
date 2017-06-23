@@ -134,7 +134,7 @@ if __name__ == '__main__':
             ax = plt.subplot2grid((rows,columns), (p_i,q_i+1), frameon=False)#, colspan=3)
             model = models[q_i](posteriors[p_i])
             # model.train(10000, save_to=home+'/Documents/tmp/vars.ckpt')
-            model.train(999000, save_to='')
+            model.train(9999000, save_to='')
             samps = model.sample(1000)
             plot_kde(ax, samps, cmap='Reds')
             plot_isocontours(ax, posterior.run_log_post, cmap='Blues', alpha=alpha)
