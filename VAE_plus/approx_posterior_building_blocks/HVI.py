@@ -181,9 +181,15 @@ if __name__ == '__main__':
     test_x = mnist_data[2][0]
     test_y = mnist_data[2][1]
 
-    # path_to_load_variables=home+'/Documents/tmp/vars.ckpt' 
-    path_to_load_variables=''
-    path_to_save_variables=home+'/Documents/tmp/vars2.ckpt'
+    path_to_load_variables=home+'/Documents/tmp/HVI_epochs9999999_2.ckpt' 
+    # path_to_load_variables=''
+    # path_to_save_variables=home+'/Documents/tmp/vars2.ckpt'
+    path_to_save_variables=home+''
+
+    print model.sess.run(model.step_size)
+
+    fsada
+
 
     print 'Training'
     model.train(train_x=train_x,
