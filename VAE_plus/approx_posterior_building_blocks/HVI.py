@@ -156,7 +156,6 @@ if __name__ == '__main__':
 
     x_size = 784
     z_size = 10
-
     # hyperparams = {
     #     'learning_rate': .0001,
     #     'x_size': x_size,
@@ -168,6 +167,21 @@ if __name__ == '__main__':
     #     'n_z_particles_test': 10,
     #     'lmba': .0000001}
 
+
+    # Training settings
+    x_size = 784   #f_height=28f_width=28
+    n_batch = 100
+
+    epochs = 9999999  # will be using time instead
+    # max_time = 1000000
+
+    lr = .001
+    h1_size = 100  #hidden layer size
+    k_training = 1 #number of z samples
+    z_size = 20
+    lmba = .0000001
+    # k_evaluation = 500
+    n_batch_eval = 1 #2
     hyperparams = {
         'learning_rate': lr,
         'x_size': x_size,
