@@ -186,6 +186,17 @@ if __name__ == '__main__':
     # path_to_save_variables=home+'/Documents/tmp/vars2.ckpt'
     path_to_save_variables=home+''
 
+
+
+
+    with tf.Session() as self.sess:
+        if path_to_load_variables == '':
+            model.sess.run(self.init_vars)
+        else:
+            #Load variables
+            model.saver.restore(self.sess, path_to_load_variables)
+            print 'loaded variables ' + path_to_load_variables
+
     print model.sess.run(model.step_size)
 
     fsada
