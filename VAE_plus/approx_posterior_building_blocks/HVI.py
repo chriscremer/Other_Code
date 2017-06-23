@@ -189,9 +189,9 @@ if __name__ == '__main__':
 
 
 
-    with tf.Session() as self.sess:
+    with tf.Session() as model.sess:
         if path_to_load_variables == '':
-            model.sess.run(self.init_vars)
+            model.sess.run(model.init_vars)
         else:
             #Load variables
             model.saver.restore(self.sess, path_to_load_variables)
