@@ -109,7 +109,7 @@ class Factorized_Gaussian_model(object):
         for i in range(iters):
 
             # stop if the last 100 hasnt improved
-            if i % 5000 == 0 and i != 0:
+            if i % 500 == 0 and i != 0:
                 elbo_100 = np.mean(elbos)
                 if elbo_100 <= best_100_elbo and best_100_elbo != -1:
                     worse_count +=1
@@ -118,8 +118,11 @@ class Factorized_Gaussian_model(object):
                     print i, elbo_100,worse_count
 
 
-                    print self.sess.run((self.grad_qzmean_wrt_v)) 
-                    print self.sess.run((self.grad_rvmean_wrt_z))
+                    aaa = self.sess.run((self.log_p_z, self.log_q_z, self.log_r_v, self.log_q_v, self.logdetsum))
+                    print [float(x) for x in aaa]
+
+                    # print self.sess.run((self.grad_qzmean_wrt_v)) 
+                    # print self.sess.run((self.grad_rvmean_wrt_z))
                     # for j in range(5):
                     #     print self.sess.run((self.qz_mean, self.qz_logvar))
                     #     print self.sess.run((self.rv_mean, self.rv_logvar))
@@ -151,8 +154,11 @@ class Factorized_Gaussian_model(object):
 
                     print i, elbo_100
 
-                    print self.sess.run((self.grad_qzmean_wrt_v)) 
-                    print self.sess.run((self.grad_rvmean_wrt_z))
+                    # print self.sess.run((self.grad_qzmean_wrt_v)) 
+                    # print self.sess.run((self.grad_rvmean_wrt_z))
+
+                    aaa = self.sess.run((self.log_p_z, self.log_q_z, self.log_r_v, self.log_q_v, self.logdetsum))
+                    print [float(x) for x in aaa]
 
                     # for j in range(5):
                     #     print self.sess.run((self.qz_mean, self.qz_logvar))
@@ -194,6 +200,134 @@ class Factorized_Gaussian_model(object):
         return samps
 
 
+
+
+
+
+
+
+class AV_model_flows_on_v(Factorized_Gaussian_model):
+
+
+
+    #something wrong. lower bound isnt bounded
+
+    def __init__(self, log_posterior):
+
+        tf.reset_default_graph()
+
+        v_size = 4
+        z_size = 2
+
+        layer_size = 60
+    
+        #q(v)
+        self.qv_mean = tf.Variable(tf.zeros([v_size]))
+        self.qv_logvar = tf.Variable(tf.ones([v_size])-1.)
+        # self.qv_mean = tf.zeros([v_size])
+        # self.qv_logvar = tf.ones([v_size])-1.
+
+
+        #Sample v
+        eps = tf.random_normal((1,v_size), 0, 1, dtype=tf.float32) 
+        v = tf.add(self.qv_mean, tf.multiply(tf.sqrt(tf.exp(self.qv_logvar)), eps)) 
+
+
+        # Transform v
+        n_flows = 3
+        logdetsum = 0.
+        for i in range(n_flows):
+
+            v, logdet = self.norm_flow(v)
+            logdetsum += logdet
+
+
+        self.logdetsum = logdetsum
+
+
+
+        #q(z|v)
+        # net = slim.stack(v,slim.fully_connected,[layer_size,layer_size])
+        # net = slim.stack(v,slim.fully_connected,[layer_size])
+        net = slim.fully_connected(v,layer_size,activation_fn=tf.tanh)
+        net = slim.fully_connected(net,layer_size,activation_fn=tf.tanh)
+
+
+
+        net = slim.fully_connected(net,z_size*2,activation_fn=None) #[1,4]
+        self.qz_mean = tf.slice(net, [0,0], [1,z_size])
+        self.qz_logvar = tf.slice(net, [0,z_size], [1,z_size]) -6
+
+        #Sample z
+        eps = tf.random_normal((1,z_size), 0, 1, dtype=tf.float32) 
+        self.z = tf.add(self.qz_mean, tf.multiply(tf.sqrt(tf.exp(self.qz_logvar)), eps)) 
+
+        #r(v|z)
+        # net = slim.stack(self.z,slim.fully_connected,[layer_size,layer_size])
+        # net = slim.stack(self.z,slim.fully_connected,[layer_size])
+        net = slim.fully_connected(self.z,layer_size,activation_fn=tf.tanh)
+        net = slim.fully_connected(net,layer_size,activation_fn=tf.tanh)
+
+
+        net = slim.fully_connected(net,v_size*2,activation_fn=None) #[1,20]
+        self.rv_mean = tf.slice(net, [0,0], [1,v_size])
+        self.rv_logvar = tf.slice(net, [0,v_size], [1,v_size])   -6     
+
+        #logprobs
+        self.log_q_v = log_normal(v, self.qv_mean, self.qv_logvar) 
+
+        self.log_q_z = log_normal(self.z, self.qz_mean, self.qz_logvar) 
+
+        self.log_r_v = log_normal(v, self.rv_mean, self.rv_logvar) 
+
+        self.log_p_z = log_posterior(self.z)
+
+        self.elbo = self.log_p_z  - self.log_q_z +  self.log_r_v - self.log_q_v + self.logdetsum
+
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=.001, 
+                                                epsilon=1e-02).minimize(-self.elbo)
+
+
+
+        self.grad_rvmean_wrt_z = tf.gradients(self.rv_mean, self.z)
+        self.grad_qzmean_wrt_v = tf.gradients(self.qz_mean, v)
+
+
+
+
+        init_vars = tf.global_variables_initializer()
+        self.saver = tf.train.Saver()
+        tf.get_default_graph().finalize()
+
+        self.sess = tf.Session()
+        self.sess.run(init_vars)
+
+
+    def random_bernoulli(self, shape, p=0.5):
+        if isinstance(shape, (list, tuple)):
+            shape = tf.stack(shape)
+        return tf.where(tf.random_uniform(shape) < p, tf.ones(shape), tf.zeros(shape))
+
+
+
+    def norm_flow(self, v):
+        '''
+        v: [1,v]
+        '''
+
+        z_size = 4
+
+        #Flows z0 -> zT
+        mask = self.random_bernoulli(tf.shape(v), p=0.5)
+        h = slim.stack(mask*v,slim.fully_connected,[30])
+        mew_ = slim.fully_connected(h,z_size,activation_fn=None) 
+        sig_ = slim.fully_connected(h,z_size,activation_fn=tf.nn.sigmoid) 
+
+        v = (mask * v) + (1-mask)*(v*sig_ + (1-sig_)*mew_)
+
+        logdet = tf.reduce_sum((1-mask)*tf.log(sig_), axis=1)
+
+        return v, logdet
 
 
 

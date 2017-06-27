@@ -6,6 +6,10 @@
 #FOUDN BUG, im only taking gradient of p(x|z), shoild be p(x,z)
 # fixed
 
+# the step size ended up being -0.00051097
+# maybe theres a bug
+# OR I need to use the regular leap frog, not my cheating one.
+
 
 import numpy as np
 import tensorflow as tf

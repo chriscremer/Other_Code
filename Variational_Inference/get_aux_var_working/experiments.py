@@ -34,6 +34,8 @@ from variational_q_models import Hamiltonian_Flow_model as HFM
 from variational_q_models import Hamiltonian_Flow_model2 as HFM2
 from variational_q_models import Hamiltonian_Flow_model3 as HFM3
 from variational_q_models import Fac_Gaus_Score_Func as FGSF
+from variational_q_models import AV_model_flows_on_v as AVF
+
 
 
 
@@ -94,8 +96,11 @@ if __name__ == '__main__':
     # models = [FGSF]
     # model_names = ['SF']
 
-    models = [AVM]
-    model_names = ['AV']
+    # models = [AVM]
+    # model_names = ['AV']
+
+    models = [AVF]
+    model_names = ['AVF']
 
     # models = [FGM, AVM]
     # model_names = ['FG', 'AV']
