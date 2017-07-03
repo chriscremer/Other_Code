@@ -165,6 +165,41 @@ def log_bernoulli(t, pred_no_sig):
 
 
 
+def sample_Gaussian(mean, logvar, n_particles):
+    '''
+    mean, logvar: [B,Z]
+    outpit: [P,B,Z]
+    '''
+
+    shape = tf.shape(mean)
+    B = shape[0]
+    Z = shape[1]
+
+    eps = tf.random_normal((n_particles, B, Z), 0, 1)#, seed=self.rs) 
+    z = tf.add(mean, tf.multiply(tf.sqrt(tf.exp(logvar)), eps)) # [P,B,Z]
+
+    return z
+
+
+
+def split_mean_logvar(mean_logvar):
+    '''
+    mean_logvar: [B,Z*2]
+    output: [B,Z]
+    '''
+
+    shape = tf.shape(mean_logvar)
+    B = shape[0]
+    Z = shape[1] / 2
+
+    mean = tf.slice(mean_logvar, [0,0], [B, Z]) #[B,Z] 
+    logvar = tf.slice(mean_logvar, [0,Z], [B, Z]) #[B,Z]
+
+    return mean, logvar
+
+
+
+
 
 
 
