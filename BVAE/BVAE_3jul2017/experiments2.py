@@ -59,8 +59,8 @@ def load_mnist(location):
 
 if __name__ == '__main__':
 
-    save_log = 1
-    train_ = 1
+    save_log = 0
+    train_ = 0
     plot_train = 1
     eval_ = 1
     plot_histo = 1
