@@ -18,6 +18,8 @@ from utils import split_mean_logvar
 from NN import NN
 from BNN import BNN
 
+slim=tf.contrib.slim
+
 
 class BVAE(object):
 
