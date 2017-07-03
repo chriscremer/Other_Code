@@ -8,7 +8,11 @@ import tensorflow as tf
 import pickle, time, datetime
 from os.path import expanduser
 home = expanduser("~")
+
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
 # from decimal import Decimal
 # import sys
 # sys.path.insert(0, './BVAE_adding_eval_use_this')
@@ -94,8 +98,8 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     n_batch = 50
 
-    # epochs = 30000  #for datasize 50
-    epochs = 30 # for data size 50 000
+    epochs = 30000  #for datasize 50
+    # epochs = 30 # for data size 50 000
 
     lr = .001
     h1_size = 100  #hidden layer size
