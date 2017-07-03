@@ -3,11 +3,11 @@
 
 This repo is for storing miscellaneous code that I've written.
 
-###Reinforcement_Learning
+### Reinforcement_Learning
 
 My implementations of model-free and model-based RL methods. The model is DKF/DVAE. 
 
-###VAE 
+### VAE 
 
 Experiments involving VAEs. I compared VAE to IWAE. I examined the how well VAEs could model multimodal distributions. I looked how the structure of the VAE affects its performance. 
 
