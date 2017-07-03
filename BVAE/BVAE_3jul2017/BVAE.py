@@ -427,7 +427,7 @@ class BVAE(object):
 
                     # Display logs per epoch step
                     # if step % display_step[1] == 0 and epoch % display_step[0] == 0:
-                    if epoch % display_step == 0:
+                    if epoch % display_step == 0 and step ==0:
 
 
                         #Get scores on training set
@@ -456,14 +456,17 @@ class BVAE(object):
                         logqWs=[]
                         l2_sums=[]
 
-                        data_index2 = 0
-                        for step in range(n_datapoints_valid/batch_size):
+                        # data_index2 = 0
+                        # for step2 in range(n_datapoints_valid/batch_size):
+                        for step2 in range(1000/batch_size):
+
 
                             #Make batch
                             batch = []
                             while len(batch) != batch_size:
-                                batch.append(valid_x[data_index2]) 
-                                data_index2 +=1
+                                # batch.append(valid_x[data_index2]) 
+                                batch.append(valid_x[np.random.randint(0,len(valid_x))]) 
+                                # data_index2 +=1
                             # Calc iwae elbo on test set
                             iwae_elbo, log_px,log_pz,log_qz,log_pW,log_qW,l2_sum = self.sess.run((self.iwae_elbo_test,
                                                                                         self.log_px, self.log_pz, 
