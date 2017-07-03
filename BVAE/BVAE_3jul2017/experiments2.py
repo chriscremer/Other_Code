@@ -21,7 +21,10 @@ import matplotlib.pyplot as plt
 # import os
 # from scipy.stats import multivariate_normal as norm
 
-from BVAE import BVAE
+# from BVAE import BVAE
+from BVAE_ga import BVAE
+
+
 # from BVAE_anneal import BVAE
 
 # from VAE import VAE
@@ -54,7 +57,7 @@ def load_mnist(location):
 
 if __name__ == '__main__':
 
-    save_log = 1
+    save_log = 0
     train_ = 1
     plot_train = 1
     eval_ = 1
@@ -102,10 +105,12 @@ if __name__ == '__main__':
     # epochs = 30 # for data size 50 000
 
     lr = .001
-    h1_size = 100  #hidden layer size
+    h1_size = 5  #hidden layer size
     S_training = 1  #number of weight samples
     k_training = 1 #number of z samples
     z_size = 5
+
+    n_decoder_weights = (z_size+1) * (h1_size) + (h1_size+1) * x_size 
 
     #Experimental Variables
     list_of_models = ['bvae']  #['vae', 'bvae', 'vae_no_reg'] #['vae', 'bvae', 'vae_no_reg']
@@ -140,7 +145,7 @@ if __name__ == '__main__':
                     'learning_rate': lr,
                     'x_size': x_size,
                     'z_size': z_size,
-                    'encoder_net': [x_size, h1_size, z_size*2],
+                    'encoder_net': [x_size + n_decoder_weights, h1_size, z_size*2],
                     'decoder_net': [z_size, h1_size, x_size],
                     # 'encoder_net': [x_size, z_size*2],
                     # 'decoder_net': [z_size, x_size],

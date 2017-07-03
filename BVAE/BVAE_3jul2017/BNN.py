@@ -94,7 +94,11 @@ class BNN(object):
 
             log_q_W_sum += log_normal3(flat_w, flat_W_means, flat_W_logvars)
 
+            # print W
+
             Ws.append(W)
+
+        # afsasd
 
         return Ws, log_p_W_sum, log_q_W_sum
 

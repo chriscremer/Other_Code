@@ -206,6 +206,11 @@ class BVAE(object):
         Output: [1]
         '''
 
+        # log_px_eval = tf.reduce_mean(log_px)   #[1]
+        # log_pz_eval = tf.reduce_mean(log_pz)   #[1]
+        # log_qz_eval = tf.reduce_mean(log_qz)   #[1]
+
+
         # Log mean exp over S and P, mean over B
         temp_elbo = tf.reduce_mean(log_px + log_pz - log_qz, axis=2)   #[S,P]
         # log_pW = tf.reshape(log_pW, [self.n_W_particles, 1]) #[S,1]
@@ -562,7 +567,7 @@ class BVAE(object):
             while len(batch) != batch_size:
                 batch.append(data2[rs.randint(0,len(data2))]) 
  
-            elbo,log_px,log_pz,log_qz,log_pW,log_qW, l2_sum, batch_frac = self.sess.run((self.elbo, 
+            elbo,log_px,log_pz,log_qz,log_pW,log_qW, l2_sum, batch_frac = self.sess.run((self.iwae_elbo_test, 
                                                                         self.log_px, self.log_pz, 
                                                                         self.log_qz, self.log_pW, 
                                                                         self.log_qW, self.l2_sum,
