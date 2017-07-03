@@ -22,7 +22,9 @@ import matplotlib.pyplot as plt
 # from scipy.stats import multivariate_normal as norm
 
 # from BVAE import BVAE
-from BVAE_ga import BVAE
+# from BVAE_ga import BVAE
+from BVAE_ga_qz import BVAE
+
 
 
 # from BVAE_anneal import BVAE
