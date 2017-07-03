@@ -24,7 +24,7 @@ class BNN(object):
         tf.reset_default_graph()
 
         #Model hyperparameters
-        self.act_func = tf.nn.sigmoid #tf.nn.relu #tf.tanh #tf.nn.softplus #
+        self.act_func = tf.nn.relu#tf.nn.softplus#tf.tanh #tf.nn.sigmoid### # ## #
         self.learning_rate = .001
         self.rs = 0
         self.input_size = network_architecture[0]

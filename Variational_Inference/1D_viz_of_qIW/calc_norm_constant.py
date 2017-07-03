@@ -141,7 +141,7 @@ from scipy.stats import norm
 
 def q_x(x):
 
-    y = norm.pdf(x, loc=0, scale=10**(.5)) 
+    y = norm.pdf(x, loc=20, scale=10**(.5)) 
 
     # y = np.array(y)
     # y = y / np.sum(y)
@@ -244,7 +244,7 @@ def qIW_x(x, A, k):
 
 def qIW_x_distribution(A, k):
 
-    x = np.linspace(-10, 10, 200)
+    x = np.linspace(-50, 120, 200)
     # y = [norm.pdf(x_i, loc=0, scale=1)+norm.pdf(x_i, loc=1, scale=.5)+norm.pdf(x_i, loc=-2, scale=.5) for x_i in x]
 
     y = [qIW_x(x_i, A, k) for x_i in x]
@@ -333,9 +333,9 @@ if __name__ == "__main__":
 
 
 
-    n_rows = 3
-    n_cols = 3
-    fig = plt.figure(figsize=(n_cols+6,n_rows+4), facecolor='white')
+    # n_rows = 3
+    # n_cols = 3
+    # fig = plt.figure(figsize=(n_cols+6,n_rows+4), facecolor='white')
 
 
     rv = norm()
@@ -343,75 +343,88 @@ if __name__ == "__main__":
     n_samps = 1
         
 
-    for r in range(n_rows):
-        for c in range(n_cols):
+    # for r in range(n_rows):
+    #     for c in range(n_cols):
 
             
 
-            ax = plt.subplot2grid((n_rows,n_cols), (r,c), frameon=False)#, colspan=3)
-            ax.set_yticks([])
-            ax.set_xticks([])
-            ax.set_ylim([-.02,.5])
+            # ax = plt.subplot2grid((n_rows,n_cols), (r,c), frameon=False)#, colspan=3)
+            # ax.set_yticks([])
+            # ax.set_xticks([])
+            # ax.set_ylim([-.02,.5])
 
-            if r==0 and c==0:
+            # if r==0 and c==0:
 
 
-                x, y = p_x_distribution()
+            #     x, y = p_x_distribution()
                 
 
-                width = x[1] - x[0]
-                int_ = width*np.sum(y)
-                print 'integral true', int_
+            #     width = x[1] - x[0]
+            #     int_ = width*np.sum(y)
+            #     print 'integral true', int_
 
 
-                ax.plot(x, y, linewidth=2, label='Z_p: '+("%.2f" % int_))
+            #     ax.plot(x, y, linewidth=2, label='Z_p: '+("%.2f" % int_))
 
 
-                x, y = q_x_distribution()
+            #     x, y = q_x_distribution()
 
 
-                width = x[1] - x[0]
-                int_ = width*np.sum(y)
-                print 'integral q', int_
+            #     width = x[1] - x[0]
+            #     int_ = width*np.sum(y)
+            #     print 'integral q', int_
 
 
-                ax.plot(x, y, linewidth=2, label='Z_q: '+("%.2f" % int_))
+            #     ax.plot(x, y, linewidth=2, label='Z_q: '+("%.2f" % int_))
 
-                plt.legend(fontsize=6)
-
-
-            else:
-
-                x, y = p_x_distribution()
-                ax.plot(x, y, linewidth=2)
-
-                sum_ = 0
-                for i in range(n_samps):
-                    x = norm.rvs(loc=0, scale=10**(.5), size=1)#, random_state=r*c+r)
-                    ax.plot([x,x], [-.02,0], 'k-', lw=1)#, label='frozen pdf')
-
-                    # print p_x(x), q_x(x), p_x(x) / q_x(x)
-                    sum_ += p_x(x) / q_x(x)
-                print r, c, sum_
+            #     plt.legend(fontsize=6)
 
 
+            # else:
 
-                x, y = qIW_x_distribution(A=sum_, k=1+n_samps)
+                # x, y = p_x_distribution()
+                # ax.plot(x, y, linewidth=2)
 
-                #qIW integral
-                width = x[1] - x[0]
-                int_ = width*np.sum(y)
-                print 'integral qIW', int_
+    iters = 200
+    sum__ = 0
+    for j in range(iters):
+
+        if j %10 == 0:
+            print j
 
 
-                ax.plot(x, y, linewidth=2, label='Z_qIW: '+("%.2f" % int_))
+        sum_ = 0
+        for i in range(n_samps):
+            x = norm.rvs(loc=20, scale=10**(.5), size=1)#, random_state=r*c+r)
+            # ax.plot([x,x], [-.02,0], 'k-', lw=1)#, label='frozen pdf')
+
+            # print p_x(x), q_x(x), p_x(x) / q_x(x)
+            sum_ += p_x(x) / q_x(x)
+        # print r, c, sum_
 
 
 
+        x, y = qIW_x_distribution(A=sum_, k=1+n_samps)
 
-                ax.plot(0, 0, label='A: '+("%.2f" % (sum_/n_samps)))
+        #qIW integral
+        width = x[1] - x[0]
+        int_ = width*np.sum(y)
+        # print 'integral qIW', int_
 
-                plt.legend(fontsize=6)
+        sum__ += int_
+
+
+    print sum__ / iters
+
+
+        # ax.plot(x, y, linewidth=2, label='Z_qIW: '+("%.2f" % int_))
+
+
+
+
+        # ax.plot(0, 0, label='A: '+("%.2f" % (sum_/n_samps)))
+
+        # plt.legend(fontsize=6)
 
 
 
