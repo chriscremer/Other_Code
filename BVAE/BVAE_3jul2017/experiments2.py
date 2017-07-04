@@ -104,8 +104,10 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     n_batch = 50
 
-    epochs = 30000  #for datasize 50
+    epochs = 10000  #for datasize 50
     # epochs = 30 # for data size 50 000
+
+    display_step = 200
 
     lr = .001
     h1_size = 5  #hidden layer size

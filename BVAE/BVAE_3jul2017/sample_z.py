@@ -32,11 +32,7 @@ class Sample_z(object):
         self.n_z_particles = n_z_particles
 
         self.rs = 0
-
-
-
         
-
         self.n_transitions = n_transformations
 
         self.variables = []
