@@ -104,7 +104,7 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     n_batch = 50
 
-    epochs = 10000  #for datasize 50
+    epochs = 5000  #for datasize 50
     # epochs = 30 # for data size 50 000
 
     display_step = 10
@@ -204,7 +204,7 @@ if __name__ == '__main__':
 
                     values, labels, test_values, test_labels = model.train2(train_x=train_x, valid_x=test_x,
                                 epochs=epochs, batch_size=n_batch,
-                                display_step=3000,
+                                display_step=display_step,
 
                                 # display_step=[500,3000],
                                 # display_step=[5,3000],
