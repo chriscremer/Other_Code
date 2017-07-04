@@ -201,7 +201,7 @@ def split_mean_logvar(mean_logvar):
 
 
 
-def sample_classes_evenly(dataset_size, data):
+# def sample_classes_evenly(dataset_size, data):
 
 
     
