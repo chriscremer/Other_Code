@@ -74,18 +74,19 @@ if __name__ == '__main__':
 
     #Load data
     train_x, valid_x, test_x = load_binarized_mnist(location=binarized_mnist_path)
-    train_x, valid_x, test_x, train_y, valid_y, test_y = load_mnist(location=mnist_path)
+    # train_x, valid_x, test_x, train_y, valid_y, test_y = load_mnist(location=mnist_path)
 
-    #Covariate shift: remove digit from training set. 
-    # print train_y.shape
-    new_train_x = []
-    for i in range(len(train_y)):
-        if train_y[i] != 0 and train_y[i] != 1 and train_y[i] != 2:
-            new_train_x.append(train_x[i])
-    # print np.array(new_train_x).shape
-    train_x = np.array(new_train_x)
-    # print train_x.shape
-    # fdasf
+
+    # #Covariate shift: remove digit from training set. 
+    # # print train_y.shape
+    # new_train_x = []
+    # for i in range(len(train_y)):
+    #     if train_y[i] != 0 and train_y[i] != 1 and train_y[i] != 2:
+    #         new_train_x.append(train_x[i])
+    # # print np.array(new_train_x).shape
+    # train_x = np.array(new_train_x)
+    # # print train_x.shape
+    # # fdasf
 
 
 
@@ -93,7 +94,7 @@ if __name__ == '__main__':
     print 'Valid', valid_x.shape
     print 'Test', test_x.shape
 
-    train_x = train_x[:100]
+    train_x = train_x[:1000]
     print 'Train', train_x.shape
 
     # test_x = test_x[:100]
@@ -103,7 +104,7 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     n_batch = 50
 
-    epochs = 60000  #for datasize 50
+    epochs = 30000  #for datasize 50
     # epochs = 30 # for data size 50 000
 
     lr = .001
