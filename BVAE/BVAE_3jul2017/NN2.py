@@ -15,7 +15,7 @@ class NN(object):
         self.input_size = network_architecture[0]
         self.output_size = network_architecture[-1]
         self.net = network_architecture
-        self.batch_size = batch_size
+        # self.batch_size = batch_size
 
         self.Ws = self.init_weights()
 
@@ -68,6 +68,8 @@ class NN(object):
         y_hat: [B,O]
         '''
 
+        B = tf.shape(x)[0]
+
         net = self.net
 
         #[B,X]
@@ -78,12 +80,19 @@ class NN(object):
             W = self.Ws[layer_i]
 
             #Concat 1 to input for biases  [B,P,X]->[B,P,X+1]
-            cur_val = tf.concat([cur_val,tf.ones([self.batch_size, 1])], axis=1)
+            cur_val = tf.concat([cur_val,tf.ones([B, 1])], axis=1)
 
-            if layer_i != len(net)-2:
-                cur_val = self.act_func(tf.matmul(cur_val, W))
+            # if layer_i != len(net)-2:
+            #     cur_val = self.act_func(tf.matmul(cur_val, W))
+            # else:
+            #     cur_val = tf.matmul(cur_val, W)
+
+            if self.act_func[layer_i] != None:
+                cur_val = self.act_func[layer_i](tf.matmul(cur_val, W))
             else:
                 cur_val = tf.matmul(cur_val, W)
+
+
 
         return cur_val
 

@@ -59,12 +59,12 @@ def load_mnist(location):
 
 if __name__ == '__main__':
 
-    save_log = 0
-    train_ = 0
+    save_log = 1
+    train_ = 1
     plot_train = 1
     eval_ = 1
-    plot_histo = 1
-    viz_sammples = 1
+    plot_histo = 0
+    viz_sammples = 0
 
     # Paths
     mnist_path = home+'/Documents/MNIST_data/mnist.pkl'
@@ -103,8 +103,8 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     n_batch = 50
 
-    epochs = 30001  #for datasize 50
-    # epochs = 30 # for data size 50 000
+    # epochs = 30000  #for datasize 50
+    epochs = 30 # for data size 50 000
 
     lr = .001
     h1_size = 5  #hidden layer size
@@ -559,6 +559,11 @@ if __name__ == '__main__':
 
                 if eval_:
 
+
+                    #Evaluate
+                    print '\nEvaluating'
+
+
                     hyperparams['n_W_particles'] = S_evaluation
                     hyperparams['n_z_particles'] = k_evaluation
 
@@ -571,9 +576,7 @@ if __name__ == '__main__':
                     elif m == 'vae':
                         model = VAE(hyperparams)   
 
-
-                    #Evaluate
-                    print '\nEvaluating'
+                    # print 'before or after'
 
                     start = time.time()
                     test_results, train_results, test_labels, train_labels = model.eval(data=test_x, batch_size=n_batch_eval, display_step=100,

@@ -31,7 +31,7 @@ class BNN(object):
         self.batch_size = batch_size
         # self.n_particles = n_particles
         # self.batch_fraction_of_dataset = batch_frac
-
+        # print 'bnn'
         self.W_means, self.W_logvars = self.init_weights()
 
 
