@@ -107,7 +107,7 @@ if __name__ == '__main__':
     epochs = 10000  #for datasize 50
     # epochs = 30 # for data size 50 000
 
-    display_step = 200
+    display_step = 10
 
     lr = .001
     h1_size = 5  #hidden layer size
