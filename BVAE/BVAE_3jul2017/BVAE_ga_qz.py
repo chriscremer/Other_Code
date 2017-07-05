@@ -665,48 +665,47 @@ class BVAE(object):
                                 "elbo={:.4f}".format(float(elbo)),
                                 log_px,log_pz,log_qz,log_pW,log_qW)
 
-                        values.append([epoch, elbo,log_px,log_pz,-log_qz,log_pW,-log_qW,-l2_sum])
+                        if epoch != 0:
+                            values.append([epoch, elbo,log_px,log_pz,-log_qz,log_pW,-log_qW,-l2_sum])
 
 
+                            #Run over test set, just a subset, all would take too long I think, maybe not becasue using less particles..
+                            iwae_elbos = []
+                            logpxs=[]
+                            logpzs=[]
+                            logqzs=[]
+                            logpWs=[]
+                            logqWs=[]
+                            l2_sums=[]
+
+                            # data_index2 = 0
+                            # for step2 in range(n_datapoints_valid/batch_size):
+                            for step2 in range(1000/batch_size):
 
 
-                        #Run over test set, just a subset, all would take too long I think, maybe not becasue using less particles..
-                        iwae_elbos = []
-                        logpxs=[]
-                        logpzs=[]
-                        logqzs=[]
-                        logpWs=[]
-                        logqWs=[]
-                        l2_sums=[]
+                                #Make batch
+                                batch = []
+                                while len(batch) != batch_size:
+                                    # batch.append(valid_x[data_index2]) 
+                                    batch.append(valid_x[np.random.randint(0,len(valid_x))]) 
+                                    # data_index2 +=1
+                                # Calc iwae elbo on test set
+                                iwae_elbo, log_px,log_pz,log_qz,log_pW,log_qW,l2_sum = self.sess.run((self.iwae_elbo_test,
+                                                                                            self.log_px, self.log_pz, 
+                                                                                            self.log_qz, self.log_pW, 
+                                                                                            self.log_qW, self.l2_sum), 
+                                                                        feed_dict={self.x: batch})
+                                iwae_elbos.append(iwae_elbo)
+                                logpxs.append(log_px)
+                                logpzs.append(log_pz)
+                                logqzs.append(log_qz)
+                                logpWs.append(log_pW)
+                                logqWs.append(log_qW)
+                                l2_sums.append(l2_sum)
 
-                        # data_index2 = 0
-                        # for step2 in range(n_datapoints_valid/batch_size):
-                        for step2 in range(1000/batch_size):
+                            test_results = [epoch, np.mean(iwae_elbos), np.mean(logpxs), np.mean(logpzs), -np.mean(logqzs), np.mean(logpWs), -np.mean(logqWs), -np.mean(l2_sums)]
 
-
-                            #Make batch
-                            batch = []
-                            while len(batch) != batch_size:
-                                # batch.append(valid_x[data_index2]) 
-                                batch.append(valid_x[np.random.randint(0,len(valid_x))]) 
-                                # data_index2 +=1
-                            # Calc iwae elbo on test set
-                            iwae_elbo, log_px,log_pz,log_qz,log_pW,log_qW,l2_sum = self.sess.run((self.iwae_elbo_test,
-                                                                                        self.log_px, self.log_pz, 
-                                                                                        self.log_qz, self.log_pW, 
-                                                                                        self.log_qW, self.l2_sum), 
-                                                                    feed_dict={self.x: batch})
-                            iwae_elbos.append(iwae_elbo)
-                            logpxs.append(log_px)
-                            logpzs.append(log_pz)
-                            logqzs.append(log_qz)
-                            logpWs.append(log_pW)
-                            logqWs.append(log_qW)
-                            l2_sums.append(l2_sum)
-
-                        test_results = [epoch, np.mean(iwae_elbos), np.mean(logpxs), np.mean(logpzs), -np.mean(logqzs), np.mean(logpWs), -np.mean(logqWs), -np.mean(l2_sums)]
-
-                        valid_values.append(test_results)
+                            valid_values.append(test_results)
 
                         
 

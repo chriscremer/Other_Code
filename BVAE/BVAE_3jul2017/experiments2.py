@@ -104,7 +104,7 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     n_batch = 50
 
-    epochs = 500  #for datasize 50
+    epochs = 200  #for datasize 50
     # epochs = 30 # for data size 50 000
 
     display_step = 10
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     # list_of_k_samples = [1]
     # z_sizes = [30] #[10,100]#[10,50,100]   #latent layer size
     qW_weights = [1.]#[.0000001, 1.] #[.0000001]#[1.]#
-    lmbas = [0.] #[0., 1.] #l2 weight on the encoder
+    lmbas = [.00001] #[0., 1.] #l2 weight on the encoder
 
     # Test settings
     S_evaluation = 5 #2  
