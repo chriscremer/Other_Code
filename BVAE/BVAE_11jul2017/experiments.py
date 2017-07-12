@@ -94,7 +94,7 @@ if __name__ == '__main__':
     print 'Valid', valid_x.shape
     print 'Test', test_x.shape
 
-    train_x = train_x[:10000]
+    train_x = train_x[:1000]
     print 'Train', train_x.shape
 
     # test_x = test_x[:100]
