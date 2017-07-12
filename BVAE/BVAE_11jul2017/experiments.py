@@ -104,7 +104,7 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     z_size = 5
 
-    epochs = 500  
+    epochs = 1000  
     n_batch = 50
     display_step = epochs / 25
     lr = .001
