@@ -94,7 +94,7 @@ if __name__ == '__main__':
     print 'Valid', valid_x.shape
     print 'Test', test_x.shape
 
-    train_x = train_x[:1000]
+    train_x = train_x[:10000]
     print 'Train', train_x.shape
 
     # test_x = test_x[:100]
@@ -104,9 +104,9 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     z_size = 5
 
-    epochs = 5000  #for datasize 50
+    epochs = 500  
     n_batch = 50
-    display_step = 200
+    display_step = epochs / 25
     lr = .001
 
 
