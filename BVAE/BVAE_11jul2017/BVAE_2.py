@@ -51,14 +51,14 @@ class BVAE(object):
         elif hyperparams['ga'] == 'hypo_net':
             #count size of decoder 
             if len(hyperparams['decoder_hidden_layers']) == 0:
-                n_decoder_weights = (z_size+1) * x_size
+                n_decoder_weights = (self.z_size+1) * self.x_size
             else:
                 n_decoder_weights = 0
                 for i in range(len(hyperparams['decoder_hidden_layers'])+1):
                     if i==0:
-                        n_decoder_weights += (z_size+1) * hyperparams['decoder_hidden_layers'][i]
+                        n_decoder_weights += (self.z_size+1) * hyperparams['decoder_hidden_layers'][i]
                     elif i==len(hyperparams['decoder_hidden_layers']):
-                        n_decoder_weights += (hyperparams['decoder_hidden_layers'][i-1]+1) * x_size 
+                        n_decoder_weights += (hyperparams['decoder_hidden_layers'][i-1]+1) * self.x_size 
                     else:
                         n_decoder_weights += (hyperparams['decoder_hidden_layers'][i-1]+1) * hyperparams['decoder_hidden_layers'][i] 
             print 'n_decoder_weights', n_decoder_weights
@@ -396,6 +396,13 @@ class BVAE(object):
             values =[]
             valid_values =[]
 
+            labels = ['epoch', 'elbo','log_px','log_pz','-log_qz','log_pW','-log_qW','-l2_sum']
+            test_labels = ['epoch', 'test_iwae_elbo','test_log_px','test_log_pz', 
+                            '-test_log_qz','test_log_pW','-test_log_qW','-test_l2_sum']
+
+            print labels
+            print test_labels
+
             #start = time.time()
             for epoch in range(epochs):
 
@@ -427,21 +434,66 @@ class BVAE(object):
                     # if step % display_step[1] == 0 and epoch % display_step[0] == 0:
                     if epoch % display_step == 0 and step ==0:
 
+                        iwae_elbos = []
+                        logpxs=[]
+                        logpzs=[]
+                        logqzs=[]
+                        logpWs=[]
+                        logqWs=[]
+                        l2_sums=[]
 
-                        #Get scores on training set
-                        elbo,log_px,log_pz,log_qz,log_pW,log_qW,l2_sum = self.sess.run((self.elbo, 
-                                                                                    self.log_px, self.log_pz, 
-                                                                                    self.log_qz, self.log_pW, 
-                                                                                    self.log_qW, self.l2_sum), 
-                                                        feed_dict={self.x: batch, 
-                                                            self.batch_frac: 1./float(n_datapoints)})
+                        for step2 in range(1000/batch_size):
+
+                            #Make batch
+                            batch = []
+                            while len(batch) != batch_size:
+                                batch.append(train_x[np.random.randint(0,len(train_x))]) 
+                            # Calc iwae elbo on test set
+                            iwae_elbo, log_px,log_pz,log_qz,log_pW,log_qW,l2_sum = self.sess.run((self.iwae_elbo_test,
+                                                                                        self.log_px, self.log_pz, 
+                                                                                        self.log_qz, self.log_pW, 
+                                                                                        self.log_qW, self.l2_sum), 
+                                                                    feed_dict={self.x: batch})
+                            iwae_elbos.append(iwae_elbo)
+                            logpxs.append(log_px)
+                            logpzs.append(log_pz)
+                            logqzs.append(log_qz)
+                            logpWs.append(log_pW)
+                            logqWs.append(log_qW)
+                            l2_sums.append(l2_sum)
+
+                        iwae_elbo = np.mean(iwae_elbos)
+                        logpx = np.mean(logpxs)
+                        logpz = np.mean(logpzs)
+                        logqz = -np.mean(logqzs)
+                        logpW = np.mean(logpWs)
+                        logqW = -np.mean(logqWs)
+                        l2_sum = -np.mean(l2_sums)
+
+                        train_results = [epoch, iwae_elbo, logpx, logpz, logqz, logpW, logqW, l2_sum]
+
+                        # train_values.append(train_results)
+
+                        # #Get scores on training set
+                        # elbo,log_px,log_pz,log_qz,log_pW,log_qW,l2_sum = self.sess.run((self.elbo, 
+                        #                                                             self.log_px, self.log_pz, 
+                        #                                                             self.log_qz, self.log_pW, 
+                        #                                                             self.log_qW, self.l2_sum), 
+                        #                                 feed_dict={self.x: batch, 
+                        #                                     self.batch_frac: 1./float(n_datapoints)})
+
                         print ("Epoch", str(epoch+1)+'/'+str(epochs), 
                                 'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
                                 "elbo={:.4f}".format(float(elbo)),
-                                log_px,log_pz,log_qz,log_pW,log_qW)
+                                logpx,logpz,logqz,logpW,logqW,l2_sum)
+
+
+
 
                         if epoch != 0:
-                            values.append([epoch, elbo,log_px,log_pz,-log_qz,log_pW,-log_qW,-l2_sum])
+                            # values.append([epoch, elbo,log_px,log_pz,-log_qz,log_pW,-log_qW,-l2_sum])
+                            values.append(train_results)
+
 
                             if len(valid_x) > 0:
 
@@ -491,9 +543,6 @@ class BVAE(object):
                 self.saver.save(self.sess, path_to_save_variables)
                 print 'Saved variables to ' + path_to_save_variables
 
-        labels = ['epoch', 'elbo','log_px','log_pz','-log_qz','log_pW','-log_qW','-l2_sum']
-        test_labels = ['epoch', 'test_iwae_elbo','test_log_px','test_log_pz', 
-                        '-test_log_qz','test_log_pW','-test_log_qW','-test_l2_sum']
 
         return np.array(values), labels, np.array(valid_values), test_labels
 

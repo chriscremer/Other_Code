@@ -104,10 +104,11 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     z_size = 5
 
+    epochs = 5000  #for datasize 50
+    n_batch = 50
     display_step = 200
     lr = .001
-    n_batch = 50
-    epochs = 10000  #for datasize 50
+
 
     S_training = 1  #number of weight samples
     k_training = 1 #number of z samples
