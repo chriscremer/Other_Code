@@ -1,51 +1,187 @@
 \documentclass{article}
+\usepackage[utf8]{inputenc}
 
-\usepackage{graphicx}
-\usepackage{amsmath}
+\usepackage{amssymb,amsmath,amsthm}
+\usepackage{breakcites}
+
 \usepackage{tikz}
 \usetikzlibrary{bayesnet}
 
+\usepackage{subfig}
+
+\usepackage{multirow}
+
+
+\title{Generator-Aware Bayesian Variational Autoencoders}
+\author{}
+\date{July 2017}
+
 \begin{document}
-
-\title{BVAE}
-
-\author{Chris}
 
 \maketitle
 
-% \begin{abstract}
-% The abstract text goes here.
-% \end{abstract}
+\begin{abstract}
+In some scenarios, it is important to have uncertainty in the generator. However, naively using a BNN as the generator will be limited by (mutual info argument). Here we show how to build a GABVAE. 
+\end{abstract}
+
+
+
+\section{Introduction}
+
+VAEs \cite{vae} overfit in both the recognition and generator networks. The recognition overfitting is solvable. The generator overfitting gets worse with higher latent dimensionality $Q$ and input dimensionality $D$. 
+
+A BVAE is a VAE where we are being Bayesian with the parameters $\theta$ of the generator network. 
+
+Meaning of z is dependent on $\theta$. Therefore the recognition networks needs to be generator-aware. Here we introduce the Generator-Aware Bayesian Variational Autoencoders (GABVAE).
+
+
+\section{Generator-Aware Bayesian VAE}
+
 
 \begin{figure}[h]
-    \centering
-    \tikz
-    {
-        \node[latent] (weights) {$\theta$} ;
-        \node[latent, right=of weights] (Z) {$Z$} ;
-        \node[latent, left=of weights] (Z_prime) {$Z'$} ;
-        \node[obs, below=of Z] (X) {$X$} ;
-        \node[obs, below=of Z_prime] (X_prime) {$X'$} ;
-        
-        \edge {Z_prime} {X_prime} ;
-        \edge {weights} {X_prime} ;
-        \edge {weights} {X} ;
-        \edge {Z} {X} ;
-        
-        \plate[inner sep=0.25cm, xshift=0.0cm, yshift=0.12cm] {plate1} {(Z) (X)} {N};
-    }
-    \caption{Graphical model of BVAE. $X$ is the training set. $X'$ is the test set.}
+  \centering
+      \subfloat[Generative model]
+        {
+            \tikz
+            {
+                \node[latent] (weights) {$\theta$} ;
+                \node[latent, left=of weights] (Z) {$Z$} ;
+                \node[obs, below=of Z] (X) {$X$} ;
+                \edge {weights} {X} ;
+                \edge {Z} {X} ;
+                
+                \plate[inner sep=0.25cm, xshift=0.0cm, yshift=0.12cm] {plate1} {(Z) (X)} {N};
+            }  \label{fig:f1}
+        }
+      \qquad \qquad %\hfill
+      \subfloat[VAE Inference model]
+        {
+            \tikz
+            {
+                \node[latent] (weights) {$\theta$} ;
+                \node[latent, left=of weights] (Z) {$Z$} ;
+                \node[obs, below=of Z] (X) {$X$} ;
+                % \edge {weights} {Z} ;
+                \edge {X} {Z} ;
+                
+                \plate[inner sep=0.25cm, xshift=0.0cm, yshift=0.12cm] {plate1} {(Z) (X)} {N};
+            }  \label{fig:f2}
+        }
+      \qquad \qquad %\hfill
+      \subfloat[BVAE Inference model]
+        {
+            \tikz
+            {
+                \node[latent] (weights) {$\theta$} ;
+                \node[latent, left=of weights] (Z) {$Z$} ;
+                \node[obs, below=of Z] (X) {$X$} ;
+                \edge {weights} {Z} ;
+                \edge {X} {Z} ;
+                
+                \plate[inner sep=0.25cm, xshift=0.0cm, yshift=0.12cm] {plate1} {(Z) (X)} {N};
+            }  \label{fig:f3}
+        }
+      \caption{Probabilistic graphical models}
+      \label{auxvar}
 \end{figure}
 
 
 
+\subsection{How to summarize the generator?}
 
-\section{BVAE Objectives}
+\begin{itemize}
+  \item Pass the whole network (hypo-network)
+  \item Pass the latent variable (MNF)
+  \item Other summary statistics
+\end{itemize}
 
-\subsection{Objective maximized during training}
+Another option is to use HVI \cite{hvi}. 
 
 
 
+
+
+
+
+\subsection{Mutual Info}
+Let $\mathbf{x_i} \in \mathbf{X}$ denote the $i$-th data point of the training data, 
+$\mathbf{z_i}\in \mathbf{Z}$ its corresponding latent representation and $\mathbf{\theta}$ the parameter variables
+of the generator network. Assuming that the true posterior factorises as follows,
+\begin{align}
+p(\mathbf{z_1}, \mathbf{z_2}, \dots, \mathbf{z_n}, \mathbf{\theta} | \mathbf{x_1}, \mathbf{x_2}, \dots, \mathbf{x_n}) 
+&= p(\mathbf{\theta} | \mathbf{X}) p(\mathbf{Z} |\mathbf{X}, \mathbf{\theta})\\
+&= p(\mathbf{\theta} | \mathbf{X}) \prod_{i=1}^N p(\mathbf{z_i}|\mathbf{x_i}, \mathbf{\theta})
+\end{align}
+Then, some optimal approximate posterior with the same factorial structure, 
+$q^*(\mathbf{Z}, \mathbf{\theta}|\mathbf{X}, \phi_{ga}) = q^*(\mathbf{\theta} | \mathbf{X}, \phi_{ga}) 
+\prod_{i=1}^N q^*(\mathbf{z_i}|\mathbf{x_i}, \mathbf{\theta}, \phi_{ga})$, parameterised by $\phi_{ga}$
+(``ga'' stands for generator-aware) from a rich enough variational family would be able to match the true posterior and set the 
+KL-divergence to zero. More formally, 
+\begin{align}
+D_{KL}\Bigl(q^*(\mathbf{\theta} | \mathbf{X}, \phi_{ga}) 
+\prod_{i=1}^N q^*(\mathbf{z_i}|\mathbf{x_i}, \mathbf{\theta}, \phi_{ga}) || p(\mathbf{Z}, \theta| \mathbf{X})\Bigr) = 0
+\end{align}
+However, if our approximate posterior does not take into account $\theta$ when predicting $\mathbf{z}$
+given $\mathbf{x}$, it is possible that the KL-divergence remain positive even under the optimal approximation, 
+however rich the variational family may be.
+\begin{align}
+D_{KL}\Bigl(q^*(\mathbf{\theta} | \mathbf{X}, \phi_{ga}) 
+\prod_{i=1}^N q^*(\mathbf{z_i}|\mathbf{x_i}, \phi_{ga}) || p(\mathbf{Z}, \theta| \mathbf{X})\Bigr) > 0
+\end{align}
+The loss of information could be measured by the KL-divergence between these two approximations. 
+\begin{align}
+&D_{KL}\Bigl(q^*(\mathbf{Z}, \theta |\mathbf{X}) || 
+q^*(\mathbf{Z}|\mathbf{X}) q^*(\mathbf{\theta} | \mathbf{X}) \Bigr) \\
+=&\int_{\theta} \int_{\mathbf{Z}} q^*(\mathbf{Z}, \theta |\mathbf{X}) \log \frac{q^*(\mathbf{Z}, \theta |\mathbf{X})} 
+{q^*(\mathbf{Z}|\mathbf{X}) q^*(\mathbf{\theta} | \mathbf{X})} \\
+=& \mathcal{I} (\mathbf{Z}, \theta)
+\end{align}
+where $\mathcal{I} (\mathbf{Z}, \theta)$ is the mutual information between the variables $\mathbf{Z}$ and $\theta$.
+
+\section{Related Work}
+
+\section{Experimental Results}
+
+
+Objective maximized during training:
+\begin{align}
+ E_{q(\theta,z|x)} \left[ log \left( \frac{p(x,z)p(\theta)}{q(z|x,\theta)q(\theta)} \right) \right ] 
+\end{align}
+Objective evaluated on the test set:
+\begin{align}
+ E_{q(\theta)} \left[ E_{q(z'|x',\theta)} \left[ log \left( \frac{p(x',z'|\theta)}{q(z'|x',\theta)} \right) \right ] \right ] 
+\end{align}
+
+\subsection{Choice of Generator-Aware model}
+
+\subsection{Generator-Aware with non-factorized inference and generator networks}
+
+\begin{table}[h]
+\centering
+\label{table_ga}
+\begin{tabular}{llcc}
+                                           &            & \multicolumn{2}{c}{q(W)} \\ \cline{3-4} 
+                                           &            & BNN         & MNF        \\
+\multicolumn{1}{c|}{\multirow{2}{*}{q(z)}} & factorized & 167, 168    & 162, 194    \\
+\multicolumn{1}{c|}{}                      & NF         & 166, 168     & 161, 185   
+\end{tabular}
+\caption{NLL on test set. Left is no GA, right is naive GA. }
+\end{table}
+
+\section{Conclusion}
+
+We've introduced GABVAEs.
+
+
+\bibliographystyle{apalike}
+\bibliography{refs}
+
+
+\newpage 
+
+\section{Appendix}
+
+Objective maximized during training:
 \begin{align}
     p(x) &= \int_{\theta} \int_{z} p(x,z,\theta) \\
     &= E_{q(\theta,z|x)} \left[ \frac{p(x,z,\theta)}{q(\theta,z|x)} \right ] \\
@@ -55,9 +191,7 @@
 \end{align}
 
 
-\subsection{Objective evaluated on the test set}
-
-
+Objective evaluated on the test set:
 \begin{align}
     p(x'|x) &= \int_{\theta} \int_{z'} p(x',z',\theta|x) \\
     &= \int_{\theta} \int_{z} p(x',z'|\theta,x) p(\theta|x) \\
@@ -65,117 +199,8 @@
     q(x'|x) &= \int_{\theta} \int_{z} p(x',z'|\theta) q(\theta) \\
     &= E_{q(\theta)} \left[ \int_{z} p(x',z'|\theta) \right] \\
     &= E_{q(\theta)} \left[ E_{q(z'|x')} \left[ \frac{p(x',z'|\theta)}{q(z'|x',\theta)} \right] \right]  \\
-	log(q(x'|x)) &= log \left(  E_{q(\theta)} \left[ E_{q(z'|x')} \left[ \frac{p(x',z'|\theta)}{q(z'|x',\theta)}  \right ] \right ] \right) \\
+    log(q(x'|x)) &= log \left(  E_{q(\theta)} \left[ E_{q(z'|x')} \left[ \frac{p(x',z'|\theta)}{q(z'|x',\theta)}  \right ] \right ] \right) \\
     &\geq   E_{q(\theta)} \left[ E_{q(z'|x')} \left[ log \left( \frac{p(x',z'|\theta)}{q(z'|x',\theta)} \right) \right ] \right ] 
 \end{align}
 
-
-
-\subsection{Other}
-
-
-\begin{align}
-    log p(x) = log \int p(x|\theta) q(\theta) = log E_q \left[ p(x|\theta) \right]
-\end{align}
-
-
-
-    % &= E_{q(\theta,z|x)} \left[ \frac{p(x,z,\theta)}{q(\theta,z|x)} \right ] \\
-    % &= E_{q(\theta,z|x)} \left[ \frac{p(x,z)p(\theta)}{q(z|x)q(\theta)} \right ] \\
-    % log(p(x)) &= log \left( E_{q(\theta,z|x)} \left[ \frac{p(x,z)p(\theta)}{q(z|x)q(\theta)} \right ] \right) \\
-
-\section{2D Plots}
-
-Equation used to plot $q_{T}(z_{T})$
-
-\begin{align}
-    q_{T}(z_{T}) &= E_{q(v_T)} \left[ \frac {q_{0}(T_{1}^{-1}(...(T_{T}^{-1}(z_{T},v_{T}))} { q(v_{T})}  \right ]
-\end{align}
-
 \end{document}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-% \pdfoutput=1
-% \documentclass{article} % For LaTeX2e
-% % \usepackage{include/nips15submit_e}
-% % \usepackage{include/nips_2016}
-% % \usepackage{include/nips15submit_e,times}
-
-% \usepackage{hyperref}
-% \usepackage{url}
-% %\documentstyle[nips14submit_09,times,art10]{article} % For LaTeX 2.09
-% \usepackage{graphicx}
-% \usepackage{bm}
-% \usepackage{breqn}
-% \usepackage{amssymb,amsmath}%,amsthm}
-
-% \title{HIS+BVAE+more}
-
-
-% % \author{
-% % Chris Cremer \\
-% % University of Toronto\\
-% % \texttt{ccremer@cs.toronto.edu} \\
-% % \and
-% % David Duvenaud \\
-% % University of Toronto \\
-% % \texttt{duvenaud@cs.toronto.edu} \\
-% % }
-
-% % \newcommand{\fix}{\marginpar{FIX}}
-% % \newcommand{\new}{\marginpar{NEW}}
-
-% \nipsfinalcopy % Uncomment for camera-ready version
-
-% \begin{document}
-
-% \maketitle
-
-% % \begin{abstract}
-% % TODO
-
-% % \end{abstract}
-
-% % \section{Introduction}
-% % TODO
-
-% \section{2D Plots}
-
-% \begin{align}
-%     q_{T}(z_{T}) &= E_{q(v_T)} \left[ \frac {q_{0}(T_{1}^{-1}...T_{T}^{-1}(z_{T},v_{T}))} { q(v_{T})}  \right ]
-% \end{align}
-
-% % \section{Method}
-% % TODO 
-
-% % \section{Related Work}
-% % TODO
-
-% % \section{Experimental Results}
-% % TODO
-
-% % \section{Conclusion}
-% % TODO
-
-
-% \bibliographystyle{ieeetr}
-% \bibliography{include/bvae.bib}
-
-% \end{document}
