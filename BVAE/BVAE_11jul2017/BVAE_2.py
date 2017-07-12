@@ -434,7 +434,7 @@ class BVAE(object):
                     # if step % display_step[1] == 0 and epoch % display_step[0] == 0:
                     if epoch % display_step == 0 and step ==0:
 
-                        iwae_elbos = []
+                        elbos = []
                         logpxs=[]
                         logpzs=[]
                         logqzs=[]
