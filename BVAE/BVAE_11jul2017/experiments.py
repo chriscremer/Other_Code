@@ -113,7 +113,7 @@ if __name__ == '__main__':
     S_training = 1  #number of weight samples
     k_training = 1 #number of z samples
     qW_weight = 1.
-    lmba = .00001 #l2 weight on the encoder
+    lmba = .0001 #l2 weight on the encoder
 
 
     #Experimental Variables
