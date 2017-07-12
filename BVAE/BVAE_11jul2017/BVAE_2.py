@@ -453,7 +453,7 @@ class BVAE(object):
                                                                                         self.log_px, self.log_pz, 
                                                                                         self.log_qz, self.log_pW, 
                                                                                         self.log_qW, self.l2_sum), 
-                                                                    feed_dict={self.x: batch, self.batch_frac: 1./float(n_datapoints})
+                                                                    feed_dict={self.x: batch, self.batch_frac: 1./float(n_datapoints)}
                             elbos.append(elbo)
                             logpxs.append(log_px)
                             logpzs.append(log_pz)
