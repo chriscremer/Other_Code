@@ -449,12 +449,12 @@ class BVAE(object):
                             while len(batch) != batch_size:
                                 batch.append(train_x[np.random.randint(0,len(train_x))]) 
                             # Calc iwae elbo on test set
-                            iwae_elbo, log_px,log_pz,log_qz,log_pW,log_qW,l2_sum = self.sess.run((self.iwae_elbo_test,
+                            elbo, log_px,log_pz,log_qz,log_pW,log_qW,l2_sum = self.sess.run((self.elbo,
                                                                                         self.log_px, self.log_pz, 
                                                                                         self.log_qz, self.log_pW, 
                                                                                         self.log_qW, self.l2_sum), 
-                                                                    feed_dict={self.x: batch})
-                            iwae_elbos.append(iwae_elbo)
+                                                                    feed_dict={self.x: batch, self.batch_frac: 1./float(n_datapoints})
+                            elbos.append(elbo)
                             logpxs.append(log_px)
                             logpzs.append(log_pz)
                             logqzs.append(log_qz)
@@ -462,7 +462,7 @@ class BVAE(object):
                             logqWs.append(log_qW)
                             l2_sums.append(l2_sum)
 
-                        iwae_elbo = np.mean(iwae_elbos)
+                        elbo = np.mean(elbos)
                         logpx = np.mean(logpxs)
                         logpz = np.mean(logpzs)
                         logqz = -np.mean(logqzs)
@@ -470,7 +470,7 @@ class BVAE(object):
                         logqW = -np.mean(logqWs)
                         l2_sum = -np.mean(l2_sums)
 
-                        train_results = [epoch, iwae_elbo, logpx, logpz, logqz, logpW, logqW, l2_sum]
+                        train_results = [epoch, elbo, logpx, logpz, logqz, logpW, logqW, l2_sum]
 
                         # train_values.append(train_results)
 
