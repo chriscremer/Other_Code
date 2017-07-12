@@ -104,7 +104,7 @@ if __name__ == '__main__':
     x_size = 784   #f_height=28f_width=28
     z_size = 5
 
-    epochs = 1000  
+    epochs = 300  
     n_batch = 50
     display_step = epochs / 25
     lr = .001
@@ -113,7 +113,7 @@ if __name__ == '__main__':
     S_training = 1  #number of weight samples
     k_training = 1 #number of z samples
     qW_weight = 1.
-    lmba = .0001 #l2 weight on the encoder
+    lmba = 0. #l2 weight on the encoder
 
 
     #Experimental Variables
