@@ -485,12 +485,12 @@ class BVAE(object):
                         print ("Epoch", str(epoch+1)+'/'+str(epochs), 
                                 'Step:%04d' % (step+1) +'/'+ str(n_datapoints/batch_size), 
                                 "elbo={:.4f}".format(float(elbo)),
-                                '{:2f}'.format(float(logpx)),
-                                '{:2f}'.format(float(logpz)),
-                                '{:2f}'.format(float(logqz)),
-                                '{:2f}'.format(float(logpW)),
-                                '{:2f}'.format(float(logqW)),
-                                '{:2f}'.format(float(l2_sum)))
+                                '{:.2f}'.format(float(logpx)),
+                                '{:.2f}'.format(float(logpz)),
+                                '{:.2f}'.format(float(logqz)),
+                                '{:.2f}'.format(float(logpW)),
+                                '{:.2f}'.format(float(logqW)),
+                                '{:.2f}'.format(float(l2_sum)))
 
 
 
