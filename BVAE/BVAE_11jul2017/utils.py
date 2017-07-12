@@ -88,6 +88,26 @@ def log_normal(z, mean, log_var):
 #     return log_normal_
 
 
+def log_normal2(position, mean, log_var):
+    '''
+    Log of normal distribution
+    position is [P, D]
+    mean is [D]
+    log_var is [D]
+    output is [P]
+    '''
+
+    n_D = tf.to_float(tf.shape(mean)[0])
+    term1 = n_D * tf.log(2*math.pi)
+    term2 = tf.reduce_sum(log_var, 0) #sum over D [1]
+    dif_cov = tf.square(position - mean) / tf.exp(log_var)
+    term3 = tf.reduce_sum(dif_cov, 1) #sum over D [P]
+    all_ = term1 + term2 + term3
+    log_normal_ = -.5 * all_
+
+    return log_normal_
+
+
 def log_normal3(x, mean, log_var):
     '''
     Log of normal distribution

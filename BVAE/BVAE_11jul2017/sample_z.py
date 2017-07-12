@@ -25,11 +25,12 @@ slim=tf.contrib.slim
 class Sample_z(object):
 
 
-    def __init__(self, batch_size, z_size, n_z_particles, n_transformations=3):
+    def __init__(self, batch_size, z_size, n_z_particles, ga, n_transformations=3):
 
         self.batch_size = batch_size
         self.z_size = z_size
         self.n_z_particles = n_z_particles
+        self.ga = ga
 
         self.rs = 0
         
@@ -115,24 +116,35 @@ class Sample_z(object):
         log_qz: [P,B]
         '''
 
-        for i in range(len(W)):
+        if self.ga == 'none':
+            intput_ = x
+            #Encode
+            z_mean_logvar = encoder.feedforward(intput_) #[B,Z*2]
+            z_mean = tf.slice(z_mean_logvar, [0,0], [self.batch_size, self.z_size]) #[B,Z] 
+            z_logvar = tf.slice(z_mean_logvar, [0,self.z_size], [self.batch_size, self.z_size]) #[B,Z]
 
-            if i ==0:
-                flatten_W = tf.reshape(W[i], [-1])
-                # print flatten_W
-            else:
-                flattt = tf.reshape(W[i], [-1])
-                # print flattt
-                flatten_W = tf.concat([flatten_W, flattt], axis=0)
+        elif self.ga == 'hypo_net':
 
-        flatten_W = tf.reshape(flatten_W, [1,-1])
-        tiled = tf.tile(flatten_W, [self.batch_size, 1])
-        intput_ = tf.concat([x,tiled], axis=1)
+            for i in range(len(W)):
 
-        #Encode
-        z_mean_logvar = encoder.feedforward(intput_) #[B,Z*2]
-        z_mean = tf.slice(z_mean_logvar, [0,0], [self.batch_size, self.z_size]) #[B,Z] 
-        z_logvar = tf.slice(z_mean_logvar, [0,self.z_size], [self.batch_size, self.z_size]) #[B,Z]
+                if i ==0:
+                    flatten_W = tf.reshape(W[i], [-1])
+                    # print flatten_W
+                else:
+                    flattt = tf.reshape(W[i], [-1])
+                    # print flattt
+                    flatten_W = tf.concat([flatten_W, flattt], axis=0)
+
+            flatten_W = tf.reshape(flatten_W, [1,-1])
+            tiled = tf.tile(flatten_W, [self.batch_size, 1])
+            intput_ = tf.concat([x,tiled], axis=1)
+
+            #Encode
+            z_mean_logvar = encoder.feedforward(intput_) #[B,Z*2]
+            z_mean = tf.slice(z_mean_logvar, [0,0], [self.batch_size, self.z_size]) #[B,Z] 
+            z_logvar = tf.slice(z_mean_logvar, [0,self.z_size], [self.batch_size, self.z_size]) #[B,Z]
+
+
 
         #Sample z  [P,B,Z]
         eps = tf.random_normal((self.n_z_particles, self.batch_size, self.z_size), 0, 1, seed=self.rs) 

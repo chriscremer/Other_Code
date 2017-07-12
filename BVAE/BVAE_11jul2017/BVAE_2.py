@@ -19,6 +19,8 @@ from utils import split_mean_logvar
 
 from NN import NN
 from BNN import BNN
+from BNN_MNF import MNF
+
 from sample_z import Sample_z
 
 slim=tf.contrib.slim
@@ -48,15 +50,18 @@ class BVAE(object):
 
         elif hyperparams['ga'] == 'hypo_net':
             #count size of decoder 
-            n_decoder_weights = 0
-            for i in range(len(hyperparams['decoder_hidden_layers'])+1):
-                if i==0:
-                    n_decoder_weights += (z_size+1) * hyperparams['decoder_hidden_layers'][i]
-                elif i==len(hyperparams['decoder_hidden_layers']):
-                    n_decoder_weights += (hyperparams['decoder_hidden_layers'][i-1]+1) * x_size 
-                else:
-                    n_decoder_weights += (hyperparams['decoder_hidden_layers'][i-1]+1) * hyperparams['decoder_hidden_layers'][i] 
-             
+            if len(hyperparams['decoder_hidden_layers']) == 0:
+                n_decoder_weights = (z_size+1) * x_size
+            else:
+                n_decoder_weights = 0
+                for i in range(len(hyperparams['decoder_hidden_layers'])+1):
+                    if i==0:
+                        n_decoder_weights += (z_size+1) * hyperparams['decoder_hidden_layers'][i]
+                    elif i==len(hyperparams['decoder_hidden_layers']):
+                        n_decoder_weights += (hyperparams['decoder_hidden_layers'][i-1]+1) * x_size 
+                    else:
+                        n_decoder_weights += (hyperparams['decoder_hidden_layers'][i-1]+1) * hyperparams['decoder_hidden_layers'][i] 
+            print 'n_decoder_weights', n_decoder_weights
             self.encoder_net = [self.x_size + n_decoder_weights] +hyperparams['encoder_hidden_layers'] +[self.z_size*2]
 
         self.encoder_act_func = tf.nn.elu #tf.nn.softplus #tf.tanh
@@ -71,7 +76,7 @@ class BVAE(object):
 
         #Other
         self.batch_size = tf.shape(self.x)[0]   #B
-        n_transformations = 3
+        n_transformations = hyperparams['n_qz_transformations']
         self.rs = 0
 
 
@@ -83,10 +88,14 @@ class BVAE(object):
             self.l2_sum = encoder.weight_decay()
 
         with tf.variable_scope("decoder"):
-            decoder = BNN(self.decoder_net, self.decoder_act_func, self.batch_size)
+            if hyperparams['decoder'] == 'BNN':
+                decoder = BNN(self.decoder_net, self.decoder_act_func)
+            elif hyperparams['decoder'] == 'MNF':
+                decoder = MNF(self.decoder_net, self.decoder_act_func)
+
 
         with tf.variable_scope("sample_z"):
-            sample_z = Sample_z(self.batch_size, self.z_size, self.n_z_particles, n_transformations)
+            sample_z = Sample_z(self.batch_size, self.z_size, self.n_z_particles, hyperparams['ga'], n_transformations)
 
         with tf.variable_scope("log_probs"):
             log_probs = self.log_probs(self.x, encoder, decoder, sample_z)
@@ -130,23 +139,24 @@ class BVAE(object):
 
             # Sample decoder weights  __, [1], [1]
             W, log_pW, log_qW = decoder.sample_weights()
-            log_pW = tf.reshape(log_pW, [1])
-            log_qW = tf.reshape(log_qW, [1])
 
             # Sample z   [P,B,Z], [P,B], [P,B]
             z, log_pz, log_qz = sample_z.sample_z(x, encoder, decoder, W)
-            log_pz = tf.reshape(log_pz, [1, self.n_z_particles, self.batch_size])
-            log_qz = tf.reshape(log_qz, [1, self.n_z_particles, self.batch_size])
-            # z: [PB,Z]
-            z = tf.reshape(z, [self.n_z_particles*self.batch_size, self.z_size])
+            z = tf.reshape(z, [self.n_z_particles*self.batch_size, self.z_size]) #[PB,Z]
 
             # Decode [PB,X]
             y = decoder.feedforward(W, z)
-            # y: [P,B,X]
-            y = tf.reshape(y, [self.n_z_particles, self.batch_size, self.x_size])
+            y = tf.reshape(y, [self.n_z_particles, self.batch_size, self.x_size]) #[P,B,X]
 
             # Likelihood p(x|z)  [P,B]
             log_px = log_bern(x,y)
+
+
+            # Reshape and concat results
+            log_pW = tf.reshape(log_pW, [1])
+            log_qW = tf.reshape(log_qW, [1])
+            log_pz = tf.reshape(log_pz, [1, self.n_z_particles, self.batch_size])
+            log_qz = tf.reshape(log_qz, [1, self.n_z_particles, self.batch_size])
             log_px = tf.reshape(log_px, [1, self.n_z_particles, self.batch_size])
 
             log_px = tf.concat([log_pxi, log_px], axis=0)
@@ -157,7 +167,7 @@ class BVAE(object):
 
             return [i+1, log_px, log_pz, log_qz, log_pW, log_qW]
 
-
+        #Init for while loop
         i0 = tf.constant(0)
         log_px0 = tf.zeros([1,self.n_z_particles, self.batch_size]) 
         log_pz0 = tf.zeros([1,self.n_z_particles, self.batch_size]) 
@@ -165,7 +175,7 @@ class BVAE(object):
         log_pW0 = tf.zeros([1]) 
         log_qW0 = tf.zeros([1]) 
 
-
+        #While loop  - causes TF to reuse the graph 
         c = lambda i, log_px, log_pz, log_qz, log_pW, log_qW: i < self.n_W_particles
         it, log_px, log_pz, log_qz, log_pW, log_qW = tf.while_loop(c, foo, 
                             loop_vars=[i0, log_px0, log_pz0, log_qz0, log_pW0, log_qW0], 
@@ -183,8 +193,6 @@ class BVAE(object):
         log_qz = tf.slice(log_qz, [1, 0, 0], [self.n_W_particles, self.n_z_particles, self.batch_size])
         log_pW = tf.slice(log_pW, [1], [self.n_W_particles])
         log_qW = tf.slice(log_qW, [1], [self.n_W_particles])
-
-
 
         return [log_px, log_pz, log_qz, log_pW, log_qW]  
 
@@ -566,7 +574,7 @@ class BVAE(object):
                                                 feed_dict={self.x: batch, 
                                                     self.batch_frac: 1./n_datapoints_for_frac})
 
-            train_results = [elbo,log_px,log_pz,log_qz,log_pW,log_qW,l2_sum,batch_frac]
+            train_results = [elbo,log_px,log_pz,log_qz,log_pW,log_qW,l2_sum,float(batch_frac)]
 
             train_labels = ['elbo','log_px','log_pz','log_qz','log_pW','log_qW','l2_sum','batch_frac']
             print 'train_results'
@@ -643,10 +651,12 @@ if __name__ == '__main__':
         'x_size': x_size,
         'z_size': z_size,
         'encoder_hidden_layers': [20],
-        'decoder_hidden_layers': [20],
-        'ga': 'hypo_net', #'none',
-        'n_W_particles': 1,
-        'n_z_particles': 1,
+        'decoder_hidden_layers': [],
+        'ga':  'none', #'hypo_net',
+        'n_qz_transformations': 2,
+        'decoder':  'MNF', #'BNN',
+        'n_W_particles': 2,
+        'n_z_particles': 3,
         'qW_weight': 0.,
         'lmba': 0.}
 
@@ -663,22 +673,24 @@ if __name__ == '__main__':
     test_x = mnist_data[2][0]
     test_y = mnist_data[2][1]
 
+    train_x = train_x[:1000]
+
     # path_to_load_variables=home+'/Documents/tmp/vars.ckpt' 
     path_to_load_variables=''
     path_to_save_variables=home+'/Documents/tmp/vars2.ckpt'
 
     print 'Training'
     model.train2(train_x, valid_x=[], display_step=1, 
-                path_to_load_variables='', path_to_save_variables='', 
-                epochs=3, batch_size=20)
+                path_to_load_variables='', path_to_save_variables=path_to_save_variables, 
+                epochs=1, batch_size=20)
 
 
 
     print 'Eval'
-    iwae_elbo = model.eval(data=test_x, batch_size=20, display_step=10,
+    test_results, train_results, test_labels, train_labels = model.eval(data=test_x, batch_size=20, display_step=10,
                 path_to_load_variables=path_to_save_variables, data2=train_x)
 
-    print iwae_elbo
+    # print iwae_elbo
 
     print 'Done.'
 

@@ -18,7 +18,7 @@ from utils import log_normal3
 
 class BNN(object):
 
-    def __init__(self, network_architecture, act_func, batch_size):
+    def __init__(self, network_architecture, act_func):
         
 
         #Model hyperparameters
@@ -28,7 +28,7 @@ class BNN(object):
         self.input_size = network_architecture[0]
         self.output_size = network_architecture[-1]
         self.net = network_architecture
-        self.batch_size = batch_size
+        # self.batch_size = batch_size
         # self.n_particles = n_particles
         # self.batch_fraction_of_dataset = batch_frac
         # print 'bnn'
