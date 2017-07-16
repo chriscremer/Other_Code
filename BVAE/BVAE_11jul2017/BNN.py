@@ -1,6 +1,7 @@
 
 
 
+
 #Bayesian Neural Network
 
 import numpy as np
