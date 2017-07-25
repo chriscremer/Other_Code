@@ -385,7 +385,7 @@ if __name__ == "__main__":
                 # x, y = p_x_distribution()
                 # ax.plot(x, y, linewidth=2)
 
-    iters = 200
+    iters = 10
     sum__ = 0
     for j in range(iters):
 
