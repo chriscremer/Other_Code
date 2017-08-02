@@ -35,6 +35,11 @@ class BNN(object):
         # self.n_particles = n_particles
         # self.batch_fraction_of_dataset = batch_frac
         # print 'bnn'
+
+
+        self.prior_var = tf.Variable(tf.random_normal([1], stddev=0.01)+1.)
+
+
         self.W_means, self.W_logvars = self.init_weights()
 
 
@@ -96,7 +101,7 @@ class BNN(object):
             flat_w = tf.reshape(W,[input_size_i*output_size_i]) #[IS*OS]
             flat_W_means = tf.reshape(W_means, [input_size_i*output_size_i]) #[IS*OS]
             flat_W_logvars = tf.reshape(W_logvars, [input_size_i*output_size_i]) #[IS*OS]
-            log_p_W_sum += log_normal3(flat_w, tf.zeros([input_size_i*output_size_i]), tf.log(tf.ones([input_size_i*output_size_i])))
+            log_p_W_sum += log_normal3(flat_w, tf.zeros([input_size_i*output_size_i]), tf.log(tf.ones([input_size_i*output_size_i])*self.prior_var))
             # log_p_W_sum += log_normal3(flat_w, tf.zeros([input_size_i*output_size_i]), tf.log(tf.ones([input_size_i*output_size_i])*100.))
 
             log_q_W_sum += log_normal3(flat_w, flat_W_means, flat_W_logvars)

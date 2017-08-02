@@ -47,7 +47,9 @@ class BNN_MNIST(object):
         # first_half_NN = NN([784, 100, 100, 2], [tf.nn.softplus,tf.nn.softplus, None])
         # second_half_BNN = BNN([self.input_size, 100, 100, n_classes], [tf.nn.softplus,tf.nn.softplus, None], prior_variance)
         # second_half_BNN = NN([self.input_size, 100, 100, n_classes], [tf.nn.softplus,tf.nn.softplus, None])
-        second_half_BNN = NN([self.input_size, 200, 50, 200, n_classes], [tf.nn.softplus,tf.nn.softplus,tf.nn.softplus, None])
+        # second_half_BNN = NN([self.input_size, 200, 200, 100, 200, 200, n_classes], [tf.nn.softplus,tf.nn.softplus,None,tf.nn.softplus,tf.nn.softplus, None])
+        second_half_BNN = NN([self.input_size, 200, 200, n_classes], [tf.nn.softplus,tf.nn.softplus,None])
+
 
 
 
@@ -158,9 +160,11 @@ class BNN_MNIST(object):
                 batch_y = []
                 while len(batch) != batch_size:
                     batch.append(train_x[data_index]) 
-                    one_hot=np.zeros(self.output_size)
-                    one_hot[train_y[data_index]]=1.
-                    batch_y.append(one_hot)
+                    # one_hot=np.zeros(self.output_size)
+                    # one_hot[train_y[data_index]]=1.
+                    # batch_y.append(one_hot)
+                    batch_y.append(train_x[data_index])
+
                     data_index +=1
 
                 # Fit training using batch data
@@ -218,9 +222,13 @@ class BNN_MNIST(object):
 
 
 
+    def eval(self, x, y):
 
 
+        error = self.sess.run((self.cost), feed_dict={self.x: x, self.y: y})
 
+
+        return error
 
 
 
@@ -257,7 +265,7 @@ if __name__ == '__main__':
 
     #need to calc elbo
 
-    train= 1
+    train = 1
     eval_ = 0
     # viz_encodings_and_boundaries=1
     # viz_encodings_and_probabilities=1
@@ -293,8 +301,8 @@ if __name__ == '__main__':
 
         model = BNN_MNIST(n_classes=n_all_classes, prior_variance=prior_variances[prior_var])
 
-        # path_to_load_variables=home+'/Documents/tmp/vars_emp_bayes_'+str(int(prior_var)) +'.ckpt'
-        path_to_load_variables=''
+        path_to_load_variables=home+'/Documents/tmp/vars_emp_bayes_'+str(int(prior_var)) +'.ckpt'
+        # path_to_load_variables=''
         path_to_save_variables=home+'/Documents/tmp/vars_emp_bayes_'+str(int(prior_var)) +'.ckpt'
 
 
@@ -303,21 +311,24 @@ if __name__ == '__main__':
         if train == 1:
             print 'Training'
             model.train(train_x=train_x, train_y=train_x, 
-                        epochs=40, batch_size=50, display_step=2000,
+                        epochs=100, batch_size=50, display_step=2000,
                         path_to_load_variables=path_to_load_variables,
                         path_to_save_variables=path_to_save_variables)
 
-            print 'Train Accuracy:', model.accuracy(train_x, train_y)
-            print 'Test Accuracy:', model.accuracy(test_x, test_y)
+            # print 'Train Accuracy:', model.accuracy(train_x, train_y)
+            # print 'Test Accuracy:', model.accuracy(test_x, test_y)
 
+            print 'Train Error:', model.eval(train_x, train_x)
+            print 'Test Error:', model.eval(test_x, test_x)
 
         else:
             model.load_vars(path_to_load_variables=path_to_save_variables)
 
-            print 'Train Accuracy:', model.accuracy(train_x, train_y)
-            print 'Test Accuracy:', model.accuracy(test_x, test_y)
+            # print 'Train Accuracy:', model.accuracy(train_x, train_y)
+            # print 'Test Accuracy:', model.accuracy(test_x, test_y)
 
-
+            print 'Train Error:', model.eval(train_x, train_x)
+            print 'Test Error:', model.eval(test_x, test_x)
 
 
 

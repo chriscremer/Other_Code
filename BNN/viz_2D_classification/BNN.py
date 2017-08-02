@@ -119,44 +119,23 @@ class BNN(object):
 
 
 
-    # def feedforward(self, W_list, x):
-    #     '''
-    #     W: list of layers weights
-    #     x: [B,X]
-    #     y: [B,Y]
-    #     '''
+ 
+    def sample_weight_means(self):
 
+        Ws = []
 
-    #     #[B,X]
-    #     cur_val = x
-    #     # #[B,X]->[B,1,X]
-    #     # cur_val = tf.reshape(cur_val, [self.batch_size, 1, self.input_size])
+        for layer_i in range(len(self.net)-1):
 
-    #     for layer_i in range(len(self.net)-1):
+            input_size_i = self.net[layer_i]+1 #plus 1 for bias
+            output_size_i = self.net[layer_i+1] #plus 1 because we want layer i+1
 
-    #         #[X,X']
-    #         W = W_list[layer_i]
-    #         input_size_i = self.net[layer_i]+1 #plus 1 for bias
-    #         output_size_i = self.net[layer_i+1] #plus 1 because we want layer i+1
+            #Get vars [I,O]
+            W_means = self.W_means[layer_i]
 
-    #         #Concat 1 to input for biases  [B,X]->[B,X+1]
-    #         cur_val = tf.concat([cur_val,tf.ones([tf.shape(cur_val)[0], 1])], axis=1)
-    #         # #[X,X']->[B,X,X']
-    #         # W = tf.reshape(W, [1, input_size_i, output_size_i])
-    #         # W = tf.tile(W, [self.batch_size, 1,1])
+            Ws.append(W_means)
 
-    #         #Forward Propagate  [B,X]*[X,X']->[B,X']
-    #         if layer_i != len(self.net)-2:
-    #             cur_val = self.act_func(tf.matmul(cur_val, W))
-    #         else:
-    #             cur_val = tf.matmul(cur_val, W)
+        return Ws
 
-    #     # #[B,P,1,X']->[B,P,X']
-    #     # cur_val = tf.reshape(cur_val, [self.batch_size,P,output_size_i])
-    #     #[B,Y]
-    #     y = cur_val
-
-    #     return y
 
 
 
