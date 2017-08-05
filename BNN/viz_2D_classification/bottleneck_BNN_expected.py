@@ -456,12 +456,6 @@ if __name__ == '__main__':
         save_predictions_max = []
         for i in range(30):
             predictions = model.predict(flat)  # [N,2]->[N,C]
-
-            # aaa =  model.predict([[-15,15]])
-            # print aaa
-            # print np.argmax(aaa, axis=1)
-            # tmp.append(aaa)
-
             # predictions_argmax = np.argmax(predictions, axis=1) #[N]
             predictions_max = np.max(predictions, axis=1) #[N]
 
@@ -493,13 +487,6 @@ if __name__ == '__main__':
 
         #Plot average
         ax = plt.subplot2grid((rows,columns), (0,columns-1), frameon=False)#, colspan=3)
-        # predictions = np.mean(save_predictions_argmax, axis=0)
-        # print predictions.shape
-        # print predictions[0][0]
-        # print predictions[0][-1]
-        # print predictions[-1][0]
-        # print predictions[-1][-1]
-        # print predictions
         cs = ax.contourf(X, Y, predictions, levels=levels)
         plt.gca().set_aspect('equal', adjustable='box')
         ax.tick_params(labelsize=6)
