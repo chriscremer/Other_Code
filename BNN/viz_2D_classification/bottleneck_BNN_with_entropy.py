@@ -267,7 +267,7 @@ if __name__ == '__main__':
 
 
 
-    train= 0
+    train= 1
     viz = 1
 
 
@@ -291,19 +291,19 @@ if __name__ == '__main__':
     print train_y.shape
 
 
-    train_x = train_x[:100]
-    train_y = train_y[:100]
+    # train_x = train_x[:100]
+    # train_y = train_y[:100]
 
-    print train_x.shape
-    print train_y.shape
+    # print train_x.shape
+    # print train_y.shape
 
 
 
 
     model = BNN_bottleneck(n_classes=n_limited_classes)
 
-    path_to_load_variables=home+'/Documents/tmp/vars_5_classes_back_to_normal.ckpt'
-    # path_to_load_variables=''
+    # path_to_load_variables=home+'/Documents/tmp/vars_5_classes_back_to_normal.ckpt'
+    path_to_load_variables=''
     # path_to_save_variables=home+'/Documents/tmp/vars_5_classes_relu.ckpt'
     path_to_save_variables=home+'/Documents/tmp/vars_5_classes_back_to_normal.ckpt'
 

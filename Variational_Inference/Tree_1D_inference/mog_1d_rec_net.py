@@ -496,8 +496,8 @@ if __name__ == "__main__":
 
 
 
-    path_to_load_variables=home+'/Documents/tmp/vars_mog.ckpt' 
-    # path_to_load_variables=''
+    # path_to_load_variables=home+'/Documents/tmp/vars_mog.ckpt' 
+    path_to_load_variables=''
     path_to_save_variables=home+'/Documents/tmp/vars_mog.ckpt'
 
 
