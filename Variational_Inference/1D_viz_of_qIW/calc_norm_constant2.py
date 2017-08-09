@@ -385,17 +385,18 @@ if __name__ == "__main__":
         integral_range = [-30,30]
         integrate_numticks = 100
 
-        fig, ax = plt.subplots(1, 1)
-        fig.patch.set_visible(False)
+        # fig = plt.figure(facecolor='white')
+        fig, ax = plt.subplots(1, 1, facecolor='white')
+        # fig.patch.set_visible(False)
         ax.axis('off')
         ax.set_yticks([])
         ax.set_xticks([])
 
         x, y = return_1d_distribution(distribution=p_x, xlimits=viz_range, numticks=numticks)
-        ax.plot(x, y, linewidth=2, label="p(z)")
+        ax.plot(x, y, linewidth=2, label=r'$p(z)$')
 
         x, y = return_1d_distribution(distribution=q_x, xlimits=viz_range, numticks=numticks)
-        ax.plot(x, y, linewidth=2, label="q(z)")
+        ax.plot(x, y, linewidth=2, label=r'$q(z)$')
 
 
         qIWs = []
@@ -411,10 +412,9 @@ if __name__ == "__main__":
             qIW = qIW_class_1D(p_x, q_x, sum_, k)
 
             x, y = return_1d_distribution(distribution=qIW, xlimits=viz_range, numticks=numticks)
-            ax.plot(x, y, linewidth=2, label="qIW_"+str(j))
+            ax.plot(x, y, linewidth=2, label=r'$\tilde{q}_{IW}(z|x,z_2)$')
 
             qIWs.append(qIW)
-
 
 
         x, y = return_1d_distribution(distribution=p_x, xlimits=integral_range, numticks=numticks)
@@ -437,8 +437,41 @@ if __name__ == "__main__":
 
             print 'Integral qIW_' +str(j) +':', int_
 
-        plt.legend(fontsize=9)
+
+
+        #Expected q_IW
+        n_dists = 30
+        qIWs = []
+        ys = []
+        for j in range(n_dists):
+
+            if k>1:
+                z2_zk = [q_x.run_sample_post() for i in range(k-1)]
+
+            sum_ = np.sum([np.exp(p_x.run_log_post([z]))/np.exp(q_x.run_log_post([z])) for z in z2_zk])
+
+            qIW = qIW_class_1D(p_x, q_x, sum_, k)
+
+            x, y = return_1d_distribution(distribution=qIW, xlimits=viz_range, numticks=numticks)
+            # ax.plot(x, y, linewidth=2, label="qIW_"+str(j))
+
+            qIWs.append(qIW)
+            ys.append(y)
+
+        ax.plot(x, np.mean(ys, axis=0), linewidth=2, label=r'$q_{IW}(z|x)$')
+        width = x[1] - x[0]
+        int_ = width*np.sum(np.mean(ys, axis=0))
+        print 'Integral qIW' +':', int_
+
+
+
+        plt.legend(fontsize=9, loc=2)
         plt.show()
+
+
+
+
+
 
 
 
