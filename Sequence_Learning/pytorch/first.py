@@ -34,7 +34,10 @@ def train(model, train_x, train_y, valid_x=[], valid_y=[],
 
         for batch_idx, (data, target) in enumerate(train_loader):
 
-            data, target = Variable(data), Variable(target)
+            if data.is_cuda:
+                data, target = Variable(data), Variable(target).type(torch.cuda.LongTensor)
+            else:
+                data, target = Variable(data), Variable(target)
 
             optimizer.zero_grad()
             output = model(data)
@@ -98,7 +101,22 @@ print train_x.shape
 print train_y.shape
 
 
+
 model = My_Model()
+
+print 'GPU available:', torch.cuda.is_available()
+if torch.cuda.is_available():
+    print 'loading cuda'
+    model.cuda()
+    train_x = train_x.cuda()
+
+    # train_y = train_y.type(torch.cuda.LongTensor)
+
+    # train_y = train_y.torch.cuda.LongTensor().cuda()
+    # print train_y.is_cuda
+    # print next(model.parameters()).is_cuda
+
+
 
 path_to_load_variables=''
 # path_to_load_variables=home+'/Documents/tmp/pytorch_first.pt'
@@ -110,7 +128,7 @@ path_to_save_variables=''
 train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[], 
             path_to_load_variables=path_to_load_variables, 
             path_to_save_variables=path_to_save_variables, 
-            epochs=4, batch_size=200, display_epoch=1)
+            epochs=100, batch_size=200, display_epoch=1)
 
 
 
