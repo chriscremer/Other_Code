@@ -29,8 +29,8 @@ if __name__ == "__main__":
     #Specify where to save stuff
 
     # save_to = home + '/data/' #for boltz
-    # save_to = home + '/Documents/tmp/' # for mac
-    save_to = './' # for other systems
+    save_to = home + '/Documents/tmp/' # for mac
+    # save_to = './' # for other systems
 
     # path_to_load_variables=save_to + 'dkf_ball_vars.ckpt'
     path_to_load_variables=''

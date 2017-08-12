@@ -147,15 +147,15 @@ if __name__ == '__main__':
  
 
     # save_log = 0
-    L2 = 0
-    drop = 0
+    L2 = 1
+    drop = 1
     bnn = 1
 
 
     train_x, valid_x, test_x, train_y, valid_y, test_y = load_data.load_mnist()
-    train_x, train_y = load_data.get_equal_each_class(n_classes=10, n_datapoints_each_class=10, 
+    train_x, train_y = load_data.get_equal_each_class(n_classes=10, n_datapoints_each_class=100, 
                                                         data_x=train_x, data_y=train_y)
-    valid_x, valid_y = load_data.get_equal_each_class(n_classes=10, n_datapoints_each_class=2, 
+    valid_x, valid_y = load_data.get_equal_each_class(n_classes=10, n_datapoints_each_class=20, 
                                                         data_x=valid_x, data_y=valid_y)
 
     print train_x.shape
@@ -166,8 +166,9 @@ if __name__ == '__main__':
     network_architecture = [784, 100, 100, 10]
     act_functions=[tf.nn.softplus,tf.nn.softplus, None]
 
-    display_step = 400
+    display_step = 300
     batch_size = 100
+    epochs = 6000
 
     model_names = ['L2', 'Dropout', 'BNN']
     model_scores = [None, None, None]
@@ -196,7 +197,7 @@ if __name__ == '__main__':
 
             best_valid_se = train(model, train_x, train_y, valid_x=valid_x, valid_y=valid_y, 
                         path_to_load_variables=path_to_load_variables, path_to_save_variables=path_to_save_variables, 
-                        epochs=9000, batch_size=batch_size, display_step=display_step)
+                        epochs=epochs, batch_size=batch_size, display_step=display_step)
 
 
             if best_hyper_score == None or best_valid_se < best_hyper_score:
@@ -253,7 +254,7 @@ if __name__ == '__main__':
 
             best_valid_se = train(model, train_x, train_y, valid_x=valid_x, valid_y=valid_y, 
                         path_to_load_variables=path_to_load_variables, path_to_save_variables=path_to_save_variables, 
-                        epochs=9000, batch_size=batch_size, display_step=display_step)
+                        epochs=epochs, batch_size=batch_size, display_step=display_step)
 
 
             if best_hyper_score == None or best_valid_se < best_hyper_score:
@@ -312,7 +313,7 @@ if __name__ == '__main__':
 
             best_valid_se = train(model, train_x, train_y, valid_x=valid_x, valid_y=valid_y, 
                         path_to_load_variables=path_to_load_variables, path_to_save_variables=path_to_save_variables, 
-                        epochs=90000, batch_size=batch_size, display_step=display_step)
+                        epochs=epochs, batch_size=batch_size, display_step=display_step)
 
 
             if best_hyper_score == None or best_valid_se < best_hyper_score:
