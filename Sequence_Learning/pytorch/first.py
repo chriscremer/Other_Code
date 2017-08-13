@@ -110,13 +110,6 @@ if torch.cuda.is_available():
     model.cuda()
     train_x = train_x.cuda()
 
-    # train_y = train_y.type(torch.cuda.LongTensor)
-
-    # train_y = train_y.torch.cuda.LongTensor().cuda()
-    # print train_y.is_cuda
-    # print next(model.parameters()).is_cuda
-
-
 
 path_to_load_variables=''
 # path_to_load_variables=home+'/Documents/tmp/pytorch_first.pt'
@@ -138,7 +131,7 @@ train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[],
 # logits of cross entropy?? im just outputing linear now.
 # look at validation
 # maybe early stopping
-# get it to work on gpus
+# get it to work on gpus. done
 
 
 
