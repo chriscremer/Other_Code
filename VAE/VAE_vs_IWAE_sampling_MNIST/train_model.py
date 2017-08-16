@@ -142,7 +142,9 @@ if __name__ == '__main__':
 
     #Load data
     print 'loading data'
-    train_x, valid_x, test_x = load_binarized_mnist(location=home+'/data/binarized_mnist.pkl')
+    # train_x, valid_x, test_x = load_binarized_mnist(location=home+'/data/binarized_mnist.pkl')
+    train_x, valid_x, test_x = load_binarized_mnist(location=home+'/Documents/MNIST_data/binarized_mnist.pkl')
+
     print 'Train', train_x.shape
     print 'Valid', valid_x.shape
     print 'Test', test_x.shape
@@ -214,7 +216,7 @@ if __name__ == '__main__':
         time_ = str(dt.time())
         time_2 = time_[0] + time_[1] + time_[3] + time_[4] + time_[6] + time_[7] 
 
-        experiment_log = home+'/data/experiment_' + date_ + '_' +time_2 +'.txt'
+        experiment_log = home+'/Documents/tmp/experiment_' + date_ + '_' +time_2 +'.txt'
 
         with open(experiment_log, "a") as myfile:
             myfile.write("Evaluation k=" +str(k_evaluation) +'\n')
@@ -285,7 +287,7 @@ if __name__ == '__main__':
                     # model = None
 
                     # See if its already been trained
-                    if saved_parameter_file in os.listdir(home+'/data'):
+                    if saved_parameter_file in os.listdir(home+'/Documents/tmp'):
                         print 'Already trained'
                         with open(experiment_log, "a") as myfile:
                             myfile.write('Already trained\n')
@@ -309,7 +311,7 @@ if __name__ == '__main__':
                         #             starting_stage=0, ending_stage=4, 
                         #             path_to_save_training_info='')
 
-                        model.train(train_x=train_x, valid_x=valid_x, display_step=9000, 
+                        model.train(train_x=train_x, valid_x=valid_x, display_step=2, 
                                     path_to_load_variables='', 
                                     path_to_save_variables=home+'/data/'+saved_parameter_file, 
                                     epochs=epochs)
