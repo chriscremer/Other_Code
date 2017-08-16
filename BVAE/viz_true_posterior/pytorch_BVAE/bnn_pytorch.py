@@ -6,7 +6,7 @@ import pickle
 from os.path import expanduser
 home = expanduser("~")
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 import torch
@@ -38,59 +38,62 @@ from torch.nn.parameter import Parameter
 
 
 
-class BNN2(nn.Module):
-    r"""Applies a linear transformation to the incoming data: :math:`y = Ax + b`
+# class BNN2(nn.Module):
+#     r"""Applies a linear transformation to the incoming data: :math:`y = Ax + b`
 
-    Args:
-        in_features: size of each input sample
-        out_features: size of each output sample
-        bias: If set to False, the layer will not learn an additive bias.
-            Default: True
+#     Args:
+#         in_features: size of each input sample
+#         out_features: size of each output sample
+#         bias: If set to False, the layer will not learn an additive bias.
+#             Default: True
 
-    Shape:
-        - Input: :math:`(N, *, in\_features)` where `*` means any number of
-          additional dimensions
-        - Output: :math:`(N, *, out\_features)` where all but the last dimension
-          are the same shape as the input.
+#     Shape:
+#         - Input: :math:`(N, *, in\_features)` where `*` means any number of
+#           additional dimensions
+#         - Output: :math:`(N, *, out\_features)` where all but the last dimension
+#           are the same shape as the input.
 
-    Attributes:
-        weight: the learnable weights of the module of shape
-            (out_features x in_features)
-        bias:   the learnable bias of the module of shape (out_features)
+#     Attributes:
+#         weight: the learnable weights of the module of shape
+#             (out_features x in_features)
+#         bias:   the learnable bias of the module of shape (out_features)
 
-    Examples::
+#     Examples::
 
-        >>> m = nn.Linear(20, 30)
-        >>> input = autograd.Variable(torch.randn(128, 20))
-        >>> output = m(input)
-        >>> print(output.size())
-    """
+#         >>> m = nn.Linear(20, 30)
+#         >>> input = autograd.Variable(torch.randn(128, 20))
+#         >>> output = m(input)
+#         >>> print(output.size())
+#     """
 
-    def __init__(self, in_features, out_features):
-        super(BNN, self).__init__()
-        self.in_features = in_features
-        self.out_features = out_features
-        self.weight = Parameter(torch.Tensor(4, 5))
-        # if bias:
-        #     self.bias = Parameter(torch.Tensor(out_features))
-        # else:
-        #     self.register_parameter('bias', None)
-        # self.reset_parameters()
-        self.params = [self.weight]
+#     def __init__(self, in_features, out_features):
+#         super(BNN, self).__init__()
 
-    # def reset_parameters(self):
-    #     stdv = 1. / math.sqrt(self.weight.size(1))
-    #     self.weight.data.uniform_(-stdv, stdv)
-    #     if self.bias is not None:
-    #         self.bias.data.uniform_(-stdv, stdv)
 
-    # def forward(self, input):
-    #     return F.linear(input, self.weight, self.bias)
 
-    # def __repr__(self):
-    #     return self.__class__.__name__ + ' (' \
-    #         + str(self.in_features) + ' -> ' \
-    #         + str(self.out_features) + ')'
+#         self.in_features = in_features
+#         self.out_features = out_features
+#         self.weight = Parameter(torch.Tensor(4, 5))
+#         # if bias:
+#         #     self.bias = Parameter(torch.Tensor(out_features))
+#         # else:
+#         #     self.register_parameter('bias', None)
+#         # self.reset_parameters()
+#         self.params = [self.weight]
+
+#     # def reset_parameters(self):
+#     #     stdv = 1. / math.sqrt(self.weight.size(1))
+#     #     self.weight.data.uniform_(-stdv, stdv)
+#     #     if self.bias is not None:
+#     #         self.bias.data.uniform_(-stdv, stdv)
+
+#     # def forward(self, input):
+#     #     return F.linear(input, self.weight, self.bias)
+
+#     # def __repr__(self):
+#     #     return self.__class__.__name__ + ' (' \
+#     #         + str(self.in_features) + ' -> ' \
+#     #         + str(self.out_features) + ')'
 
 
 
@@ -100,6 +103,16 @@ class BNN(nn.Module):
     def __init__(self, network_architecture, act_functions):
         super(BNN, self).__init__()
         
+
+
+        if torch.cuda.is_available():
+            self.dtype = torch.cuda.FloatTensor
+        else:
+            self.dtype = torch.FloatTensor
+
+
+
+
         self.net = network_architecture
         self.act_functions = act_functions
 
@@ -123,8 +136,22 @@ class BNN(nn.Module):
             # self.W_means.append(Parameter(torch.Tensor(input_size_i, output_size_i)))
             # self.W_logvars.append(Parameter(torch.Tensor(input_size_i, output_size_i)-5.))
 
-            self.W_means.append(Parameter(torch.randn(input_size_i, output_size_i)/100.))
-            self.W_logvars.append(Parameter(torch.randn(input_size_i, output_size_i)-8.))
+            # if torch.cuda.is_available():
+            #     self.W_means.append(Parameter(torch.randn(input_size_i, output_size_i)/100.).cuda())
+            #     self.W_logvars.append(Parameter(torch.randn(input_size_i, output_size_i)-8.).cuda())
+            # else:
+            # aaa = Parameter(torch.randn(input_size_i, output_size_i)/100.).type(self.dtype)
+            # # aaa.is_leaf = True
+            # bbb = Parameter(torch.randn(input_size_i, output_size_i)-8.).type(self.dtype)
+            # # bbb.is_leaf = True
+
+            aaa = Parameter(torch.randn(input_size_i, output_size_i).type(self.dtype)/100.)
+            # aaa.is_leaf = True
+            bbb = Parameter(torch.randn(input_size_i, output_size_i).type(self.dtype)-8.)
+            # bbb.is_leaf = True
+
+            self.W_means.append(aaa)
+            self.W_logvars.append(bbb)
 
             # self.b = Parameter(torch.Tensor(input_size_i, output_size_i))-5.
             # self.W_logvars.append(just_var(input_size_i, output_size_i))
@@ -132,6 +159,8 @@ class BNN(nn.Module):
 
         # self.W_means, self.W_logvars = self.init_weights()
         self.params = self.W_means + self.W_logvars
+
+        self.param_list = nn.ParameterList(self.params)
 
 
 
@@ -194,7 +223,7 @@ class BNN(nn.Module):
             W_logvars = self.W_logvars[layer_i]
 
             #Sample weights [IS,OS]*[IS,OS]=[IS,OS]
-            eps = Variable(torch.randn(input_size_i, output_size_i))
+            eps = Variable(torch.randn(input_size_i, output_size_i).type(self.dtype))
             # print eps
             # print torch.sqrt(torch.exp(W_logvars))
             # W = torch.add(W_means, torch.sqrt(torch.exp(W_logvars)) * eps)
@@ -207,7 +236,7 @@ class BNN(nn.Module):
             flat_w = W.view(input_size_i*output_size_i) #[IS*OS]
             flat_W_means = W_means.view(input_size_i*output_size_i) #[IS*OS]
             flat_W_logvars = W_logvars.view(input_size_i*output_size_i) #[IS*OS]
-            log_p_W_sum += lognormal(flat_w, Variable(torch.zeros([input_size_i*output_size_i])), Variable(torch.log(torch.ones([input_size_i*output_size_i]))))
+            log_p_W_sum += lognormal(flat_w, Variable(torch.zeros([input_size_i*output_size_i]).type(self.dtype)), Variable(torch.log(torch.ones([input_size_i*output_size_i]).type(self.dtype))))
             # log_p_W_sum += log_normal3(flat_w, tf.zeros([input_size_i*output_size_i]), tf.log(tf.ones([input_size_i*output_size_i])*100.))
 
             log_q_W_sum += lognormal(flat_w, flat_W_means, flat_W_logvars)
@@ -243,7 +272,13 @@ class BNN(nn.Module):
             # print torch.ones([B, 1])
             # print cur_val
 
-            cur_val = torch.cat((cur_val,Variable(torch.ones([B, 1]))), 1)
+
+            # if torch.cuda.is_available():
+            #     cur_val = torch.cat((cur_val,Variable(torch.ones([B, 1])).cuda()), 1)
+            # else:
+            cur_val = torch.cat((cur_val,Variable(torch.ones([B, 1]).type(self.dtype))), 1)
+
+
             # #[X,X']->[B,X,X']
             # W = tf.reshape(W, [1, input_size_i, output_size_i])
             # W = tf.tile(W, [self.batch_size, 1,1])

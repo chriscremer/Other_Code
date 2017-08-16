@@ -46,35 +46,57 @@ def train(model, train_x, train_y, valid_x=[], valid_y=[],
         model.load_state_dict(torch.load(path_to_load_variables))
         print 'loaded variables ' + path_to_load_variables
 
+
+    # # own_state = 
+    # print len(model.state_dict())
+    # fds
+    # for name, param in model.state_dict():
+    #     print name, param
+
+    #     # if name not in own_state:
+    #     #      continue
+    #     # if isinstance(param, Parameter):
+    #     #     # backwards compatibility for serialized parameters
+    #     #     param = param.data
+    #     # own_state[name].copy_(param)
+    # fasdfasd
+
     train = torch.utils.data.TensorDataset(train_x, train_y)
     train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
 
-    params = list(model.parameters()) + list(model.decoder.params)
 
-    print 'Params'
-    for parameter_i in range(len(params)):
-        print parameter_i, params[parameter_i].size()
-        # print params[parameter_i]
-        # print(parameter.size())
+
+    # params = list(model.parameters()) + list(model.decoder.params)
+
+    # print 'Params'
+    # for parameter_i in range(len(params)):
+    #     print parameter_i, params[parameter_i].size()
+    #     # print params[parameter_i]
+    #     # print(parameter.size())
 
     # print 'Params222'
     # for parameter in model.parameters():
     #     print(parameter.size())
 
-    optimizer = optim.Adam(params, lr=.0001)
+    # optimizer = optim.Adam(params, lr=.0001)
+    optimizer = optim.Adam(model.parameters(), lr=.001)
 
-    print 'passed'
 
+    # print 'passed'
+
+    if torch.cuda.is_available():
+        print 'GPU available, loading cuda'#, torch.cuda.is_available()
+        model.cuda()
 
 
     for epoch in range(1, epochs + 1):
 
         for batch_idx, (data, target) in enumerate(train_loader):
 
-            if data.is_cuda:
-                data, target = Variable(data), Variable(target).type(torch.cuda.LongTensor)
+            if torch.cuda.is_available():
+                data = Variable(data.cuda())#, Variable(target)#.type(torch.cuda.LongTensor)
             else:
-                data, target = Variable(data), Variable(target)
+                data = Variable(data)#, Variable(target)
 
             optimizer.zero_grad()
 
@@ -114,36 +136,44 @@ def train(model, train_x, train_y, valid_x=[], valid_y=[],
 
 
 
-def test(model, data_x, path_to_load_variables='', batch_size=20, display_epoch=4, k=10):
+# def test(model, data_x, path_to_load_variables='', batch_size=20, display_epoch=4, k=10):
     
 
-    if path_to_load_variables != '':
-        model.load_state_dict(torch.load(path_to_load_variables))
-        print 'loaded variables ' + path_to_load_variables
+#     if path_to_load_variables != '':
+#         model.load_state_dict(torch.load(path_to_load_variables))
+#         print 'loaded variables ' + path_to_load_variables
 
-    elbos = []
-    data_index= 0
-    for i in range(len(data_x)/ batch_size):
+#     elbos = []
+#     data_index= 0
+#     for i in range(len(data_x)/ batch_size):
 
-        batch = data_x[data_index:data_index+batch_size]
-        data_index += batch_size
+#         batch = data_x[data_index:data_index+batch_size]
+#         data_index += batch_size
 
-        elbo, logpx, logpz, logqz = model(Variable(batch), k=k)
-        elbos.append(elbo.data[0])
+#         elbo, logpx, logpz, logqz = model(Variable(batch), k=k)
+#         elbos.append(elbo.data[0])
 
-        if i%display_epoch==0:
-            print i,len(data_x)/ batch_size, elbo.data[0]
+#         if i%display_epoch==0:
+#             print i,len(data_x)/ batch_size, elbo.data[0]
 
-    return np.mean(elbos)
+#     return np.mean(elbos)
 
 
-
+# self.module_list = nn.ModuleList()
+# for i in range(5):
+#     self.module_list += make_sequence()
 
 
 
 class BVAE(nn.Module):
     def __init__(self):
         super(BVAE, self).__init__()
+
+        if torch.cuda.is_available():
+            self.dtype = torch.cuda.FloatTensor
+        else:
+            self.dtype = torch.FloatTensor
+            
 
         self.z_size = 20
         self.input_size = 784
@@ -157,7 +187,10 @@ class BVAE(nn.Module):
         # self.decoder = BNN([self.z_size, 200, 784], [torch.nn.Softplus, torch.nn.Softplus])
         self.decoder = BNN([self.z_size, 200, 784], [F.relu, F.relu])
 
-
+        # self.add_module('BNN', self.decoder)
+        # for idx, m in enumerate(self.modules()):
+        #     print(idx, '->', m)
+        # fsdf
 
     def encode(self, x):
         h1 = F.relu(self.fc1(x))
@@ -167,10 +200,22 @@ class BVAE(nn.Module):
         return mean, logvar
 
     def sample(self, mu, logvar, k):
-        eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_()) #[P,B,Z]
+        
+        # if torch.cuda.is_available():
+        #     eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_()).cuda() #[P,B,Z]
+        # else:
+        eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_().type(self.dtype)) #[P,B,Z]
+
         z = eps.mul(torch.exp(.5*logvar)) + mu  #[P,B,Z]
-        logpz = lognormal(z, Variable(torch.zeros(self.B, self.z_size)), 
-                            Variable(torch.zeros(self.B, self.z_size)))  #[P,B]
+
+        # if torch.cuda.is_available():
+        #     logpz = lognormal(z, Variable(torch.zeros(self.B, self.z_size).cuda()), 
+        #                     Variable(torch.zeros(self.B, self.z_size)).cuda())  #[P,B]
+        # else:
+        logpz = lognormal(z, Variable(torch.zeros(self.B, self.z_size).type(self.dtype)), 
+                            Variable(torch.zeros(self.B, self.z_size)).type(self.dtype))  #[P,B]
+
+
         logqz = lognormal(z, mu, logvar)
         return z, logpz, logqz
 
@@ -242,16 +287,16 @@ print train_y.shape
 
 model = BVAE()
 
-if torch.cuda.is_available():
-    print 'GPU available, loading cuda'#, torch.cuda.is_available()
-    model.cuda()
-    train_x = train_x.cuda()
+# if torch.cuda.is_available():
+#     print 'GPU available, loading cuda'#, torch.cuda.is_available()
+#     model.cuda()
+#     train_x = train_x.cuda()
 
 
-path_to_load_variables=''
-# path_to_load_variables=home+'/Documents/tmp/pytorch_first.pt'
-# path_to_save_variables=home+'/Documents/tmp/pytorch_first.pt'
-path_to_save_variables=''
+# path_to_load_variables=''
+path_to_load_variables=home+'/Documents/tmp/pytorch_bvae.pt'
+path_to_save_variables=home+'/Documents/tmp/pytorch_bvae.pt'
+# path_to_save_variables=''
 
 
 
@@ -262,8 +307,8 @@ train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[],
 
 
 
-print test(model=model, data_x=test_x, path_to_load_variables='', 
-            batch_size=20, display_epoch=100, k=1000)
+# print test(model=model, data_x=test_x, path_to_load_variables='', 
+#             batch_size=20, display_epoch=100, k=1000)
 
 print 'Done.'
 
