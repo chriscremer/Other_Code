@@ -350,7 +350,7 @@ print 'Done.'
 #Reulls scores 
 #[-148.14850021362304, -146.89197433471679, -152.84082611083986]
 # qW_weights = [.000000001, .000001, .0001]
-# no qW weight overfits
+
 
 # training elbo: 
 # 1: 116/300 Loss:153.175 logpx:-146.690 logpz:-1.800 logqz:4.666 logpW:-18463.871 logqW:616290.312
