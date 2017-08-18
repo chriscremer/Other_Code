@@ -16,7 +16,7 @@ import pickle
 from os.path import expanduser
 home = expanduser("~")
 
-import matplotlib.pyplot as plt
+
 
 
 import torch
@@ -395,6 +395,8 @@ if __name__ == "__main__":
 
 
     if viz_:
+
+        import matplotlib.pyplot as plt
 
         i =0
 
