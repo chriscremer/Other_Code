@@ -82,6 +82,23 @@ def lognormal3(x, mean, logvar):
 
 
 
+def lognormal4(x, mean, logvar):
+    '''
+    x: [B,X]
+    mean,logvar: [X]
+    output: [B]
+    '''
+
+    return -.5 * (logvar.sum(0) + ((x - mean).pow(2)/torch.exp(logvar)).sum(1))
+
+
+
+
+
+
+
+
+
 
 
 

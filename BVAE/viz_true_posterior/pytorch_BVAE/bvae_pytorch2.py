@@ -1,15 +1,6 @@
 
 
-
-
-
-
-
-
 import time
-
-
-
 
 
 
@@ -18,7 +9,7 @@ import pickle
 from os.path import expanduser
 home = expanduser("~")
 
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 
 import torch
@@ -29,12 +20,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from utils import lognormal2 as lognormal
+from utils import lognormal4 
+
 from utils import log_bernoulli
 
 from bnn_pytorch import BNN
 
-
-
+from plotting_functions import plot_isocontours
+from plotting_functions import plot_isocontours2
+from plotting_functions import plot_isocontours2_exp
+from plotting_functions import plot_isocontoursNoExp
 
 
 def train(model, train_x, train_y, valid_x=[], valid_y=[], 
@@ -117,7 +112,7 @@ def train(model, train_x, train_y, valid_x=[], valid_y=[],
                     else:
                         times_not_beaten_best += 1
                         print 'validation ' + str(current_valid_elbo), times_not_beaten_best
-                        if times_not_beaten_best > 2:
+                        if times_not_beaten_best > 3:
                             finished = 1
                             break
 
@@ -159,8 +154,11 @@ def train(model, train_x, train_y, valid_x=[], valid_y=[],
 
 
 class BVAE(nn.Module):
-    def __init__(self, qW_weight):
+    def __init__(self, qW_weight, seed=-1):
         super(BVAE, self).__init__()
+
+        if seed != -1:
+            torch.manual_seed(seed)
 
         if torch.cuda.is_available():
             self.dtype = torch.cuda.FloatTensor
@@ -186,10 +184,11 @@ class BVAE(nn.Module):
         return mean, logvar
 
     def sample_z(self, mu, logvar, k):
-        eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_().type(self.dtype)) #[P,B,Z]
+        B = mu.size()[0]
+        eps = Variable(torch.FloatTensor(k, B, self.z_size).normal_().type(self.dtype)) #[P,B,Z]
         z = eps.mul(torch.exp(.5*logvar)) + mu  #[P,B,Z]
-        logpz = lognormal(z, Variable(torch.zeros(self.B, self.z_size).type(self.dtype)), 
-                            Variable(torch.zeros(self.B, self.z_size)).type(self.dtype))  #[P,B]
+        logpz = lognormal(z, Variable(torch.zeros(B, self.z_size).type(self.dtype)), 
+                            Variable(torch.zeros(B, self.z_size)).type(self.dtype))  #[P,B]
 
         logqz = lognormal(z, mu, logvar)
         return z, logpz, logqz
@@ -202,9 +201,10 @@ class BVAE(nn.Module):
 
     def decode(self, Ws, z):
         k = z.size()[0]
+        B = z.size()[1]
         z = z.view(-1, self.z_size)
         x = self.decoder.forward(Ws, z)
-        x = x.view(k, self.B, self.input_size)
+        x = x.view(k, B, self.input_size)
         return x
 
 
@@ -258,6 +258,16 @@ class BVAE(nn.Module):
 
         return elbo, logprobs2[0], logprobs2[1], logprobs2[2], logprobs2[3], logprobs2[4]
 
+    def reconstruct(self, x):
+
+        Ws, logpW, logqW = self.sample_W()  #_ , [1], [1]
+
+        mu, logvar = self.encode(x)  #[B,Z]
+        z, logpz, logqz = self.sample_z(mu, logvar, k=1) #[P,B,Z], [P,B]
+
+        x_hat = self.decode(Ws, z) #[P,B,X]
+
+        return F.sigmoid(x_hat)
 
 
     def predictive_elbo(self, x, k, s):
@@ -298,67 +308,295 @@ class BVAE(nn.Module):
 
 
 
-print 'Loading data'
-with open(home+'/Documents/MNIST_data/mnist.pkl','rb') as f:
-    mnist_data = pickle.load(f)
-
-train_x = mnist_data[0][0]
-train_y = mnist_data[0][1]
-valid_x = mnist_data[1][0]
-valid_y = mnist_data[1][1]
-test_x = mnist_data[2][0]
-test_y = mnist_data[2][1]
-
-train_x = torch.from_numpy(train_x)
-train_y = torch.from_numpy(train_y)
-valid_x = torch.from_numpy(valid_x)
-valid_y = torch.from_numpy(valid_y)
-test_x = torch.from_numpy(test_x)
-test_y = torch.from_numpy(test_y)
-
-print train_x.shape
-print test_x.shape
-print train_y.shape
-
-qW_weights = [.000000001, .000001, .0001]
-qW_weight_scores = [0,0,0]
-
-for i in range(len(qW_weights)):
-
-    model = BVAE(qW_weights[i])
-
-    path_to_load_variables=''
-    # path_to_load_variables=home+'/Documents/tmp/pytorch_bvae.pt'
-    path_to_save_variables=home+'/Documents/tmp/pytorch_bvae'+str(i)+'.pt'
-    # path_to_save_variables=''
-
-    best_valid_score = train(model=model, train_x=train_x, train_y=train_y, valid_x=valid_x, valid_y=valid_y, 
-                path_to_load_variables=path_to_load_variables, 
-                path_to_save_variables=path_to_save_variables, 
-                epochs=300, batch_size=100, display_epoch=2, k=1)
-
-    qW_weight_scores[i] = best_valid_score
-    print 'scores', qW_weight_scores
-
-# print test(model=model, data_x=test_x, path_to_load_variables='', 
-#             batch_size=20, display_epoch=100, k=1000)
-
-print 'Done.'
 
 
 
-#Reulls scores 
-#[-148.14850021362304, -146.89197433471679, -152.84082611083986]
-# qW_weights = [.000000001, .000001, .0001]
 
 
-# training elbo: 
-# 1: 116/300 Loss:153.175 logpx:-146.690 logpz:-1.800 logqz:4.666 logpW:-18463.871 logqW:616290.312
-# 2: 104/300 Loss:148.872 logpx:-142.097 logpz:-1.209 logqz:5.088 logpW:-26428.045 logqW:452337.312
-# 3: 94/300 Loss:134.635 logpx:-149.966 logpz:-0.951 logqz:4.851 logpW:-4931132.500 logqW:-260631.391
 
 
-# next: 2 figues, 1) the true posteriors 2) the image uncertainty. 
+
+
+
+
+
+
+
+
+
+
+if __name__ == "__main__":
+
+    train_ = 0
+    viz_ = 1
+
+    print 'Loading data'
+    with open(home+'/Documents/MNIST_data/mnist.pkl','rb') as f:
+        mnist_data = pickle.load(f)
+
+    train_x = mnist_data[0][0]
+    train_y = mnist_data[0][1]
+    valid_x = mnist_data[1][0]
+    valid_y = mnist_data[1][1]
+    test_x = mnist_data[2][0]
+    test_y = mnist_data[2][1]
+
+    train_x = torch.from_numpy(train_x)
+    train_y = torch.from_numpy(train_y)
+    valid_x = torch.from_numpy(valid_x)
+    valid_y = torch.from_numpy(valid_y)
+    test_x = torch.from_numpy(test_x)
+    test_y = torch.from_numpy(test_y)
+
+    print train_x.shape
+    print test_x.shape
+    print train_y.shape
+
+    qW_weights = [.000000001, .000001, .0001]
+    qW_weight_scores = [0,0,0]
+
+
+    if train_:
+
+        for i in range(len(qW_weights)):
+
+            model = BVAE(qW_weights[i])
+
+            path_to_load_variables=''
+            # path_to_load_variables=home+'/Documents/tmp/pytorch_bvae.pt'
+            path_to_save_variables=home+'/Documents/tmp/pytorch_bvae'+str(i)+'.pt'
+            # path_to_save_variables=''
+
+            best_valid_score = train(model=model, train_x=train_x, train_y=train_y, valid_x=valid_x, valid_y=valid_y, 
+                        path_to_load_variables=path_to_load_variables, 
+                        path_to_save_variables=path_to_save_variables, 
+                        epochs=300, batch_size=100, display_epoch=2, k=1)
+
+            qW_weight_scores[i] = best_valid_score
+            print 'scores', qW_weight_scores
+
+        # print test(model=model, data_x=test_x, path_to_load_variables='', 
+        #             batch_size=20, display_epoch=100, k=1000)
+
+
+
+
+
+
+    if viz_:
+
+        i =1
+
+        model = BVAE(qW_weights[i], seed=1)
+
+        path_to_load_variables=''
+        path_to_save_variables=home+'/Documents/tmp/pytorch_bvae'+str(i)+'.pt'
+        # path_to_load_variables=home+'/Documents/tmp/pytorch_bvae'+str(i)+'.pt'
+        # path_to_save_variables=''
+
+        model.load_state_dict(torch.load(path_to_save_variables, lambda storage, loc: storage)) 
+        print 'loaded variables ' + path_to_save_variables
+
+
+
+        rows = 4
+        cols = 5
+
+        legend=False
+
+        fig = plt.figure(figsize=(4+cols,4+rows), facecolor='white')
+
+        for samp_i in range(rows):
+
+            #Get a sample
+            samp = train_x[samp_i]
+            # print samp.shape
+            col = 0
+
+
+            #Plot sample
+            ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            ax.imshow(samp.numpy().reshape(28, 28), vmin=0, vmax=1, cmap="gray")
+            ax.set_yticks([])
+            ax.set_xticks([])
+            if samp_i==0:  ax.annotate('Sample', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+
+
+            # #Plot prior
+            # col +=1
+            # ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            # func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            # plot_isocontours(ax, func, cmap='Blues')
+            # if samp_i==0:  ax.annotate('Prior p(z)', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+
+            #Plot q
+            col +=1
+            ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            mean, logvar = model.encode(Variable(torch.unsqueeze(samp,0)))
+            func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
+            plot_isocontours(ax, func, cmap='Reds')
+            if samp_i==0:  ax.annotate('p(z)\nq(z|x)', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+            func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+
+
+            # #Plot logprior
+            # col +=1
+            # ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            # func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            # plot_isocontoursNoExp(ax, func, cmap='Blues', legend=legend)
+            # if samp_i==0:  ax.annotate('Prior\nlogp(z)', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+
+            # #Plot logq
+            # col +=1
+            # ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            # mean, logvar = model.encode(Variable(torch.unsqueeze(samp,0)))
+            # func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
+            # plot_isocontoursNoExp(ax, func, cmap='Reds', legend=legend)
+            # if samp_i==0:  ax.annotate('Post Approx\nlog q(z|x)', xytext=(.1, 1.1), xy=(0, 1), textcoords='axes fraction')
+            # func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            # plot_isocontoursNoExp(ax, func, cmap='Blues', alpha=.3)
+
+
+            # #Plot likelihood given one W
+            # col +=1
+            # ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            # Ws, logpW, logqW = model.sample_W()  #_ , [1], [1]   
+            # func = lambda zs: log_bernoulli(model.decode(Ws, Variable(torch.unsqueeze(zs,1))), Variable(torch.unsqueeze(samp,0)))
+            # plot_isocontours2(ax, func, cmap='Greens', legend=legend)
+            # if samp_i==0:  ax.annotate('logp(x|z,W1)', xytext=(.1, 1.1), xy=(0, 1), textcoords='axes fraction')
+            # func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            # plot_isocontoursNoExp(ax, func, cmap='Blues', alpha=.3)
+
+            # #Plot likelihood given one W
+            # col +=1
+            # ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            # Ws, logpW, logqW = model.sample_W()  #_ , [1], [1]   
+            # func = lambda zs: log_bernoulli(model.decode(Ws, Variable(torch.unsqueeze(zs,1))), Variable(torch.unsqueeze(samp,0)))
+            # plot_isocontours2(ax, func, cmap='Greens', legend=legend)
+            # if samp_i==0:  ax.annotate('logp(x|z,W2)', xytext=(.1, 1.1), xy=(0, 1), textcoords='axes fraction')
+            # func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            # plot_isocontoursNoExp(ax, func, cmap='Blues', alpha=.3)
+
+            # #Plot Posterior given W
+            # col +=1
+            # ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            # Ws, logpW, logqW = model.sample_W()  #_ , [1], [1]   
+            # func = lambda zs: log_bernoulli(model.decode(Ws, Variable(torch.unsqueeze(zs,1))), Variable(torch.unsqueeze(samp,0)))+ Variable(torch.unsqueeze(lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2)), 1))
+            # plot_isocontours2(ax, func, cmap='Greens', legend=legend)
+            # if samp_i==0:  ax.annotate('logp(z,x|W3)', xytext=(.1, 1.1), xy=(0, 1), textcoords='axes fraction')
+            # func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            # plot_isocontoursNoExp(ax, func, cmap='Blues', alpha=.3)
+
+            # #Plot reconstruction
+            # col +=1
+            # ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            # x_hat = model.reconstruct(Variable(torch.unsqueeze(samp,0))).data[0]
+            # ax.imshow(x_hat.numpy().reshape(28, 28), vmin=0, vmax=1, cmap="gray")
+            # ax.set_yticks([])
+            # ax.set_xticks([])
+            # if samp_i==0:  ax.annotate('Reconstruction', xytext=(.1, 1.1), xy=(0, 1), textcoords='axes fraction')
+
+            #Plot prob
+            col +=1
+            ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            Ws, logpW, logqW = model.sample_W()  #_ , [1], [1]   
+            func = lambda zs: log_bernoulli(model.decode(Ws, Variable(torch.unsqueeze(zs,1))), Variable(torch.unsqueeze(samp,0)))+ Variable(torch.unsqueeze(lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2)), 1))
+            plot_isocontours2_exp(ax, func, cmap='Greens', legend=legend)
+            if samp_i==0:  ax.annotate('p(z,x|W1)', xytext=(.1, 1.1), xy=(0, 1), textcoords='axes fraction')
+            func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+            func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
+            plot_isocontours(ax, func, cmap='Reds')
+
+
+            #Plot prob
+            col +=1
+            ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            Ws, logpW, logqW = model.sample_W()  #_ , [1], [1]   
+            func = lambda zs: log_bernoulli(model.decode(Ws, Variable(torch.unsqueeze(zs,1))), Variable(torch.unsqueeze(samp,0)))+ Variable(torch.unsqueeze(lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2)), 1))
+            plot_isocontours2_exp(ax, func, cmap='Greens', legend=legend)
+            if samp_i==0:  ax.annotate('p(z,x|W2)', xytext=(.1, 1.1), xy=(0, 1), textcoords='axes fraction')
+            func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+            func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
+            plot_isocontours(ax, func, cmap='Reds')
+
+            #Plot prob
+            col +=1
+            ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            Ws, logpW, logqW = model.sample_W()  #_ , [1], [1]   
+            func = lambda zs: log_bernoulli(model.decode(Ws, Variable(torch.unsqueeze(zs,1))), Variable(torch.unsqueeze(samp,0)))+ Variable(torch.unsqueeze(lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2)), 1))
+            plot_isocontours2_exp(ax, func, cmap='Greens', legend=legend)
+            if samp_i==0:  ax.annotate('p(z,x|W3)', xytext=(.1, 1.1), xy=(0, 1), textcoords='axes fraction')
+            func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+            func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
+            plot_isocontours(ax, func, cmap='Reds')
+
+        # plt.show()
+        plt.savefig(home+'/Documents/tmp/bvae_largerqWweight.png')
+        print 'Saved fig'
+        
+
+
+ # assert not torch.is_tensor(other)
+
+# alpha=.2
+# rows = len(posteriors)
+# columns = len(models) +1 #+1 for posteriors
+
+# fig = plt.figure(figsize=(6+columns,4+rows), facecolor='white')
+
+# for p_i in range(len(posteriors)):
+
+#     print '\nPosterior', p_i, posterior_names[p_i]
+
+#     posterior = ttp.posterior_class(posteriors[p_i])
+#     ax = plt.subplot2grid((rows,columns), (p_i,0), frameon=False)#, colspan=3)
+#     plot_isocontours(ax, posterior.run_log_post, cmap='Blues')
+#     if p_i == 0: ax.annotate('Posterior', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+
+#     for q_i in range(len(models)):
+
+#         print model_names[q_i]
+#         ax = plt.subplot2grid((rows,columns), (p_i,q_i+1), frameon=False)#, colspan=3)
+#         model = models[q_i](posteriors[p_i])
+#         # model.train(10000, save_to=home+'/Documents/tmp/vars.ckpt')
+#         model.train(10000, save_to='')
+#         samps = model.sample(1000)
+#         plot_kde(ax, samps, cmap='Reds')
+#         plot_isocontours(ax, posterior.run_log_post, cmap='Blues', alpha=alpha)
+#         if p_i == 0: ax.annotate(model_names[q_i], xytext=(.38, 1.1), xy=(0, 1), textcoords='axes fraction')
+
+# # plt.show()
+# plt.savefig(home+'/Documents/tmp/plots.png')
+# print 'saved'
+
+
+
+
+
+
+
+
+
+    print 'Done.'
+
+
+
+    #Reulls scores 
+    #[-148.14850021362304, -146.89197433471679, -152.84082611083986]
+    # qW_weights = [.000000001, .000001, .0001]
+
+
+    # training elbo: 
+    # 1: 116/300 Loss:153.175 logpx:-146.690 logpz:-1.800 logqz:4.666 logpW:-18463.871 logqW:616290.312
+    # 2: 104/300 Loss:148.872 logpx:-142.097 logpz:-1.209 logqz:5.088 logpW:-26428.045 logqW:452337.312
+    # 3: 94/300 Loss:134.635 logpx:-149.966 logpz:-0.951 logqz:4.851 logpW:-4931132.500 logqW:-260631.391
+
+
+    # next: 2 figues, 1) the true posteriors 2) the image uncertainty. 
 
 
 
