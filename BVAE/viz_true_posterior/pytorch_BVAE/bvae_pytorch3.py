@@ -327,8 +327,8 @@ class BVAE(nn.Module):
 
 if __name__ == "__main__":
 
-    train_ = 1
-    viz_ = 0
+    train_ = 0
+    viz_ = 1
 
     print 'Loading data'
     with open(home+'/Documents/MNIST_data/mnist.pkl','rb') as f:
@@ -453,12 +453,12 @@ if __name__ == "__main__":
 
             #Plot q(z)
             col +=1
-            if samp_i ==0:
-                ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
-                plot_isocontours_expected(ax, model, test_x, cmap='Reds')
-                if samp_i==0:  ax.annotate('q(z)', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
-                func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
-                plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+            # if samp_i ==0:
+            #     ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            #     plot_isocontours_expected(ax, model, test_x, cmap='Reds')
+            #     if samp_i==0:  ax.annotate('q(z)', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+            #     func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            #     plot_isocontours(ax, func, cmap='Blues', alpha=.3)
 
 
             # #Plot logprior
