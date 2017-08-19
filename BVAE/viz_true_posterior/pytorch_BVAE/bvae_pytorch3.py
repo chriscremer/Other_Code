@@ -16,9 +16,6 @@ import pickle
 from os.path import expanduser
 home = expanduser("~")
 
-
-
-
 import torch
 from torch.autograd import Variable
 import torch.utils.data
@@ -33,19 +30,11 @@ from utils import log_bernoulli
 
 from bnn_pytorch import BNN
 
-from plotting_functions import plot_isocontours
-from plotting_functions import plot_isocontours2
-from plotting_functions import plot_isocontours2_exp
-from plotting_functions import plot_isocontoursNoExp
-from plotting_functions import plot_isocontours_expected
-from plotting_functions import plot_isocontours_expected_W
 
 
-
-
-def train(model, train_x, train_y, valid_x=[], valid_y=[], 
+def train(model, train_x, train_y, k, valid_x=[], valid_y=[], 
             path_to_load_variables='', path_to_save_variables='', 
-            epochs=10, batch_size=20, display_epoch=2, k=1):
+            epochs=10, batch_size=20, display_epoch=2):
     
 
     if path_to_load_variables != '':
@@ -338,8 +327,8 @@ class BVAE(nn.Module):
 
 if __name__ == "__main__":
 
-    train_ = 0
-    viz_ = 1
+    train_ = 1
+    viz_ = 0
 
     print 'Loading data'
     with open(home+'/Documents/MNIST_data/mnist.pkl','rb') as f:
@@ -363,8 +352,8 @@ if __name__ == "__main__":
     print test_x.shape
     print train_y.shape
 
-    qW_weights = [.000000001, .000001, .0001]
-    qW_weight_scores = [0,0,0]
+    qW_weights = [.000000001, .000001, .0001, .01]
+    qW_weight_scores = [0]*len(qW_weights)
 
 
     if train_:
@@ -375,13 +364,13 @@ if __name__ == "__main__":
 
             path_to_load_variables=''
             # path_to_load_variables=home+'/Documents/tmp/pytorch_bvae.pt'
-            path_to_save_variables=home+'/Documents/tmp/pytorch_bvae'+str(i)+'.pt'
+            path_to_save_variables=home+'/Documents/tmp/pytorch_biwae'+str(i)+'.pt'
             # path_to_save_variables=''
 
-            best_valid_score = train(model=model, train_x=train_x, train_y=train_y, valid_x=valid_x, valid_y=valid_y, 
+            best_valid_score = train(model=model, train_x=train_x, train_y=train_y, k=10, valid_x=valid_x, valid_y=valid_y, 
                         path_to_load_variables=path_to_load_variables, 
                         path_to_save_variables=path_to_save_variables, 
-                        epochs=300, batch_size=100, display_epoch=2, k=1)
+                        epochs=10000, batch_size=100, display_epoch=2)
 
             qW_weight_scores[i] = best_valid_score
             print 'scores', qW_weight_scores
@@ -397,6 +386,15 @@ if __name__ == "__main__":
     if viz_:
 
         import matplotlib.pyplot as plt
+        from plotting_functions import plot_isocontours
+        from plotting_functions import plot_isocontours2
+        from plotting_functions import plot_isocontours2_exp
+        from plotting_functions import plot_isocontoursNoExp
+        from plotting_functions import plot_isocontours_expected
+        from plotting_functions import plot_isocontours_expected_W
+
+
+
 
         i =0
 
@@ -641,7 +639,9 @@ if __name__ == "__main__":
 
 
 
-
-
+#BIWAE results
+    # qW_weights = [.000000001, .000001, .0001, .01]
+# scores [-146.48447433471679, -147.16488174438476, -150.28786621093749, -171.82857269287109]
+# so less stochasticity the better. aka less regularization in decoder the better. 
 
 
