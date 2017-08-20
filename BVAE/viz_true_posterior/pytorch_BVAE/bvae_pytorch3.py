@@ -392,6 +392,18 @@ if __name__ == "__main__":
         from plotting_functions import plot_isocontoursNoExp
         from plotting_functions import plot_isocontours_expected
         from plotting_functions import plot_isocontours_expected_W
+        from plotting_functions import plot_isocontours2_exp_norm
+        from plotting_functions import plot_isocontours_expected_true_posterior
+        from plotting_functions import plot_isocontours_of_matrix
+        from plotting_functions import plot_isocontours_expected_norm
+        from plotting_functions import plot_isocontours_expected_norm_ind
+        from plotting_functions import plot_isocontours_expected_true_posterior_ind
+        from plotting_functions import plot_means
+
+
+
+
+
 
 
 
@@ -410,12 +422,18 @@ if __name__ == "__main__":
 
 
 
-        rows = 4
-        cols = 7
+        rows = 1
+        cols = 2
 
         legend=False
+        # legend=True
+
+        n_samps = 10000
+        alpha = .3
 
         fig = plt.figure(figsize=(4+cols,4+rows), facecolor='white')
+
+        prior_func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
 
         for samp_i in range(rows):
 
@@ -425,40 +443,169 @@ if __name__ == "__main__":
             col = 0
 
 
-            #Plot sample
-            ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
-            ax.imshow(samp.numpy().reshape(28, 28), vmin=0, vmax=1, cmap="gray")
-            ax.set_yticks([])
-            ax.set_xticks([])
-            if samp_i==0:  ax.annotate('Sample', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+            # #Plot sample
+            # ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            # ax.imshow(samp.numpy().reshape(28, 28), vmin=0, vmax=1, cmap="gray")
+            # ax.set_yticks([])
+            # ax.set_xticks([])
+            # if samp_i==0:  ax.annotate('Sample', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
 
 
-            # #Plot prior
+            # # #Plot prior
+            # # col +=1
+            # # ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            # # func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            # # plot_isocontours(ax, func, cmap='Blues')
+            # # if samp_i==0:  ax.annotate('Prior p(z)', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+
+            # #Plot q(z|x)
             # col +=1
             # ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            # mean, logvar = model.encode(Variable(torch.unsqueeze(samp,0)))
+            # func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
+            # plot_isocontours(ax, func, cmap='Reds')
+            # if samp_i==0:  ax.annotate('q(z|x)', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
             # func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
-            # plot_isocontours(ax, func, cmap='Blues')
-            # if samp_i==0:  ax.annotate('Prior p(z)', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
-
-            #Plot q(z|x)
-            col +=1
-            ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
-            mean, logvar = model.encode(Variable(torch.unsqueeze(samp,0)))
-            func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
-            plot_isocontours(ax, func, cmap='Reds')
-            if samp_i==0:  ax.annotate('p(z)\nq(z|x)', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
-            func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
-            plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+            # plot_isocontours(ax, func, cmap='Blues', alpha=.3)
 
 
-            #Plot q(z)
-            col +=1
+
+            # #Plot prob
+            # col +=1
             # if samp_i ==0:
             #     ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
-            #     plot_isocontours_expected(ax, model, test_x, cmap='Reds')
-            #     if samp_i==0:  ax.annotate('q(z)', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+            #     plot_isocontours_expected_W(ax, model, samp, cmap='Greens', legend=legend)
+            #     if samp_i==0:  ax.annotate('p(z|x)', xytext=(.2, 1.1), xy=(0, 1), textcoords='axes fraction')
             #     func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
             #     plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+            #     # func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
+            #     # plot_isocontours(ax, func, cmap='Reds')
+
+
+
+
+            # #Plot q(z) train
+            # # col +=1
+            # if samp_i ==0:
+            #     ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            #     Z1, cs_to_use = plot_isocontours_expected_norm(ax, model, train_x, cmap='Reds', legend=legend, n_samps=n_samps)
+            #     if samp_i==0:  ax.annotate('E[q(z|x)] train', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+            #     func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            #     plot_isocontours(ax, func, cmap='Blues', alpha=.3, legend=True)
+
+
+            #Scatter mean train
+            # col +=1 
+            if samp_i ==0:
+                ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+                # plot_isocontours(ax, prior_func, cmap='Blues', alpha=.3)
+                plot_means(ax,model,train_x,n_samps=n_samps, alpha=alpha)
+                if samp_i==0:  ax.annotate('means train', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+
+
+            #Scatter mean test
+            col +=1 
+            if samp_i ==0:
+
+                ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+                # plot_isocontours(ax, prior_func, cmap='Blues', alpha=.3)
+                plot_means(ax,model,test_x,n_samps=n_samps, alpha=alpha)
+                if samp_i==0:  ax.annotate('means test', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+
+
+
+
+
+
+            # #Plot q(z) train
+            # col +=1
+            # if samp_i ==0:
+            #     ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            #     Z1, cs_to_use = plot_isocontours_expected_norm_ind(ax, model, train_x, cmap='Reds', legend=legend, n_samps=n_samps, alpha=alpha)
+            #     if samp_i==0:  ax.annotate('E[q(z|x)] train', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+            #     func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            #     plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+
+
+
+
+            # #Plot p(z) train
+            # col +=1 
+            # if samp_i ==0:
+            #     ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            #     Z3 = plot_isocontours_expected_true_posterior_ind(ax, model, train_x, cmap='Reds', legend=legend, n_samps=n_samps, cs_to_use=None, alpha=alpha)
+            #     if samp_i==0:  ax.annotate('E[p(z|x)] train', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+            #     func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            #     plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+
+
+
+
+            # #Plot dif
+            # col +=1 
+            # if samp_i ==0:
+            #     ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            #     plot_isocontours_of_matrix(ax, np.abs(Z1-Z3), cmap='Reds', legend=legend, cs_to_use=cs_to_use)
+            #     if samp_i==0:  ax.annotate('dif train', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+            #     func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            #     plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+
+
+
+            # #Plot q(z) test
+            # col +=1
+            # if samp_i ==0:
+            #     ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            #     Z2, cs_ignore = plot_isocontours_expected_norm(ax, model, test_x, cmap='Reds', legend=legend, n_samps=n_samps, cs_to_use=cs_to_use)
+            #     if samp_i==0:  ax.annotate('E[q(z|x)] test', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+            #     func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            #     plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+
+
+
+            # #Plot q(z) test
+            # col +=1
+            # if samp_i ==0:
+            #     ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            #     Z2, cs_ignore = plot_isocontours_expected_norm_ind(ax, model, test_x, cmap='Reds', legend=legend, n_samps=n_samps, cs_to_use=None, alpha=alpha)
+            #     if samp_i==0:  ax.annotate('E[q(z|x)] test', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+            #     func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            #     plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+
+
+
+
+            # #Plot p(z) test
+            # col +=1 
+            # if samp_i ==0:
+            #     ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            #     Z4 = plot_isocontours_expected_true_posterior_ind(ax, model, test_x, cmap='Reds', legend=legend, n_samps=n_samps, cs_to_use=None, alpha=alpha)
+            #     if samp_i==0:  ax.annotate('E[p(z|x)] test', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+            #     func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            #     plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+
+
+
+            # #Plot dif
+            # col +=1 
+            # if samp_i ==0:
+            #     ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            #     plot_isocontours_of_matrix(ax, np.abs(Z2-Z4), cmap='Reds', legend=legend, cs_to_use=cs_to_use)
+            #     if samp_i==0:  ax.annotate('dif test', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+            #     func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            #     plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+
+
+
+            # #Plot dif
+            # col +=1 
+            # if samp_i ==0:
+            #     ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            #     plot_isocontours_of_matrix(ax, np.abs(Z1-Z4), cmap='Reds', legend=legend, cs_to_use=cs_to_use)
+            #     if samp_i==0:  ax.annotate('dif test', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+            #     func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            #     plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+
 
 
             # #Plot logprior
@@ -518,61 +665,51 @@ if __name__ == "__main__":
             # ax.set_xticks([])
             # if samp_i==0:  ax.annotate('Reconstruction', xytext=(.1, 1.1), xy=(0, 1), textcoords='axes fraction')
 
-            #Plot prob
-            col +=1
-            ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
-            Ws, logpW, logqW = model.sample_W()  #_ , [1], [1]   
-            func = lambda zs: log_bernoulli(model.decode(Ws, Variable(torch.unsqueeze(zs,1))), Variable(torch.unsqueeze(samp,0)))+ Variable(torch.unsqueeze(lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2)), 1))
-            plot_isocontours2_exp(ax, func, cmap='Greens', legend=legend)
-            if samp_i==0:  ax.annotate('p(z|x,W1)', xytext=(.1, 1.1), xy=(0, 1), textcoords='axes fraction')
-            func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
-            plot_isocontours(ax, func, cmap='Blues', alpha=.3)
-            func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
-            plot_isocontours(ax, func, cmap='Reds')
+            # #Plot prob
+            # col +=1
+            # ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            # Ws, logpW, logqW = model.sample_W()  #_ , [1], [1]   
+            # func = lambda zs: log_bernoulli(model.decode(Ws, Variable(torch.unsqueeze(zs,1))), Variable(torch.unsqueeze(samp,0)))+ Variable(torch.unsqueeze(lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2)), 1))
+            # plot_isocontours2_exp(ax, func, cmap='Greens', legend=legend)
+            # if samp_i==0:  ax.annotate('p(z,x|W1)^(1/784)', xytext=(.05, 1.1), xy=(0, 1), textcoords='axes fraction', fontsize=8)
+            # func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            # plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+            # func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
+            # plot_isocontours(ax, func, cmap='Reds')
 
 
-            #Plot prob
-            col +=1
-            ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
-            Ws, logpW, logqW = model.sample_W()  #_ , [1], [1]   
-            func = lambda zs: log_bernoulli(model.decode(Ws, Variable(torch.unsqueeze(zs,1))), Variable(torch.unsqueeze(samp,0)))+ Variable(torch.unsqueeze(lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2)), 1))
-            plot_isocontours2_exp(ax, func, cmap='Greens', legend=legend)
-            if samp_i==0:  ax.annotate('p(z|x,W2)', xytext=(.1, 1.1), xy=(0, 1), textcoords='axes fraction')
-            func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
-            plot_isocontours(ax, func, cmap='Blues', alpha=.3)
-            func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
-            plot_isocontours(ax, func, cmap='Reds')
-
-            #Plot prob
-            col +=1
-            ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
-            Ws, logpW, logqW = model.sample_W()  #_ , [1], [1]   
-            func = lambda zs: log_bernoulli(model.decode(Ws, Variable(torch.unsqueeze(zs,1))), Variable(torch.unsqueeze(samp,0)))+ Variable(torch.unsqueeze(lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2)), 1))
-            plot_isocontours2_exp(ax, func, cmap='Greens', legend=legend)
-            if samp_i==0:  ax.annotate('p(z|x,W3)', xytext=(.1, 1.1), xy=(0, 1), textcoords='axes fraction')
-            func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
-            plot_isocontours(ax, func, cmap='Blues', alpha=.3)
-            func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
-            plot_isocontours(ax, func, cmap='Reds')
+            # #Plot prob
+            # col +=1
+            # ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            # Ws, logpW, logqW = model.sample_W()  #_ , [1], [1]   
+            # func = lambda zs: log_bernoulli(model.decode(Ws, Variable(torch.unsqueeze(zs,1))), Variable(torch.unsqueeze(samp,0)))+ Variable(torch.unsqueeze(lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2)), 1))
+            # plot_isocontours2_exp(ax, func, cmap='Greens', legend=legend)
+            # if samp_i==0:  ax.annotate('p(z,x|W2)^(1/784)', xytext=(.05, 1.1), xy=(0, 1), textcoords='axes fraction', fontsize=8)
+            # func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            # plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+            # # func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
+            # # plot_isocontours(ax, func, cmap='Reds')
 
 
-
-            #Plot prob
-            col +=1
-            if samp_i ==0:
-                ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
-                plot_isocontours_expected_W(ax, model, samp, cmap='Greens', legend=legend)
-                if samp_i==0:  ax.annotate('p(z|x)', xytext=(.1, 1.1), xy=(0, 1), textcoords='axes fraction')
-                func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
-                plot_isocontours(ax, func, cmap='Blues', alpha=.3)
-                func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
-                plot_isocontours(ax, func, cmap='Reds')
+            # #Plot prob
+            # col +=1
+            # ax = plt.subplot2grid((rows,cols), (samp_i,col), frameon=False)
+            # Ws, logpW, logqW = model.sample_W()  #_ , [1], [1]   
+            # func = lambda zs: log_bernoulli(model.decode(Ws, Variable(torch.unsqueeze(zs,1))), Variable(torch.unsqueeze(samp,0)))+ Variable(torch.unsqueeze(lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2)), 1))
+            # plot_isocontours2_exp_norm(ax, func, cmap='Greens', legend=legend)
+            # if samp_i==0:  ax.annotate('p(z|x,W3)', xytext=(.05, 1.1), xy=(0, 1), textcoords='axes fraction', fontsize=8)
+            # func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
+            # plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+            # # func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
+            # # plot_isocontours(ax, func, cmap='Reds')
 
 
 
 
         # plt.show()
-        plt.savefig(home+'/Documents/tmp/bvae_new'+str(i)+'.png')
+        # plt.savefig(home+'/Documents/tmp/bvae_new____'+str(i)+'.png')
+        plt.savefig(home+'/Documents/tmp/bvae_new____'+str(i)+'.eps')
+
         print 'Saved fig'
         
 

@@ -88,8 +88,21 @@ def lognormal4(x, mean, logvar):
     mean,logvar: [X]
     output: [B]
     '''
+    # print x.size()
+    # print mean.size()
+    # print logvar.size()
+    # print mean
+    # print logvar
+    D = x.size()[1]
+    # print D
+    term1 = D * torch.log(torch.FloatTensor([2.*math.pi])) #[1]
+    # print term1
+    # print logvar.sum(0)
 
-    return -.5 * (logvar.sum(0) + ((x - mean).pow(2)/torch.exp(logvar)).sum(1))
+    aaa = -.5 * (term1 + logvar.sum(0) + ((x - mean).pow(2)/torch.exp(logvar)).sum(1))
+    # print aaa.size()
+
+    return aaa
 
 
 
