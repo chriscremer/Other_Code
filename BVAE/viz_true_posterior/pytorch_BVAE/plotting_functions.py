@@ -719,7 +719,7 @@ def plot_means(ax, model, data, xlimits=[-6, 6], ylimits=[-6, 6],
     means=np.array(means)
     # print means.T[0]
     # plt.scatter(means.T[0],means.T[1], marker='x', s=3, alpha=alpha)
-    plt.scatter(means.T[0],means.T[1], s=.3, alpha=alpha)
+    plt.scatter(means.T[0],means.T[1], s=.1, alpha=alpha)
 
 
     ax.set_yticks([])
