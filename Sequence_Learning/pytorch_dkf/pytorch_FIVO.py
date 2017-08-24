@@ -1,7 +1,12 @@
 
 
 
-# works
+
+#need to resample every x steps. 
+#also need to keep track of ancestors, or do I? I dont think so . Not for the elbo atleast
+
+
+#works. 
 
 
 import numpy as np
@@ -61,14 +66,10 @@ def train(model, get_data, valid_x=[],
         optimizer.step()
 
         if step%display_step==0:
-            print step, elbo.data[0], logpx.data[0], logpz.data[0], logqz.data[0]
-            # print 'Train Epoch: {}/{} [{}/{} ({:.0f}%)]'.format(epoch, epochs, 
-            #         batch_idx * len(data), len(train_loader.dataset),
-            #         100. * batch_idx / len(train_loader))#, \
-                # 'Loss:{:.4f}'.format(loss.data[0]), \
-                # 'logpx:{:.4f}'.format(logpx.data[0]), \
-                # 'logpz:{:.4f}'.format(logpz.data[0]), \
-                # 'logqz:{:.4f}'.format(logqz.data[0]) 
+            print step, 'Elbo:{:.4f}'.format(elbo.data[0]), \
+                'logpx:{:.4f}'.format(logpx.data[0]), \
+                'logpz:{:.4f}'.format(logpz.data[0]), \
+                'logqz:{:.4f}'.format(logqz.data[0]) 
 
 
     if path_to_save_variables != '':
@@ -229,9 +230,9 @@ def load_params(model, path_to_load_variables):
 
 
 
-class DKF(nn.Module):
+class FIVO(nn.Module):
     def __init__(self, specs):
-        super(DKF, self).__init__()
+        super(FIVO, self).__init__()
 
 
         self.input_size = specs['n_input']
@@ -341,6 +342,8 @@ class DKF(nn.Module):
         logpzs = []
         logqzs = []
 
+
+        weights = Variable(torch.ones(k, self.B)/k)
         # if current_state==None:
         prev_z = Variable(torch.zeros(k, self.B, self.z_size))
         # else:
@@ -360,6 +363,36 @@ class DKF(nn.Module):
             prior_mean, prior_log_var = self.transition_prior(prev_z, current_a) #[P,B,Z]
             logpz = lognormal(z, prior_mean, prior_log_var) #[P,B]
 
+
+
+
+
+
+            log_alpha_t = logpx + logpz - logqz #[P,B]
+            log_weights_tmp = torch.log(weights * torch.exp(log_alpha_t))
+
+            max_ = torch.max(log_weights_tmp, 0)[0] #[B]
+            log_p_hat = torch.log(torch.sum(torch.exp(log_weights_tmp - max_), 0)) + max_ #[B]
+
+            # p_hat = torch.sum(alpha_t,0)  #[B]
+            normalized_alpha_t = log_weights_tmp - log_p_hat  #[P,B]
+
+            weights = torch.exp(normalized_alpha_t) #[P,B]
+
+            #if resample
+            if t%2==0:
+                # print weights
+                #[B,P] indices of the particles for each bactch
+                sampled_indices = torch.multinomial(torch.t(weights), k, replacement=True).detach()
+                new_z = []
+                for b in range(self.B):
+                    tmp = z[:,b] #[P,Z]
+                    z_b = tmp[sampled_indices[b]] #[P,Z]
+                    new_z.append(z_b)
+                new_z = torch.stack(new_z, 1) #[P,B,Z]
+                weights = Variable(torch.ones(k, self.B)/k)
+                z = new_z
+
             logpxs.append(logpx)
             logpzs.append(logpz)
             logqzs.append(logqz)
@@ -367,23 +400,34 @@ class DKF(nn.Module):
             prev_z = z
 
 
+
+        logpxs = torch.stack(logpxs) 
+        logpzs = torch.stack(logpzs)
+        logqzs = torch.stack(logqzs) #[T,P,B]
+
+        logws = logpxs + logpzs - logqzs  #[T,P,B]
+        logws = torch.mean(logws, 0)  #[P,B]
+
         # elbo = logpx + logpz - logqz  #[P,B]
 
-        # if k>1:
-        #     max_ = torch.max(elbo, 0)[0] #[B]
-        #     elbo = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
+        if k>1:
+            max_ = torch.max(logws, 0)[0] #[B]
+            elbo = torch.log(torch.mean(torch.exp(logws - max_), 0)) + max_ #[B]
+            elbo = torch.mean(elbo) #over batch
+        else:
+            elbo = torch.mean(logws)
 
         # print log_probs[0]
 
 
         # #for printing
-        logpx = torch.mean(torch.stack(logpxs))
-        logpz = torch.mean(torch.stack(logpzs))
-        logqz = torch.mean(torch.stack(logqzs))
+        logpx = torch.mean(logpxs)
+        logpz = torch.mean(logpzs)
+        logqz = torch.mean(logqzs)
         # self.x_hat_sigmoid = F.sigmoid(x_hat)
 
         # elbo = torch.mean(torch.stack(log_probs)) #[1]
-        elbo = logpx + logpz - logqz
+        # elbo = logpx + logpz - logqz
 
         return elbo, logpx, logpz, logqz
 
@@ -481,12 +525,14 @@ if __name__ == "__main__":
                 n_z=20,  
                 n_actions=3) 
 
-    model = DKF(model_specs)
+    model = FIVO(model_specs)
+
+    train_steps = 1000
 
 
-    path_to_load_variables=''
-    # path_to_load_variables=home+'/Documents/tmp/pytorch_dkf_first.pt'
-    path_to_save_variables=home+'/Documents/tmp/pytorch_dkf_first2.pt'
+    # path_to_load_variables=''
+    path_to_load_variables=home+'/Documents/tmp/pytorch_fivo.pt'
+    path_to_save_variables=home+'/Documents/tmp/pytorch_fivo.pt'
     # path_to_save_variables=''
 
 
@@ -508,7 +554,7 @@ if __name__ == "__main__":
         train(model=model, get_data=get_data, valid_x=[], 
                 path_to_load_variables=path_to_load_variables, 
                 path_to_save_variables=path_to_save_variables, 
-                steps=2000, batch_size=4, display_step=50, k=3)
+                steps=train_steps, batch_size=4, display_step=50, k=3)
 
         print 'Done training'
 

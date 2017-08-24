@@ -1,7 +1,32 @@
 
 
 
-# works
+
+#just changed the elbo calculation
+
+# average the k trajectories instead of doing them individually. 
+
+#since Im doing IWAE on the trajectories, when sampling, need to do re-sampling
+#easier to just do DKF, ie k=1
+
+#resampling not implemented yet
+
+# not going to implement it because it would just be repeating the same trajectories.
+# but makes sense that the trajectories would look worse then k=1
+
+
+#BUT when making predictions, theres no p(x|z), so cant cant weight. so cant do resampling.. ?
+#theres also no q during prediction, only using transition and emission, so iwae plays no role.
+# so theres no reason for it to be worse??
+
+#RIWA showed reconstruction required resampling. but generation doesnt 
+#Prediciton in this setting is like generation. 
+
+#ya no excuse, IWAE should do better here but it doesnt..
+
+# ill evaluate, dkf, iwae, fivo at some point.
+
+
 
 
 import numpy as np
@@ -367,23 +392,34 @@ class DKF(nn.Module):
             prev_z = z
 
 
+
+        logpxs = torch.stack(logpxs) 
+        logpzs = torch.stack(logpzs)
+        logqzs = torch.stack(logqzs) #[T,P,B]
+
+        logws = logpxs + logpzs - logqzs  #[T,P,B]
+        logws = torch.mean(logws, 0)  #[P,B]
+
         # elbo = logpx + logpz - logqz  #[P,B]
 
-        # if k>1:
-        #     max_ = torch.max(elbo, 0)[0] #[B]
-        #     elbo = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
+        if k>1:
+            max_ = torch.max(logws, 0)[0] #[B]
+            elbo = torch.log(torch.mean(torch.exp(logws - max_), 0)) + max_ #[B]
+            elbo = torch.mean(elbo) #over batch
+        else:
+            elbo = torch.mean(logws)
 
         # print log_probs[0]
 
 
         # #for printing
-        logpx = torch.mean(torch.stack(logpxs))
-        logpz = torch.mean(torch.stack(logpzs))
-        logqz = torch.mean(torch.stack(logqzs))
+        logpx = torch.mean(logpxs)
+        logpz = torch.mean(logpzs)
+        logqz = torch.mean(logqzs)
         # self.x_hat_sigmoid = F.sigmoid(x_hat)
 
         # elbo = torch.mean(torch.stack(log_probs)) #[1]
-        elbo = logpx + logpz - logqz
+        # elbo = logpx + logpz - logqz
 
         return elbo, logpx, logpz, logqz
 
@@ -486,7 +522,7 @@ if __name__ == "__main__":
 
     path_to_load_variables=''
     # path_to_load_variables=home+'/Documents/tmp/pytorch_dkf_first.pt'
-    path_to_save_variables=home+'/Documents/tmp/pytorch_dkf_first2.pt'
+    path_to_save_variables=home+'/Documents/tmp/pytorch_dkf_first3.pt'
     # path_to_save_variables=''
 
 
