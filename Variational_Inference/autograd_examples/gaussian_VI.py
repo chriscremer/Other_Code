@@ -176,6 +176,11 @@ if __name__ == '__main__':
 
     # Specify an inference problem by its unnormalized log-density.
     D = 2
+    num_gaussians = 2
+    k_samples = 1
+
+
+
     def log_density(x, t):
         x_, y_ = x[:, 0], x[:, 1]
         sigma_density = norm.logpdf(y_, 0, 1.35)
@@ -186,7 +191,7 @@ if __name__ == '__main__':
 
 
     init_var_params, elbo, variational_log_density, variational_sampler = \
-        build_mog_bbsvi(log_density, num_samples=10, k=5)
+        build_mog_bbsvi(log_density, num_samples=k_samples, k=num_gaussians)
 
     def objective(params, t):
         return -elbo(params, t)
