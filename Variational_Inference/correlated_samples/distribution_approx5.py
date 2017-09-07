@@ -146,7 +146,7 @@ def train(model,
         # optimizer.step()
 
         if epoch%display_epoch==0:
-            test_score =test(model,k=k,batch_size=20000)
+            test_score =test(model,k=k,batch_size=50000)
             print 'Train Epoch: {}/{}'.format(epoch, epochs), \
                 'Loss:{:.4f}'.format(loss.data[0]), \
                 'logpz:{:.4f}'.format(logpz.data[0]), \
@@ -293,7 +293,7 @@ class MCGS(nn.Module):
 
         #comment this out to get l_arc
         #We want z2 under marginal q2
-        # logqz2 = lognormal4_2(z2, (self.mean1*self.linear_transform)+self.bias_transform, torch.log(torch.exp(self.logvar2) + self.linear_transform.pow(2)*torch.exp(self.logvar1)))
+        logqz2 = lognormal4_2(z2, (self.mean1*self.linear_transform)+self.bias_transform, torch.log(torch.exp(self.logvar2) + self.linear_transform.pow(2)*torch.exp(self.logvar1)))
 
 
 
