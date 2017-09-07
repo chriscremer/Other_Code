@@ -613,7 +613,7 @@ def test(model, data_x, path_to_load_variables='', batch_size=20, display_epoch=
 
 #With conv layer
 # with deconv layer
-print 'conv encoder, upsample deconv decoder'
+print 'conv encoder,  deconv then conv decoder'
 
 class VAE(nn.Module):
     def __init__(self):
@@ -631,6 +631,7 @@ class VAE(nn.Module):
 
         self.deconv1 = torch.nn.ConvTranspose2d(in_channels=10, out_channels=3, kernel_size=5, stride=2, padding=0, output_padding=1, groups=1, bias=True, dilation=1)
 
+        self.conv2 = torch.nn.Conv2d(in_channels=3, out_channels=3, kernel_size=5, stride=1, padding=0, dilation=1, bias=True)
 
 
 
@@ -669,10 +670,12 @@ class VAE(nn.Module):
         z = F.relu(self.fc4(z))  #[B,1960]
 
         z = z.view(-1, 10, 14, 14)
-        # z = self.deconv1(z)
 
 
-        z = nn.Upsample(size=[3,32,32])(z)
+        z = F.relu(self.deconv1(z))
+        z = self.conv2(z)
+
+        # z = nn.Upsample(size=[3,32,32])(z)
 
 
         z = z.view(-1, self.x_size)
