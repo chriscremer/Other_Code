@@ -64,6 +64,20 @@ print train_y.shape
 
 
 
+batch_size = 10
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -228,7 +242,7 @@ path_to_save_variables=''
 train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[], 
             path_to_load_variables=path_to_load_variables, 
             path_to_save_variables=path_to_save_variables, 
-            epochs=10, batch_size=200, display_epoch=1, k=1)
+            epochs=10, batch_size=batch_size, display_epoch=1, k=1)
 
 
 
@@ -369,7 +383,7 @@ path_to_save_variables=''
 train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[], 
             path_to_load_variables=path_to_load_variables, 
             path_to_save_variables=path_to_save_variables, 
-            epochs=10, batch_size=200, display_epoch=1, k=1)
+            epochs=10, batch_size=batch_size, display_epoch=1, k=1)
 
 
 
@@ -511,7 +525,7 @@ path_to_save_variables=''
 train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[], 
             path_to_load_variables=path_to_load_variables, 
             path_to_save_variables=path_to_save_variables, 
-            epochs=10, batch_size=200, display_epoch=1, k=1)
+            epochs=10, batch_size=batch_size, display_epoch=1, k=1)
 
 
 
