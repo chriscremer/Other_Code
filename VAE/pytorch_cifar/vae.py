@@ -65,7 +65,7 @@ print train_y.shape
 
 
 batch_size = 50
-epochs = 30
+epochs = 60
 
 
 
@@ -303,131 +303,128 @@ def test(model, data_x, path_to_load_variables='', batch_size=20, display_epoch=
 
 
 
-# #With conv layer
-# print 'conv encoder, fc decoder'
+#With conv layer
+print 'conv encoder, fc decoder'
 
-# class VAE(nn.Module):
-#     def __init__(self):
-#         super(VAE, self).__init__()
+class VAE(nn.Module):
+    def __init__(self):
+        super(VAE, self).__init__()
 
-#         self.z_size = 20
+        self.z_size = 20
 
-#         self.conv1 = torch.nn.Conv2d(in_channels=3, out_channels=10, kernel_size=5, stride=2, padding=0, dilation=1, bias=True)
+        self.conv1 = torch.nn.Conv2d(in_channels=3, out_channels=10, kernel_size=5, stride=2, padding=0, dilation=1, bias=True)
 
-#         self.fc1 = nn.Linear(1960, 200)
-#         self.fc2 = nn.Linear(200, self.z_size*2)
-#         self.fc3 = nn.Linear(self.z_size, 200)
-#         self.fc4 = nn.Linear(200, 3072)
-
-
-
-
-
-#     # def forward(self, x):
-#     #     x = F.relu(F.max_pool2d(self.conv1(x), 2))
-#     #     x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-#     #     x = x.view(-1, 320)
-#     #     x = F.relu(self.fc1(x))
-#     #     x = F.dropout(x, training=self.training)
-#     #     x = self.fc2(x)
-#     #     return F.log_softmax(x)
+        self.fc1 = nn.Linear(1960, 200)
+        self.fc2 = nn.Linear(200, self.z_size*2)
+        self.fc3 = nn.Linear(self.z_size, 200)
+        self.fc4 = nn.Linear(200, 3072)
 
 
 
 
 
-#     def encode(self, x):
-
-#         x = x.view(-1, 3, 32, 32)
-#         x = F.relu(self.conv1(x))
-
-#         x = x.view(-1, 1960)
-
-#         h1 = F.relu(self.fc1(x))
-#         h2 = self.fc2(h1)
-#         mean = h2[:,:self.z_size]
-#         logvar = h2[:,self.z_size:]
-#         return mean, logvar
-
-#     def sample(self, mu, logvar, k):
-#         if torch.cuda.is_available():
-#             eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_()).cuda() #[P,B,Z]
-#             z = eps.mul(torch.exp(.5*logvar)) + mu  #[P,B,Z]
-#             logpz = lognormal(z, Variable(torch.zeros(self.B, self.z_size).cuda()), 
-#                                 Variable(torch.zeros(self.B, self.z_size)).cuda())  #[P,B]
-#             logqz = lognormal(z, mu, logvar)
-#         else:
-#             eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_())#[P,B,Z]
-#             z = eps.mul(torch.exp(.5*logvar)) + mu  #[P,B,Z]
-#             logpz = lognormal(z, Variable(torch.zeros(self.B, self.z_size)), 
-#                                 Variable(torch.zeros(self.B, self.z_size)))  #[P,B]
-#             logqz = lognormal(z, mu, logvar) 
-#         return z, logpz, logqz
-
-#     def decode(self, z):
-#         # print z.size()
-#         h3 = F.relu(self.fc3(z))
-#         return self.fc4(h3)
+    # def forward(self, x):
+    #     x = F.relu(F.max_pool2d(self.conv1(x), 2))
+    #     x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
+    #     x = x.view(-1, 320)
+    #     x = F.relu(self.fc1(x))
+    #     x = F.dropout(x, training=self.training)
+    #     x = self.fc2(x)
+    #     return F.log_softmax(x)
 
 
-#     def forward(self, x, k=1):
+
+
+
+    def encode(self, x):
+
+        x = x.view(-1, 3, 32, 32)
+        x = F.relu(self.conv1(x))
+
+        x = x.view(-1, 1960)
+
+        h1 = F.relu(self.fc1(x))
+        h2 = self.fc2(h1)
+        mean = h2[:,:self.z_size]
+        logvar = h2[:,self.z_size:]
+        return mean, logvar
+
+    def sample(self, mu, logvar, k):
+        if torch.cuda.is_available():
+            eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_()).cuda() #[P,B,Z]
+            z = eps.mul(torch.exp(.5*logvar)) + mu  #[P,B,Z]
+            logpz = lognormal(z, Variable(torch.zeros(self.B, self.z_size).cuda()), 
+                                Variable(torch.zeros(self.B, self.z_size)).cuda())  #[P,B]
+            logqz = lognormal(z, mu, logvar)
+        else:
+            eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_())#[P,B,Z]
+            z = eps.mul(torch.exp(.5*logvar)) + mu  #[P,B,Z]
+            logpz = lognormal(z, Variable(torch.zeros(self.B, self.z_size)), 
+                                Variable(torch.zeros(self.B, self.z_size)))  #[P,B]
+            logqz = lognormal(z, mu, logvar) 
+        return z, logpz, logqz
+
+    def decode(self, z):
+        # print z.size()
+        h3 = F.relu(self.fc3(z))
+        return self.fc4(h3)
+
+
+    def forward(self, x, k=1):
         
-#         self.B = x.size()[0]
-#         mu, logvar = self.encode(x)
-#         z, logpz, logqz = self.sample(mu, logvar, k=k)
-#         x_hat = self.decode(z)
-#         # print x_hat.size()
-#         logpx = log_bernoulli(x_hat, x)  #[P,B]
+        self.B = x.size()[0]
+        mu, logvar = self.encode(x)
+        z, logpz, logqz = self.sample(mu, logvar, k=k)
+        x_hat = self.decode(z)
+        # print x_hat.size()
+        logpx = log_bernoulli(x_hat, x)  #[P,B]
 
 
-#         elbo = logpx + logpz - logqz  #[P,B]
+        elbo = logpx + logpz - logqz  #[P,B]
 
-#         if k>1:
-#             max_ = torch.max(elbo, 0)[0] #[B]
-#             elbo = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
+        if k>1:
+            max_ = torch.max(elbo, 0)[0] #[B]
+            elbo = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
 
-#         elbo = torch.mean(elbo) #[1]
+        elbo = torch.mean(elbo) #[1]
 
-#         #for printing
-#         logpx = torch.mean(logpx)
-#         logpz = torch.mean(logpz)
-#         logqz = torch.mean(logqz)
-#         self.x_hat_sigmoid = F.sigmoid(x_hat)
+        #for printing
+        logpx = torch.mean(logpx)
+        logpz = torch.mean(logpz)
+        logqz = torch.mean(logqz)
+        self.x_hat_sigmoid = F.sigmoid(x_hat)
 
-#         return elbo, logpx, logpz, logqz
-
-
-
-
-# model = VAE()
-
-# if torch.cuda.is_available():
-#     print 'GPU available, loading cuda'#, torch.cuda.is_available()
-#     model.cuda()
-#     # train_x = train_x.cuda()
-
-
-# path_to_load_variables=''
-# # path_to_load_variables=home+'/Documents/tmp/pytorch_first.pt'
-# path_to_save_variables=home+'/Documents/tmp/pytorch_fc.pt'
-# # path_to_save_variables=''
+        return elbo, logpx, logpz, logqz
 
 
 
-# train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[], 
-#             path_to_load_variables=path_to_load_variables, 
-#             path_to_save_variables=path_to_save_variables, 
-#             epochs=epochs, batch_size=batch_size, display_epoch=1, k=1)
+
+model = VAE()
+
+if torch.cuda.is_available():
+    print 'GPU available, loading cuda'#, torch.cuda.is_available()
+    model.cuda()
+    # train_x = train_x.cuda()
+
+
+path_to_load_variables=''
+# path_to_load_variables=home+'/Documents/tmp/pytorch_first.pt'
+path_to_save_variables=home+'/Documents/tmp/pytorch_fc.pt'
+# path_to_save_variables=''
 
 
 
-# # print test(model=model, data_x=test_x, path_to_load_variables='', 
-# #             batch_size=20, display_epoch=100, k=1000)
+train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[], 
+            path_to_load_variables=path_to_load_variables, 
+            path_to_save_variables=path_to_save_variables, 
+            epochs=epochs, batch_size=batch_size, display_epoch=1, k=1)
 
-# print 'Done.'
 
 
+# print test(model=model, data_x=test_x, path_to_load_variables='', 
+#             batch_size=20, display_epoch=100, k=1000)
 
+print 'Done.'
 
 
 
@@ -448,132 +445,135 @@ def test(model, data_x, path_to_load_variables='', batch_size=20, display_epoch=
 
 
 
-# #With conv layer
-# # with deconv layer
-# print 'conv encoder, deconv decoder'
-
-# class VAE(nn.Module):
-#     def __init__(self):
-#         super(VAE, self).__init__()
-
-#         self.x_size = 3072
-#         self.z_size = 100
-
-#         self.conv1 = torch.nn.Conv2d(in_channels=3, out_channels=10, kernel_size=5, stride=2, padding=0, dilation=1, bias=True)
-
-#         self.fc1 = nn.Linear(1960, 200)
-#         self.fc2 = nn.Linear(200, self.z_size*2)
-#         self.fc3 = nn.Linear(self.z_size, 200)
-#         self.fc4 = nn.Linear(200, 1960)
-
-#         self.deconv1 = torch.nn.ConvTranspose2d(in_channels=10, out_channels=3, kernel_size=5, stride=2, padding=0, output_padding=1, groups=1, bias=True, dilation=1)
 
 
 
+#With conv layer
+# with deconv layer
+print 'conv encoder, deconv decoder'
 
-#     def encode(self, x):
+class VAE(nn.Module):
+    def __init__(self):
+        super(VAE, self).__init__()
 
-#         x = x.view(-1, 3, 32, 32)
-#         x = F.relu(self.conv1(x))
+        self.x_size = 3072
+        self.z_size = 100
 
-#         x = x.view(-1, 1960)
+        self.conv1 = torch.nn.Conv2d(in_channels=3, out_channels=10, kernel_size=5, stride=2, padding=0, dilation=1, bias=True)
 
-#         h1 = F.relu(self.fc1(x))
-#         h2 = self.fc2(h1)
-#         mean = h2[:,:self.z_size]
-#         logvar = h2[:,self.z_size:]
-#         return mean, logvar
+        self.fc1 = nn.Linear(1960, 200)
+        self.fc2 = nn.Linear(200, self.z_size*2)
+        self.fc3 = nn.Linear(self.z_size, 200)
+        self.fc4 = nn.Linear(200, 1960)
 
-#     def sample(self, mu, logvar, k):
-#         if torch.cuda.is_available():
-#             eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_()).cuda() #[P,B,Z]
-#             z = eps.mul(torch.exp(.5*logvar)) + mu  #[P,B,Z]
-#             logpz = lognormal(z, Variable(torch.zeros(self.B, self.z_size).cuda()), 
-#                                 Variable(torch.zeros(self.B, self.z_size)).cuda())  #[P,B]
-#             logqz = lognormal(z, mu, logvar)
-#         else:
-#             eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_())#[P,B,Z]
-#             z = eps.mul(torch.exp(.5*logvar)) + mu  #[P,B,Z]
-#             logpz = lognormal(z, Variable(torch.zeros(self.B, self.z_size)), 
-#                                 Variable(torch.zeros(self.B, self.z_size)))  #[P,B]
-#             logqz = lognormal(z, mu, logvar) 
-#         return z, logpz, logqz
-
-#     def decode(self, z):
+        self.deconv1 = torch.nn.ConvTranspose2d(in_channels=10, out_channels=3, kernel_size=5, stride=2, padding=0, output_padding=1, groups=1, bias=True, dilation=1)
 
 
-#         z = F.relu(self.fc3(z)) 
-#         z = F.relu(self.fc4(z))  #[B,1960]
 
-#         z = z.view(-1, 10, 14, 14)
-#         z = self.deconv1(z)
-#         z = z.view(-1, self.x_size)
+
+    def encode(self, x):
+
+        x = x.view(-1, 3, 32, 32)
+        x = F.relu(self.conv1(x))
+
+        x = x.view(-1, 1960)
+
+        h1 = F.relu(self.fc1(x))
+        h2 = self.fc2(h1)
+        mean = h2[:,:self.z_size]
+        logvar = h2[:,self.z_size:]
+        return mean, logvar
+
+    def sample(self, mu, logvar, k):
+        if torch.cuda.is_available():
+            eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_()).cuda() #[P,B,Z]
+            z = eps.mul(torch.exp(.5*logvar)) + mu  #[P,B,Z]
+            logpz = lognormal(z, Variable(torch.zeros(self.B, self.z_size).cuda()), 
+                                Variable(torch.zeros(self.B, self.z_size)).cuda())  #[P,B]
+            logqz = lognormal(z, mu, logvar)
+        else:
+            eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_())#[P,B,Z]
+            z = eps.mul(torch.exp(.5*logvar)) + mu  #[P,B,Z]
+            logpz = lognormal(z, Variable(torch.zeros(self.B, self.z_size)), 
+                                Variable(torch.zeros(self.B, self.z_size)))  #[P,B]
+            logqz = lognormal(z, mu, logvar) 
+        return z, logpz, logqz
+
+    def decode(self, z):
+
+
+        z = F.relu(self.fc3(z)) 
+        z = F.relu(self.fc4(z))  #[B,1960]
+
+        z = z.view(-1, 10, 14, 14)
+        z = self.deconv1(z)
+        z = z.view(-1, self.x_size)
         
-#         return z
+        return z
 
 
-#     def forward(self, x, k=1):
+    def forward(self, x, k=1):
         
-#         self.B = x.size()[0]
-#         mu, logvar = self.encode(x)
-#         z, logpz, logqz = self.sample(mu, logvar, k=k)
+        self.B = x.size()[0]
+        mu, logvar = self.encode(x)
+        z, logpz, logqz = self.sample(mu, logvar, k=k)
 
-#         z = z.view(-1, self.z_size) #[PB,Z]
-#         x_hat = self.decode(z)
-#         # print x_hat.size()
-#         x_hat = x_hat.view(k, self.B, self.x_size) #[P,B,X]
+        z = z.view(-1, self.z_size) #[PB,Z]
+        x_hat = self.decode(z)
+        # print x_hat.size()
+        x_hat = x_hat.view(k, self.B, self.x_size) #[P,B,X]
 
-#         logpx = log_bernoulli(x_hat, x)  #[P,B]
-
-
-#         elbo = logpx + logpz - logqz  #[P,B]
-
-#         if k>1:
-#             max_ = torch.max(elbo, 0)[0] #[B]
-#             elbo = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
-
-#         elbo = torch.mean(elbo) #[1]
-
-#         #for printing
-#         logpx = torch.mean(logpx)
-#         logpz = torch.mean(logpz)
-#         logqz = torch.mean(logqz)
-#         self.x_hat_sigmoid = F.sigmoid(x_hat)
-
-#         return elbo, logpx, logpz, logqz
+        logpx = log_bernoulli(x_hat, x)  #[P,B]
 
 
+        elbo = logpx + logpz - logqz  #[P,B]
+
+        if k>1:
+            max_ = torch.max(elbo, 0)[0] #[B]
+            elbo = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
+
+        elbo = torch.mean(elbo) #[1]
+
+        #for printing
+        logpx = torch.mean(logpx)
+        logpz = torch.mean(logpz)
+        logqz = torch.mean(logqz)
+        self.x_hat_sigmoid = F.sigmoid(x_hat)
+
+        return elbo, logpx, logpz, logqz
 
 
 
 
 
-# model = VAE()
-
-# if torch.cuda.is_available():
-#     print 'GPU available, loading cuda'#, torch.cuda.is_available()
-#     model.cuda()
-#     # train_x = train_x.cuda()
 
 
-# path_to_load_variables=''
-# # path_to_load_variables=home+'/Documents/tmp/pytorch_first.pt'
-# path_to_save_variables=home+'/Documents/tmp/pytorch_deconv.pt'
-# # path_to_save_variables=''
+model = VAE()
+
+if torch.cuda.is_available():
+    print 'GPU available, loading cuda'#, torch.cuda.is_available()
+    model.cuda()
+    # train_x = train_x.cuda()
 
 
-
-# train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[], 
-#             path_to_load_variables=path_to_load_variables, 
-#             path_to_save_variables=path_to_save_variables, 
-#             epochs=epochs, batch_size=batch_size, display_epoch=1, k=1)
+path_to_load_variables=''
+# path_to_load_variables=home+'/Documents/tmp/pytorch_first.pt'
+path_to_save_variables=home+'/Documents/tmp/pytorch_deconv.pt'
+# path_to_save_variables=''
 
 
 
-# # print test(model=model, data_x=test_x, path_to_load_variables='', 
-# #             batch_size=20, display_epoch=100, k=1000)
+train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[], 
+            path_to_load_variables=path_to_load_variables, 
+            path_to_save_variables=path_to_save_variables, 
+            epochs=epochs, batch_size=batch_size, display_epoch=1, k=1)
 
-# print 'Done.'
+
+
+# print test(model=model, data_x=test_x, path_to_load_variables='', 
+#             batch_size=20, display_epoch=100, k=1000)
+
+print 'Done.'
 
 
 
