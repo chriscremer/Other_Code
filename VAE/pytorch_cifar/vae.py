@@ -631,7 +631,7 @@ class VAE(nn.Module):
 
         self.deconv1 = torch.nn.ConvTranspose2d(in_channels=10, out_channels=3, kernel_size=5, stride=2, padding=0, output_padding=1, groups=1, bias=True, dilation=1)
 
-        self.conv2 = torch.nn.Conv2d(in_channels=3, out_channels=3, kernel_size=5, stride=1, padding=4, dilation=1, bias=True)
+        self.conv2 = torch.nn.Conv2d(in_channels=3, out_channels=3, kernel_size=5, stride=1, padding=2, dilation=1, bias=True)
 
 
 
