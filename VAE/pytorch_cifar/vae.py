@@ -100,7 +100,7 @@ def train(model, train_x, train_y, valid_x=[], valid_y=[],
         for batch_idx, (data, target) in enumerate(train_loader):
 
             if data.is_cuda:
-                data, target = Variable(data), Variable(target).type(torch.cuda.LongTensor)
+                data, target = Variable(data).cuda(), Variable(target).type(torch.cuda.LongTensor) 
             else:
                 data, target = Variable(data), Variable(target)
 
@@ -150,6 +150,25 @@ def test(model, data_x, path_to_load_variables='', batch_size=20, display_epoch=
             print i,len(data_x)/ batch_size, elbo.data[0]
 
     return np.mean(elbos)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -229,7 +248,7 @@ model = VAE()
 if torch.cuda.is_available():
     print 'GPU available, loading cuda'#, torch.cuda.is_available()
     model.cuda()
-    train_x = train_x.cuda()
+    # train_x = train_x.cuda()
 
 
 path_to_load_variables=''
@@ -370,7 +389,7 @@ model = VAE()
 if torch.cuda.is_available():
     print 'GPU available, loading cuda'#, torch.cuda.is_available()
     model.cuda()
-    train_x = train_x.cuda()
+    # train_x = train_x.cuda()
 
 
 path_to_load_variables=''
@@ -512,7 +531,7 @@ model = VAE()
 if torch.cuda.is_available():
     print 'GPU available, loading cuda'#, torch.cuda.is_available()
     model.cuda()
-    train_x = train_x.cuda()
+    # train_x = train_x.cuda()
 
 
 path_to_load_variables=''
