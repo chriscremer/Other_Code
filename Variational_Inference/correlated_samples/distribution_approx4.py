@@ -1,5 +1,10 @@
 
 
+# L_M and L_arc
+
+
+
+
 import numpy as np
 
 
@@ -8,6 +13,9 @@ from torch.autograd import Variable
 import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
+
+from os.path import expanduser
+home = expanduser("~")
 
 
 import matplotlib.pyplot as plt
@@ -64,20 +72,50 @@ def logpz(z):
 
 
 
-def plot_it(model):
+# def plot_it(model):
+
+#     plt.cla()
+
+#     ax = plt.subplot2grid((rows,cols), (0,0), frameon=False)
+#     plot_isocontours(ax, logpz, cmap='Blues')
+
+#     func = lambda zs: lognormal4_2(zs, model.mean, model.logvar)
+#     plot_isocontours(ax, func, cmap='Reds')
+
+#     plt.draw()
+#     plt.pause(1.0/30.0)
+
+
+
+
+
+
+def plot_it2(e, model, elbo):
 
     plt.cla()
 
     ax = plt.subplot2grid((rows,cols), (0,0), frameon=False)
     plot_isocontours(ax, logpz, cmap='Blues')
 
-    func = lambda zs: lognormal4_2(zs, model.mean, model.logvar)
+    func = lambda zs: lognormal4_2(zs, model.mean1, model.logvar1)
     plot_isocontours(ax, func, cmap='Reds')
 
-    plt.draw()
-    plt.pause(1.0/30.0)
+    # func = lambda zs: lognormal4_2(zs, model.mean2, model.logvar2)
+    # plot_isocontours(ax, func, cmap='Greens')
+
+    func = lambda zs: lognormal4_2(zs, (model.mean1*model.linear_transform)+model.bias_transform, torch.log(torch.exp(model.logvar2) + model.linear_transform.pow(2)*torch.exp(model.logvar1)))
+    plot_isocontours(ax, func, cmap='Greens')   
+
+    ax.annotate('iter:'+str(e), xytext=(.1, 1.), xy=(0, 1), textcoords='axes fraction')
+    ax.annotate('elbo'+str(elbo), xytext=(.1, .95), xy=(0, 1), textcoords='axes fraction')
 
 
+
+    # plt.draw()
+    # plt.pause(1.0/30.0)
+
+    plt.savefig(home+'/Documents/tmp/'+str(e)+'thing.png')
+    print 'Saved fig'
 
 
 def train(model, 
@@ -102,19 +140,20 @@ def train(model,
         optimizer.step()
 
         if epoch%display_epoch==0:
+            test_score =test(model,k=k)
             print 'Train Epoch: {}/{}'.format(epoch, epochs), \
                 'Loss:{:.4f}'.format(loss.data[0]), \
                 'logpz:{:.4f}'.format(logpz.data[0]), \
                 'logqz:{:.4f}'.format(logqz.data[0]), \
-                'test', test(model,k=k)
+                'test', test_score
 
-            plot_it(model)
+            plot_it2(epoch, model, test_score)
 
             # plt.savefig(home+'/Documents/tmp/thing'+str(epoch)+'.png')
             # print 'Saved fig'
 
-            # print model.linear_transform.data, model.bias_transform.data, model.logvar2.data
-            # print model.mean1, model.logvar1
+            print model.linear_transform.data, model.bias_transform.data, model.logvar2.data
+            print model.mean1, model.logvar1
 
 
     if path_to_save_variables != '':
@@ -124,7 +163,7 @@ def train(model,
 
 
 
-def test(model, path_to_load_variables='', batch_size=50, display_epoch=4, k=10):
+def test(model, path_to_load_variables='', batch_size=100, display_epoch=4, k=10):
     
 
     if path_to_load_variables != '':
@@ -151,38 +190,113 @@ def test(model, path_to_load_variables='', batch_size=50, display_epoch=4, k=10)
 
 
 
-class IWG(nn.Module):
-    #Importance Weighted Gaussian
+# class IWG(nn.Module):
+#     #Importance Weighted Gaussian
+#     def __init__(self, dim, logpz):
+#         super(IWG, self).__init__()
+
+#         torch.manual_seed(1000)
+
+#         self.z_size = dim
+
+#         self.mean = Variable(torch.zeros(self.z_size), requires_grad=True)
+#         self.logvar = Variable(torch.randn(self.z_size)-3., requires_grad=True)
+#         self.params = [self.mean, self.logvar]
+#         self.logpz = logpz
+
+
+#     def sample(self, mu, logvar, k):
+#         eps = Variable(torch.FloatTensor(k, self.z_size).normal_()) #[P,Z]
+#         z = eps.mul(torch.exp(.5*logvar)) + mu  #[P,Z]
+#         logqz = lognormal4_2(z, mu.detach(), logvar.detach())
+#         return z, logqz
+
+
+#     def forward(self, k=1):
+        
+#         z, logqz = self.sample(self.mean, self.logvar, k=k) #[P,B,Z], 
+#         logpz = self.logpz(z) 
+
+#         elbo = logpz - logqz  #[P,B]
+
+#         if k>1:
+#             max_ = torch.max(elbo, 0)[0] #[B]
+#             elbo = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
+
+#         elbo = torch.mean(elbo) #[1]
+
+#         logpz = torch.mean(logpz)
+#         logqz = torch.mean(logqz)
+
+#         return elbo, logpz, logqz
+
+
+
+# variables = {}
+# variables['mean1'] = [ 0.5752, 0.5130]
+# variables['logvar1'] = [  0.4593, 0.4308]
+# variables['linear_transform'] = [-0.0112, 0.1881]
+# variables['bias_transform'] = [0.8124, 0.8293]
+# variables['logvar2'] = [0.4942, 0.4098]
+
+
+
+
+class MCGS(nn.Module):
+    #Multiple Covaried Gaussian Samples 
     def __init__(self, dim, logpz):
-        super(IWG, self).__init__()
+        super(MCGS, self).__init__()
 
         torch.manual_seed(1000)
 
         self.z_size = dim
 
-        self.mean = Variable(torch.zeros(self.z_size)-2., requires_grad=True)
-        self.logvar = Variable(torch.randn(self.z_size)-3., requires_grad=True)
-        self.params = [self.mean, self.logvar]
+        self.mean1 = Variable(torch.zeros(self.z_size), requires_grad=True)
+        self.logvar1 = Variable(torch.randn(self.z_size)-3., requires_grad=True)
+
+        # self.linear_transform = Variable(torch.zeros(self.z_size, self.z_size), requires_grad=True)
+        self.linear_transform = Variable(torch.zeros(self.z_size), requires_grad=True)
+        self.bias_transform = Variable(torch.zeros(self.z_size), requires_grad=True)
+        self.logvar2 = Variable(torch.randn(self.z_size)-3., requires_grad=True)
+        # self.logvar2 = self.logvar1
+
+        self.params = [self.mean1, self.logvar1, self.linear_transform, self.bias_transform, self.logvar2]
+
+
         self.logpz = logpz
 
 
-    def sample(self, mu, logvar, k):
-        eps = Variable(torch.FloatTensor(k, self.z_size).normal_()) #[P,Z]
-        z = eps.mul(torch.exp(.5*logvar)) + mu  #[P,Z]
+    def sample(self, mu, logvar):
+        eps = Variable(torch.FloatTensor(1, self.z_size).normal_()) #[1,Z]
+        z = eps.mul(torch.exp(.5*logvar)) + mu  #[1,Z]
         logqz = lognormal4_2(z, mu.detach(), logvar.detach())
         return z, logqz
 
 
     def forward(self, k=1):
         
-        z, logqz = self.sample(self.mean, self.logvar, k=k) #[P,B,Z], 
+        z, logqz = self.sample(self.mean1, self.logvar1) #[1,Z]
+        # z = torch.squeeze(z) #[Z]
+        z2, logqz2 = self.sample((z*self.linear_transform)+self.bias_transform, self.logvar2) #[1,Z]
+
+        #comment this out to get l_arc
+        #We want z2 under marginal q2
+        # logqz2 = lognormal4_2(z2, (self.mean1*self.linear_transform)+self.bias_transform, torch.log(torch.exp(self.logvar2) + self.linear_transform.pow(2)*torch.exp(self.logvar1)))
+
+
+
+        # z = torch.unsqueeze(z,0)  #this gave a weird bug where the variacne was less for some reason on q2
         logpz = self.logpz(z) 
+        logpz2 = self.logpz(z2) 
+
+        logpz = logpz + logpz2
+        logqz = logqz + logqz2
 
         elbo = logpz - logqz  #[P,B]
 
-        if k>1:
-            max_ = torch.max(elbo, 0)[0] #[B]
-            elbo = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
+        # if k>1:
+        #     max_ = torch.max(elbo, 0)[0] #[B]
+        #     elbo = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
 
         elbo = torch.mean(elbo) #[1]
 
@@ -195,10 +309,11 @@ class IWG(nn.Module):
 
 
 
-# class MCGS(nn.Module):
-#     #Multiple Covaried Gaussian Samples 
+
+# class LF(nn.Module):
+#     #LF
 #     def __init__(self, dim, logpz):
-#         super(MCGS, self).__init__()
+#         super(LF, self).__init__()
 
 #         torch.manual_seed(1000)
 
@@ -207,13 +322,18 @@ class IWG(nn.Module):
 #         self.mean1 = Variable(torch.zeros(self.z_size), requires_grad=True)
 #         self.logvar1 = Variable(torch.randn(self.z_size)-3., requires_grad=True)
 
-#         # self.linear_transform = Variable(torch.zeros(self.z_size, self.z_size), requires_grad=True)
-#         self.linear_transform = Variable(torch.zeros(self.z_size), requires_grad=True)
-#         self.bias_transform = Variable(torch.zeros(self.z_size), requires_grad=True)
+#         # self.linear_transform = Variable(torch.zeros(self.z_size), requires_grad=True)
+#         # self.bias_transform = Variable(torch.zeros(self.z_size), requires_grad=True)
+#         self.mean2 = Variable(torch.zeros(self.z_size), requires_grad=True)
 #         self.logvar2 = Variable(torch.randn(self.z_size)-3., requires_grad=True)
+#         # self.logvar2 = self.logvar1
 
 
-#         self.params = [self.mean1, self.logvar1, self.linear_transform, self.bias_transform, self.logvar2]
+
+#         # self.params = [self.mean1, self.logvar1, self.linear_transform, self.bias_transform, self.logvar2]
+#         self.params = [self.mean1, self.logvar1, self.mean2, self.logvar2]#, self.logvar2]
+
+
 #         self.logpz = logpz
 
 
@@ -227,13 +347,17 @@ class IWG(nn.Module):
 #     def forward(self, k=1):
         
 #         z, logqz = self.sample(self.mean1, self.logvar1) #[1,Z]
-#         z = torch.squeeze(z) #[Z]
-#         z2, logqz2 = self.sample((z*self.linear_transform)+self.bias_transform, self.logvar2) #[1,Z]
+#         # z = torch.squeeze(z) #[Z]
+#         z2, logqz2 = self.sample(self.mean2, self.logvar2) #[1,Z]
+
 #         #We want z2 under marginal q2
 #         # z2 = torch.unsqueeze(z2,0)
-#         # logqz2 = lognormal4_2(z2, (self.mean1*self.linear_transform)+self.bias_transform, self.logvar2 + self.linear_transform.pow(2)/torch.exp(self.logvar1))
+#         # logqz2 = lognormal4_2(z2, (self.mean1*self.linear_transform)+self.bias_transform, self.logvar2 + self.linear_transform.pow(2)*torch.exp(self.logvar1))
+#         # logqz2 = lognormal4_2(z2, (self.mean1*self.linear_transform)+self.bias_transform, torch.log(torch.exp(self.logvar2) + self.linear_transform.pow(2)*torch.exp(self.logvar1)))
 
-#         z = torch.unsqueeze(z,0)
+
+
+#         # z = torch.unsqueeze(z,0)
 #         logpz = self.logpz(z) 
 #         logpz2 = self.logpz(z2) 
 
@@ -269,9 +393,6 @@ class IWG(nn.Module):
 
 
 
-
-
-
 rows = 1
 cols = 1
 fig = plt.figure(figsize=(4+cols,4+rows), facecolor='white')
@@ -280,8 +401,10 @@ plt.show(block=False)
 
 
 
-model = IWG(dim=2, logpz=logpz)
-# model = MCGS(dim=2, logpz=logpz)
+# model = IWG(dim=2, logpz=logpz)
+model = MCGS(dim=2, logpz=logpz)
+# model = LF(dim=2, logpz=logpz)
+
 
 
 path_to_load_variables=''
@@ -292,7 +415,7 @@ path_to_save_variables=''
 train(model=model, 
             path_to_load_variables=path_to_load_variables, 
             path_to_save_variables=path_to_save_variables, 
-            epochs=160000, batch_size=4, display_epoch=1, k=2)
+            epochs=1000, batch_size=4, display_epoch=40, k=10)
 
 
 
