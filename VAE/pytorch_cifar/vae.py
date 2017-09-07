@@ -100,7 +100,7 @@ def train(model, train_x, train_y, valid_x=[], valid_y=[],
         for batch_idx, (data, target) in enumerate(train_loader):
 
             if data.is_cuda:
-                data, target = Variable(data).type(torch.cuda.LongTensor) , Variable(target).type(torch.cuda.LongTensor) 
+                data, target = Variable(data).type(torch.cuda.FloatTensor) , Variable(target).type(torch.cuda.LongTensor) 
             else:
                 data, target = Variable(data), Variable(target)
 
