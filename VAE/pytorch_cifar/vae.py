@@ -672,7 +672,7 @@ class VAE(nn.Module):
         # z = self.deconv1(z)
 
 
-        z = F.Upsample(z, size=[3,32,32])
+        z = nn.Upsample(size=[3,32,32])(z)
 
 
         z = z.view(-1, self.x_size)
