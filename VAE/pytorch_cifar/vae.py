@@ -199,7 +199,7 @@ class VAE(nn.Module):
         return mean, logvar
 
     def sample(self, mu, logvar, k):
-        eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_()) #[P,B,Z]
+        eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_()).cuda() #[P,B,Z]
         z = eps.mul(torch.exp(.5*logvar)) + mu  #[P,B,Z]
         logpz = lognormal(z, Variable(torch.zeros(self.B, self.z_size)), 
                             Variable(torch.zeros(self.B, self.z_size)))  #[P,B]
