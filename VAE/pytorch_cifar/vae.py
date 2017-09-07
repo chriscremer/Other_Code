@@ -673,7 +673,9 @@ class VAE(nn.Module):
 
 
         z = F.relu(self.deconv1(z))
+        print z.size()
         z = self.conv2(z)
+        print z.size()
 
         # z = nn.Upsample(size=[3,32,32])(z)
 
