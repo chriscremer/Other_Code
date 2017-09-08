@@ -144,6 +144,9 @@ def test(model, data_x, path_to_load_variables='', batch_size=20, display_epoch=
         batch = data_x[data_index:data_index+batch_size]
         data_index += batch_size
 
+
+        print batch.shape
+
         # if data.is_cuda:
         if torch.cuda.is_available():
             data = Variable(batch).type(torch.cuda.FloatTensor)
@@ -429,8 +432,9 @@ train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[],
 
 
 
-print test(model=model, data_x=test_x, path_to_load_variables='', 
+test_elbo =  test(model=model, data_x=test_x, path_to_load_variables='', 
             batch_size=5, display_epoch=100, k=10)
+print test_elbo
 
 print 'Done.'
 
