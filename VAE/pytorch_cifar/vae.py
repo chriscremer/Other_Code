@@ -421,8 +421,8 @@ train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[],
 
 
 
-# print test(model=model, data_x=test_x, path_to_load_variables='', 
-#             batch_size=20, display_epoch=100, k=1000)
+print test(model=model, data_x=test_x, path_to_load_variables='', 
+            batch_size=5, display_epoch=100, k=1000)
 
 print 'Done.'
 
@@ -570,8 +570,8 @@ train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[],
 
 
 
-# print test(model=model, data_x=test_x, path_to_load_variables='', 
-#             batch_size=20, display_epoch=100, k=1000)
+print test(model=model, data_x=test_x, path_to_load_variables='', 
+            batch_size=5, display_epoch=100, k=1000)
 
 print 'Done.'
 
@@ -743,8 +743,8 @@ train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[],
 
 
 
-# print test(model=model, data_x=test_x, path_to_load_variables='', 
-#             batch_size=20, display_epoch=100, k=1000)
+print test(model=model, data_x=test_x, path_to_load_variables='', 
+            batch_size=5, display_epoch=100, k=1000)
 
 print 'Done.'
 
