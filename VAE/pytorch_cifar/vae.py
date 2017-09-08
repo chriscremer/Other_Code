@@ -65,7 +65,7 @@ print train_y.shape
 
 
 batch_size = 50
-epochs = 2
+epochs = 1
 display_epoch = 2
 
 
@@ -144,9 +144,6 @@ def test(model, data_x, path_to_load_variables='', batch_size=20, display_epoch=
         batch = data_x[data_index:data_index+batch_size]
         data_index += batch_size
 
-
-        print batch.shape
-
         # if data.is_cuda:
         if torch.cuda.is_available():
             data = Variable(batch).type(torch.cuda.FloatTensor)
@@ -154,6 +151,8 @@ def test(model, data_x, path_to_load_variables='', batch_size=20, display_epoch=
             data = Variable(batch)#, Variable(target)
 
         elbo, logpx, logpz, logqz = model.forward(data, k=k)
+        print elbo, logpx, logpz, logqz
+        fasdfa
 
         # elbo, logpx, logpz, logqz = model(Variable(batch), k=k)
         elbos.append(elbo.data[0])
