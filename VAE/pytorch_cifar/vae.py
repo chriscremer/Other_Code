@@ -65,7 +65,7 @@ print train_y.shape
 
 
 batch_size = 50
-epochs = 100
+epochs = 2
 
 
 
@@ -101,9 +101,9 @@ def train(model, train_x, train_y, valid_x=[], valid_y=[],
 
             # if data.is_cuda:
             if torch.cuda.is_available():
-                data, target = Variable(data).type(torch.cuda.FloatTensor) , Variable(target).type(torch.cuda.LongTensor) 
+                data = Variable(data).type(torch.cuda.FloatTensor)# , Variable(target).type(torch.cuda.LongTensor) 
             else:
-                data, target = Variable(data), Variable(target)
+                data = Variable(data)#, Variable(target)
 
             optimizer.zero_grad()
 
@@ -144,11 +144,19 @@ def test(model, data_x, path_to_load_variables='', batch_size=20, display_epoch=
         batch = data_x[data_index:data_index+batch_size]
         data_index += batch_size
 
-        elbo, logpx, logpz, logqz = model(Variable(batch), k=k)
+        # if data.is_cuda:
+        if torch.cuda.is_available():
+            data = Variable(batch).type(torch.cuda.FloatTensor)
+        else:
+            data = Variable(batch)#, Variable(target)
+
+        elbo, logpx, logpz, logqz = model.forward(data, k=k)
+
+        # elbo, logpx, logpz, logqz = model(Variable(batch), k=k)
         elbos.append(elbo.data[0])
 
         if i%display_epoch==0:
-            print i,len(data_x)/ batch_size, elbo.data[0]
+            print i,len(data_x)/ batch_size, np.mean(elbos)
 
     return np.mean(elbos)
 
