@@ -153,8 +153,8 @@ def test(model, data_x, path_to_load_variables='', batch_size=20, display_epoch=
             data = Variable(batch)#, Variable(target)
 
         elbo, logpx, logpz, logqz = model.forward(data, k=k)
-        print elbo, logpx, logpz, logqz
-        fasdfa
+        # print elbo, logpx, logpz, logqz
+        # fasdfa
 
         # elbo, logpx, logpz, logqz = model(Variable(batch), k=k)
         elbos.append(elbo.data[0])
