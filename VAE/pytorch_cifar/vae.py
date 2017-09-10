@@ -53,6 +53,8 @@ test_x = b1['data']
 test_y = b1['labels']
 
 train_x = train_x / 255.
+test_x = test_x / 255.
+
 
 train_x = torch.from_numpy(train_x).float()
 test_x = torch.from_numpy(test_x)
