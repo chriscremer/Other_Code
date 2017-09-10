@@ -4,7 +4,7 @@
 
 # L_M and L_arc
 
-#used to chekc to see if the elbos are differnet given same parameters
+#used to check to see if the elbos are differnet given same parameters
 
 #Result:
 # L_M: about -.50
