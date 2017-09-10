@@ -392,7 +392,7 @@ class VAE(nn.Module):
         logpx = log_bernoulli(x_hat, x)  #[P,B]
 
 
-        elbo = logpx + logpz - logqz  #[P,B]
+        elbo = logpx #+ logpz - logqz  #[P,B]
 
         if k>1:
             max_ = torch.max(elbo, 0)[0] #[B]
@@ -539,7 +539,7 @@ class VAE(nn.Module):
         logpx = log_bernoulli(x_hat, x)  #[P,B]
 
 
-        elbo = logpx + logpz - logqz  #[P,B]
+        elbo = logpx #+ logpz - logqz  #[P,B]
 
         if k>1:
             max_ = torch.max(elbo, 0)[0] #[B]
@@ -712,7 +712,7 @@ class VAE(nn.Module):
         logpx = log_bernoulli(x_hat, x)  #[P,B]
 
 
-        elbo = logpx + logpz - logqz  #[P,B]
+        elbo = logpx# + logpz - logqz  #[P,B]
 
         if k>1:
             max_ = torch.max(elbo, 0)[0] #[B]
