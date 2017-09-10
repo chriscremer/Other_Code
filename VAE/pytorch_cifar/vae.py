@@ -67,7 +67,7 @@ print train_y.shape
 
 
 batch_size = 50
-epochs = 1
+epochs = 100
 display_epoch = 2
 
 
