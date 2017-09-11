@@ -68,7 +68,7 @@ print train_y.shape
 
 batch_size = 50
 epochs = 200
-display_epoch = 5
+display_epoch = 10
 
 
 
@@ -429,7 +429,7 @@ path_to_save_variables=home+'/Documents/tmp/pytorch_fc.pt'
 train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[], 
             path_to_load_variables=path_to_load_variables, 
             path_to_save_variables=path_to_save_variables, 
-            epochs=epochs, batch_size=batch_size, display_epoch=1, k=1)
+            epochs=epochs, batch_size=batch_size, display_epoch=display_epoch, k=1)
 
 
 
@@ -579,7 +579,7 @@ path_to_save_variables=home+'/Documents/tmp/pytorch_deconv.pt'
 train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[], 
             path_to_load_variables=path_to_load_variables, 
             path_to_save_variables=path_to_save_variables, 
-            epochs=epochs, batch_size=batch_size, display_epoch=1, k=1)
+            epochs=epochs, batch_size=batch_size, display_epoch=display_epoch, k=1)
 
 
 
@@ -744,7 +744,7 @@ if torch.cuda.is_available():
 
 path_to_load_variables=''
 # path_to_load_variables=home+'/Documents/tmp/pytorch_first.pt'
-path_to_save_variables=home+'/Documents/tmp/pytorch_deconv.pt'
+path_to_save_variables=home+'/Documents/tmp/pytorch_deconv_conv.pt'
 # path_to_save_variables=''
 
 
@@ -752,7 +752,7 @@ path_to_save_variables=home+'/Documents/tmp/pytorch_deconv.pt'
 train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[], 
             path_to_load_variables=path_to_load_variables, 
             path_to_save_variables=path_to_save_variables, 
-            epochs=epochs, batch_size=batch_size, display_epoch=1, k=1)
+            epochs=epochs, batch_size=batch_size, display_epoch=display_epoch, k=1)
 
 
 
