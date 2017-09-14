@@ -11,7 +11,7 @@ import pickle, cPickle
 from os.path import expanduser
 home = expanduser("~")
 
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 
 import torch
@@ -24,6 +24,7 @@ import torch.nn.functional as F
 from utils import lognormal2 as lognormal
 from utils import log_bernoulli
 
+from scipy.misc import toimage
 
 
 def unpickle(file):
@@ -51,6 +52,40 @@ file__ = home+'/Documents/cifar-10-batches-py/test_batch'
 b1 = unpickle(file__)
 test_x = b1['data']
 test_y = b1['labels']
+
+
+
+# #View image
+# for i in range(50):
+#     img = np.reshape(test_x[i], [3,32,32])
+#     img = img.transpose(1,2,0).astype("uint8")
+#     print i, img.shape
+#     plt.imshow(img,interpolation='nearest')
+#     # plt.imshow(toimage(img))
+#     # plt.show()
+#     plt.savefig(home+'/Documents/tmp/img'+str(i)+'.png')
+# fasdf
+
+
+# #THis one is better
+# print 'ereere'
+# test_x = test_x.reshape(10000, 3, 32, 32).transpose(0,2,3,1).astype("uint8")
+# print 'fffff'
+# #Visualizing CIFAR 10
+# fig, axes1 = plt.subplots(5,5,figsize=(3,3))
+# for j in range(5):
+#     for k in range(5):
+#         i = np.random.choice(range(len(test_x)))
+#         axes1[j][k].set_axis_off()
+#         axes1[j][k].imshow(test_x[i:i+1][0])
+# plt.show()
+# fasdfa
+
+
+
+
+
+
 
 train_x = train_x / 255.
 test_x = test_x / 255.
