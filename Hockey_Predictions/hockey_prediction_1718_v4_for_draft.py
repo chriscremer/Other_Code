@@ -129,6 +129,8 @@ print 'Number NHL game days', str(len(days_and_which_teams_plays))
 
 
 player_rankings = []
+player_rankings_numbervalue = []
+
 
 with open(home+'/Documents/nhl_data/player_rankings_for_sim_draft.txt', 'rU') as csvfile:
 	reader = csv.reader(csvfile)
@@ -141,6 +143,8 @@ with open(home+'/Documents/nhl_data/player_rankings_for_sim_draft.txt', 'rU') as
 			player_rankings.append(aaa[2]+' '+aaa[3]+' '+aaa[4])
 		else:
 			player_rankings.append(aaa[2]+' '+aaa[3])
+
+		player_rankings_numbervalue.append(float(aaa[1]))
 
 # print player_rankings[::-1]
 # print
@@ -443,6 +447,42 @@ for aa in range(len(vgk)):
 
 
 
+# Look at distribution of ranking vs position
+player_rankings__ = list(player_rankings[::-1])
+player_rankings_numbervalue = list(player_rankings_numbervalue[::-1])
+
+poses = ['C', 'LW', 'RW', 'D', 'G']
+for p in poses:
+	score_ = 0.
+	spores = []
+	count =0.
+	for pl_i in range(len(player_rankings__)):
+		#get position
+		all_index = all_names.index(player_rankings__[pl_i])
+		pos = all_positions[all_index]
+		if p in pos:
+			score_+= pl_i
+			count+=1 
+			# spores.append(pl_i)
+			spores.append(player_rankings_numbervalue[pl_i])
+	# print p, score_/count
+	print p, 'mean', np.mean(spores)
+	print p, 'median', np.median(spores)
+	print p, 'std', np.std(spores)
+	print 
+#this shows that RW is different than the other positoins
+# it might be saying to pick RW early or late. 
+# its saying theres a lot of decent RW and few shitty ones. 
+# so maybe pick late becaue there will be some good ones left.
+# but there are also less RW so maybe it balances out. 
+# it also has more variance, so maybe its best to get it first
+# goalies have similar pattern, so maybe pick RW and goalies first
+fsdf
+
+
+
+
+
 #Compute team score based on rankings
 def compute_team_scores(team_points):
 
@@ -620,7 +660,7 @@ my_cur_positions_open = [3,3,3,5,2]
 
 n_teams = 12
 
-iter_total = 30000
+iter_total = 500
 start = time.time()
 for iter_ in range(iter_total):
 	if iter_ % 500 == 1:
@@ -763,7 +803,7 @@ for i in range(len(order)):
 	all_index = all_names.index(names_sorted[i]) 
 
 	# print "Location: {0:1} Revision {7:8}".format(scores_sorted[i],count_sorted[i])
-	if names_sorted[i] in ['Connor McDavid', 'Sidney Crosby', 'Braden Holtby']:
+	if names_sorted[i] in ['Connor McDavid', 'Sidney Crosby', 'Braden Holtby', 'Patrick Kane']:
 		print
 
 	# if 'G' in all_positions[all_index]:

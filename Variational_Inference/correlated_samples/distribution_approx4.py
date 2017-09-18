@@ -111,11 +111,11 @@ def plot_it2(e, model, elbo):
 
 
 
-    # plt.draw()
-    # plt.pause(1.0/30.0)
+    plt.draw()
+    plt.pause(1.0/30.0)
 
-    plt.savefig(home+'/Documents/tmp/'+str(e)+'thing.png')
-    print 'Saved fig'
+    # plt.savefig(home+'/Documents/tmp/'+str(e)+'thing.png')
+    # print 'Saved fig'
 
 
 def train(model, 
@@ -127,7 +127,7 @@ def train(model,
         model.load_state_dict(torch.load(path_to_load_variables))
         print 'loaded variables ' + path_to_load_variables
 
-    optimizer = optim.Adam(model.params, lr=.05)
+    optimizer = optim.Adam(model.params, lr=.005)
 
     for epoch in range(1, epochs + 1):
 
@@ -415,7 +415,7 @@ path_to_save_variables=''
 train(model=model, 
             path_to_load_variables=path_to_load_variables, 
             path_to_save_variables=path_to_save_variables, 
-            epochs=1000, batch_size=4, display_epoch=40, k=10)
+            epochs=10000, batch_size=4, display_epoch=40, k=10)
 
 
 
