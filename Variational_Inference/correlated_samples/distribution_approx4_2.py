@@ -81,8 +81,7 @@ def plot_it2(e, model, elbo):
     plt.pause(1.0/30.0)
 
 
-def train(model, 
-            path_to_load_variables='', path_to_save_variables='', 
+def train(model, path_to_load_variables='', path_to_save_variables='', 
             epochs=10, batch_size=20, display_epoch=2):
     
 
