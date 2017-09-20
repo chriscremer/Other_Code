@@ -79,15 +79,13 @@ def train(model, train_x, train_y, valid_x=[], valid_y=[],
             loss.backward()
             optimizer.step()
 
-            if epoch%display_epoch==0 and batch_idx == 0:
-                print 'Train Epoch: {}/{} [{}/{} ({:.0f}%)]'.format(epoch, epochs, 
-                        batch_idx * len(data), len(train_loader.dataset),
-                        100. * batch_idx / len(train_loader)), \
+            if (epoch%display_epoch==0 or epoch==1) and batch_idx == 0:
+                print 'Train Epoch: {}/{}'.format(epoch, epochs, \
                     'Loss:{:.4f}'.format(loss.data[0]), \
                     'logpx:{:.4f}'.format(logpx.data[0]), \
                     'logpz:{:.4f}'.format(logpz.data[0]), \
                     'logqz:{:.4f}'.format(logqz.data[0]), \
-                    'warmup:{:.1f}'.format(warmup)
+                    'warmup:{:.2f}'.format(warmup)
 
     if path_to_save_variables != '':
         torch.save(model.state_dict(), path_to_save_variables)
@@ -148,9 +146,9 @@ def load_params(model, path_to_load_variables=''):
 
 
 
-class VAE_deconv1(VAE):
+class VAE_deconv1(nn.Module):
     def __init__(self):
-        super(VAE, self).__init__()
+        super(VAE_deconv1, self).__init__()
 
         self.x_size = 3072
         self.z_size = 200
@@ -231,7 +229,7 @@ class VAE_deconv1(VAE):
         logqz = torch.mean(logqz)
         self.x_hat_sigmoid = F.sigmoid(x_hat)
 
-        return elbo, logpx, logpz, logqz, warmup
+        return elbo, logpx, logpz, logqz
 
 
 
