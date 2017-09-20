@@ -80,7 +80,7 @@ def train(model, train_x, train_y, valid_x=[], valid_y=[],
             optimizer.step()
 
             if (epoch%display_epoch==0 or epoch==1) and batch_idx == 0:
-                print 'Train Epoch: {}/{}'.format(epoch, epochs, \
+                print 'Train Epoch: {}/{}'.format(epoch, epochs), \
                     'Loss:{:.4f}'.format(loss.data[0]), \
                     'logpx:{:.4f}'.format(logpx.data[0]), \
                     'logpz:{:.4f}'.format(logpz.data[0]), \
@@ -155,13 +155,16 @@ class VAE_deconv1(nn.Module):
 
         self.conv1 = torch.nn.Conv2d(in_channels=3, out_channels=10, kernel_size=5, stride=2, padding=0, dilation=1, bias=True)
 
+        self.conv2 = torch.nn.Conv2d(in_channels=10, out_channels=10, kernel_size=5, stride=2, padding=0, dilation=1, bias=True)
+
         self.fc1 = nn.Linear(1960, 200)
         self.fc2 = nn.Linear(200, self.z_size*2)
         self.fc3 = nn.Linear(self.z_size, 200)
         self.fc4 = nn.Linear(200, 1960)
 
-        self.deconv1 = torch.nn.ConvTranspose2d(in_channels=10, out_channels=3, kernel_size=5, stride=2, padding=0, output_padding=1, groups=1, bias=True, dilation=1)
+        self.deconv1 = torch.nn.ConvTranspose2d(in_channels=10, out_channels=10, kernel_size=5, stride=2, padding=0, output_padding=1, groups=1, bias=True, dilation=1)
 
+        self.deconv2 = torch.nn.ConvTranspose2d(in_channels=10, out_channels=3, kernel_size=5, stride=2, padding=0, output_padding=1, groups=1, bias=True, dilation=1)
 
 
     def encode(self, x):
@@ -200,6 +203,8 @@ class VAE_deconv1(nn.Module):
 
         z = z.view(-1, 10, 14, 14)
         z = self.deconv1(z)
+        z = F.relu(z)
+        z = self.deconv2(z)
         z = z.view(-1, self.x_size)
         
         return z
