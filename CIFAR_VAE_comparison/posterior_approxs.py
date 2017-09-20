@@ -1,0 +1,7 @@
+
+
+
+
+class FFG(object):
+
+	fads
