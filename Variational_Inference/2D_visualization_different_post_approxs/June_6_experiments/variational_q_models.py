@@ -46,7 +46,7 @@ class Factorized_Gaussian_model(object):
 
         self.elbo = log_p_z - log_q_z
 
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=.001, 
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=.0001, 
                                                 epsilon=1e-02).minimize(-self.elbo)
 
         init_vars = tf.global_variables_initializer()
@@ -79,8 +79,10 @@ class Factorized_Gaussian_model(object):
                 if elbo_100 <= best_100_elbo and best_100_elbo != -1:
                     worse_count +=1
                     print i, elbo_100,worse_count
-                    if worse_count == 5:
-                        print 'done training'
+                    # print self.sess.run((self.g1 , self.g2))
+
+                    if worse_count == 10:
+                        print 'done training\n'
                         break
                 else:
                     best_100_elbo = elbo_100
@@ -98,6 +100,10 @@ class Factorized_Gaussian_model(object):
 
                     print i, elbo_100
 
+                    # print self.sess.run((self.sig_1 , self.sig_2))
+                    # print self.sess.run((self.g1 , self.g2))
+
+
                     # mean, logvar, mean2, logvar2 = self.sess.run((self.qz_mean, self.qz_logvar, self.qv_mean, self.qv_logvar))
                     # print mean, logvar, mean2, logvar2
 
@@ -105,8 +111,18 @@ class Factorized_Gaussian_model(object):
                         self.saver.save(self.sess, save_to)
                         print 'Saved variables to ' + save_to
 
-            _, elbo = self.sess.run((self.optimizer, self.elbo))
+            # _, elbo,a,b,lp,p,q,l = self.sess.run((self.optimizer, self.elbo,self.g1 , self.g2, self.lp, self.p, self.q, self.lds))
+            # elbos.append(elbo)
+
+            _, elbo= self.sess.run((self.optimizer, self.elbo))
             elbos.append(elbo)
+
+            # print elbo
+
+            # print i, elbo
+            # # a,b,lp,p,q,l = self.sess.run((self.g1 , self.g2, self.lp, self.p, self.q, self.lds))
+            # print a[0], b[0], lp[0], p[0], q[0], l[0] 
+
 
         if save_to != '':
             self.saver.restore(self.sess, save_to)
@@ -117,7 +133,9 @@ class Factorized_Gaussian_model(object):
     def sample(self, n_samples):
 
         samps = []
+        # for i in range(n_samples/self.n_samps):
         for i in range(n_samples):
+
             samps.append(self.sess.run(self.z))
 
         samps = np.array(samps)
@@ -258,12 +276,13 @@ class Norm_Flow_model(Factorized_Gaussian_model):
         tf.reset_default_graph()
 
         z_size = 2
+        self.n_samps = 10
     
         qz0_mean = tf.Variable(tf.zeros([z_size]))
         qz0_logvar = tf.Variable(tf.ones([z_size])-3.)
 
         #Sample
-        eps = tf.random_normal((1,z_size), 0, 1, dtype=tf.float32) 
+        eps = tf.random_normal((self.n_samps,z_size), 0, 1, dtype=tf.float32) 
         z0 = tf.add(qz0_mean, tf.multiply(tf.sqrt(tf.exp(qz0_logvar)), eps)) 
 
         z = z0
@@ -279,6 +298,8 @@ class Norm_Flow_model(Factorized_Gaussian_model):
         log_p_zT = log_posterior(self.z)
 
         self.elbo = log_p_zT - log_q_z0 + logdetsum
+        self.elbo = tf.reduce_mean(self.elbo)
+        
 
         self.optimizer = tf.train.AdamOptimizer(learning_rate=.001, 
                                                 epsilon=1e-02).minimize(-self.elbo)
@@ -306,16 +327,273 @@ class Norm_Flow_model(Factorized_Gaussian_model):
         z_size = 2
 
         #Flows z0 -> zT
-        mask = self.random_bernoulli(tf.shape(z), p=0.5)
-        h = slim.stack(mask*z,slim.fully_connected,[30])
+        # mask = self.random_bernoulli(tf.shape(z), p=0.5)
+        mask = np.array([0.,1.])
+        mask = np.reshape(mask, [1,z_size])
+        h = slim.stack(mask*z,slim.fully_connected,[20])
         mew_ = slim.fully_connected(h,z_size,activation_fn=None) 
         sig_ = slim.fully_connected(h,z_size,activation_fn=tf.nn.sigmoid) 
-
         z = (mask * z) + (1-mask)*(z*sig_ + (1-sig_)*mew_)
-
         logdet = tf.reduce_sum((1-mask)*tf.log(sig_), axis=1)
 
+        # mask = tf.ones(tf.shape(z)) - mask
+        mask = np.array([1.,0.])
+        mask = np.reshape(mask, [1,z_size])
+        h = slim.stack(mask*z,slim.fully_connected,[20])
+        mew_ = slim.fully_connected(h,z_size,activation_fn=None) 
+        sig_ = slim.fully_connected(h,z_size,activation_fn=tf.nn.sigmoid) 
+        z = (mask * z) + (1-mask)*(z*sig_ + (1-sig_)*mew_)
+        logdet += tf.reduce_sum((1-mask)*tf.log(sig_), axis=1)
+
         return z, logdet
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class HNF(Factorized_Gaussian_model):
+
+    def __init__(self, log_posterior, n_flows=3):
+
+        tf.reset_default_graph()
+
+        z_size = 2
+        self.n_samps = 1
+    
+        qz0_mean = tf.Variable(tf.zeros([z_size]))
+        qz0_logvar = tf.Variable(tf.ones([z_size])-3.)
+
+        #Sample
+        eps = tf.random_normal((self.n_samps,z_size), 0, 1, dtype=tf.float32) 
+        z0 = tf.add(qz0_mean, tf.multiply(tf.sqrt(tf.exp(qz0_logvar)), eps)) 
+
+        z = z0
+        logdetsum = 0.
+        for i in range(n_flows):
+
+            z, logdet = self.norm_flow(z, log_posterior)
+            logdetsum += logdet
+
+        self.z = z
+
+        log_q_z0 = log_normal(z0, qz0_mean, qz0_logvar) 
+        log_p_zT = log_posterior(self.z)
+
+        self.elbo = log_p_zT - log_q_z0 + logdetsum
+
+        self.p = log_p_zT
+        self.q = log_q_z0
+        self.lds = logdetsum
+
+
+        self.elbo = tf.reduce_mean(self.elbo)
+        
+
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=.001, 
+                                                epsilon=1e-02).minimize(-self.elbo)
+
+        init_vars = tf.global_variables_initializer()
+        self.saver = tf.train.Saver()
+        tf.get_default_graph().finalize()
+
+        self.sess = tf.Session()
+        self.sess.run(init_vars)
+
+
+
+    # def norm_flow(self, z, log_posterior):
+    #     '''
+    #     z: [1,Z]
+    #     '''
+
+    #     z_size = 2
+
+    #     grad = tf.gradients(-log_posterior(z), [z])[0]
+
+    #     #Flows z0 -> zT
+    #     # mask = self.random_bernoulli(tf.shape(z), p=0.5)
+    #     mask = np.array([0.,1.])
+    #     mask = np.reshape(mask, [1,z_size])
+
+    #     input_ = tf.concat([mask*z],1)
+    #     h = slim.stack(input_,slim.fully_connected,[20])
+    #     mew_ = slim.fully_connected(h,z_size,activation_fn=None) 
+    #     sig_ = slim.fully_connected(h,z_size,activation_fn=tf.nn.sigmoid) 
+    #     z = (mask * z) + (1-mask)*(z*sig_ + (1-sig_)*mew_)
+
+
+    #     logdet = tf.reduce_sum((1-mask)*tf.log(sig_), axis=1)
+
+    #     grad = tf.gradients(-log_posterior(z), [z])[0]
+    #     mask = np.array([1.,0.])
+    #     mask = np.reshape(mask, [1,z_size])
+    #     input_ = tf.concat([mask*z,mask*grad],1)
+    #     h = slim.stack(mask*z,slim.fully_connected,[20])
+    #     mew_ = slim.fully_connected(h,z_size,activation_fn=None) 
+    #     sig_ = slim.fully_connected(h,z_size,activation_fn=tf.nn.sigmoid) 
+    #     z = (mask * z) + (1-mask)*(z*sig_ + (1-sig_)*mew_)
+    #     logdet += tf.reduce_sum((1-mask)*tf.log(sig_), axis=1)
+
+    #     return z, logdet
+
+
+
+    # def norm_flow(self, z, log_posterior):
+    #     '''
+    #     z: [P,Z]
+    #     '''
+
+    #     #works but just nf
+
+    #     z_size = 2
+
+    #     z1 = z[:,0]
+    #     z2 = z[:,1]
+
+    #     z1 = tf.reshape(z1, [self.n_samps, 1])
+    #     z2 = tf.reshape(z2, [self.n_samps, 1])
+
+    #     # grad = tf.gradients(-log_posterior(z), [z])[0]
+
+
+    #     # mask = np.array([0.,1.])
+    #     # mask = np.reshape(mask, [1,z_size])
+
+    #     # input_ = tf.concat([mask*z],1)
+
+    #     h = slim.stack(z1,slim.fully_connected,[20])
+    #     mew_ = slim.fully_connected(h,1,activation_fn=None) 
+    #     sig_ = slim.fully_connected(h,1,activation_fn=tf.nn.sigmoid) 
+    #     # z2 = (mask * z) + (1-mask)*(z*sig_ + (1-sig_)*mew_)
+    #     z2 = z2*sig_ + mew_
+    #     logdet = tf.reduce_sum(tf.log(sig_), axis=1)
+
+
+    #     # grad = tf.gradients(-log_posterior(z), [z])[0]
+    #     # mask = np.array([1.,0.])
+    #     # mask = np.reshape(mask, [1,z_size])
+    #     # input_ = tf.concat([mask*z,mask*grad],1)
+    #     h = slim.stack(z2,slim.fully_connected,[20])
+    #     mew_ = slim.fully_connected(h,1,activation_fn=None) 
+    #     sig_ = slim.fully_connected(h,1,activation_fn=tf.nn.sigmoid) 
+    #     # z1 = (mask * z) + (1-mask)*(z*sig_ + (1-sig_)*mew_)
+    #     z1 = z1*sig_ + mew_
+    #     logdet += tf.reduce_sum(tf.log(sig_), axis=1)
+
+    #     z = tf.concat([z1,z2], axis=1)
+    #     return z, logdet
+
+
+
+
+    def norm_flow(self, z, log_posterior):
+        '''
+        z: [P,Z]
+        '''
+
+        z_size = 2
+
+        z1 = z[:,0]
+        z2 = z[:,1]
+        z1 = tf.reshape(z1, [self.n_samps, 1])
+        z2 = tf.reshape(z2, [self.n_samps, 1])
+
+        grad = tf.stop_gradient(tf.gradients(-log_posterior(z), [z])[0])
+        g1 = grad[:,0]
+        g1 = tf.reshape(g1, [self.n_samps, 1])
+
+
+        self.z = z
+
+        self.lp =log_posterior(z)
+
+        self.g1 = g1
+
+        # h = slim.stack(z1,slim.fully_connected,[20])
+        h = slim.fully_connected(z1,20,activation_fn=tf.nn.relu) 
+
+        mew_ = slim.fully_connected(h,1,activation_fn=None) 
+        sig_ = slim.fully_connected(h,1,activation_fn=tf.nn.sigmoid) 
+        z2 = z2*sig_ + mew_*g1
+        logdet = tf.reduce_sum(tf.log(sig_), axis=1)
+
+        self.sig_1 = sig_
+
+
+        grad = tf.stop_gradient(tf.gradients(-log_posterior(z), [z])[0])
+        g2 = grad[:,1]
+        g2 = tf.reshape(g2, [self.n_samps, 1])
+
+        # h = slim.stack(z2,slim.fully_connected,[20])
+        h = slim.fully_connected(z2,20,activation_fn=tf.nn.relu) 
+
+        mew_ = slim.fully_connected(h,1,activation_fn=None) 
+        sig_ = slim.fully_connected(h,1,activation_fn=tf.nn.sigmoid) 
+        z1 = z1*sig_ + mew_*g2
+        logdet += tf.reduce_sum(tf.log(sig_), axis=1)
+
+        self.sig_2 = sig_
+        self.g2 = g2
+
+        z = tf.concat([z1,z2], axis=1)
+        return z, logdet
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -632,6 +910,11 @@ class Hamiltonian_Flow_model(Factorized_Gaussian_model):
 
 
 
+
+
+
+
+
 class Hamiltonian_Flow_model2(Factorized_Gaussian_model):
 
     def __init__(self, log_posterior, n_flows=3):
@@ -840,6 +1123,238 @@ class Hamiltonian_Flow_model3(Factorized_Gaussian_model):
         logdet = tf.reduce_sum(tf.log(sig_)) #+ tf.reduce_sum(tf.log(sig_2))
 
         return z, v, logdet
+
+
+
+
+
+
+
+
+
+
+
+
+class Hamiltonian_Flow_model4(Hamiltonian_Flow_model):
+
+    def flow_step(self, z, v, log_posterior, step_size):
+        '''
+        z: [1,2]
+        v: [1,2]
+        '''
+
+        z_size = 2
+        v_size = 2
+
+        grad = tf.gradients(-log_posterior(z), [z])[0]
+
+        h = slim.stack(z,slim.fully_connected,[30])
+        # mew_ = slim.fully_connected(h,v_size,activation_fn=None) 
+        sig_ = slim.fully_connected(h,v_size,activation_fn=tf.nn.sigmoid) 
+
+        mew_ = slim.fully_connected(h,v_size,activation_fn=tf.nn.sigmoid) 
+
+
+        v = v*sig_ + (mew_* -grad)
+
+        h2 = slim.stack(v,slim.fully_connected,[30])
+        mew_2 = slim.fully_connected(h2,z_size,activation_fn=None) 
+        sig_2 = slim.fully_connected(h2,z_size,activation_fn=tf.nn.sigmoid) 
+
+        # mew_2 = slim.fully_connected(h2,z_size,activation_fn=tf.nn.sigmoid) 
+
+        z = z*sig_2 + (mew_2*v)
+        # z = z + (mew_2*v)
+
+
+        logdet = tf.reduce_sum(tf.log(sig_)) + tf.reduce_sum(tf.log(sig_2))
+
+        return z, v, logdet
+
+
+
+
+
+class Hamiltonian_Flow_model5(Hamiltonian_Flow_model):
+
+    def flow_step(self, z, v, log_posterior, step_size):
+        '''
+        z: [1,2]
+        v: [1,2]
+        '''
+
+        z_size = 2
+        v_size = 2
+
+        grad = tf.gradients(-log_posterior(z), [z])[0]
+
+        h = slim.stack(z,slim.fully_connected,[30])
+        # mew_ = slim.fully_connected(h,v_size,activation_fn=None) 
+        sig_ = slim.fully_connected(h,v_size,activation_fn=tf.nn.sigmoid) 
+
+        mew_ = slim.fully_connected(h,v_size,activation_fn=tf.nn.sigmoid) 
+
+
+        v = v*sig_ + (mew_* -grad)
+
+        h2 = slim.stack(v,slim.fully_connected,[30])
+        mew_2 = slim.fully_connected(h2,z_size,activation_fn=None) 
+        sig_2 = slim.fully_connected(h2,z_size,activation_fn=tf.nn.sigmoid) 
+
+        # mew_2 = slim.fully_connected(h2,z_size,activation_fn=tf.nn.sigmoid) 
+
+        z = z*sig_2 + (mew_2)  #this is the difference from 4
+        # z = z + (mew_2*v)
+
+
+        logdet = tf.reduce_sum(tf.log(sig_)) + tf.reduce_sum(tf.log(sig_2))
+
+        return z, v, logdet
+
+
+
+
+
+
+class Norm_Flow_model4(Hamiltonian_Flow_model):
+
+    def flow_step(self, z, v, log_posterior, step_size):
+        '''
+        z: [1,2]
+        v: [1,2]
+        '''
+
+        z_size = 2
+        v_size = 2
+
+        grad = tf.gradients(-log_posterior(z), [z])[0]
+
+        h = slim.stack(z,slim.fully_connected,[30])
+        # mew_ = slim.fully_connected(h,v_size,activation_fn=None) 
+        sig_ = slim.fully_connected(h,v_size,activation_fn=tf.nn.sigmoid) 
+
+        mew_ = slim.fully_connected(h,v_size,activation_fn=tf.nn.sigmoid) 
+
+
+        v = v*sig_ + mew_ #(mew_* -grad)
+
+        h2 = slim.stack(v,slim.fully_connected,[30])
+        mew_2 = slim.fully_connected(h2,z_size,activation_fn=None) 
+        sig_2 = slim.fully_connected(h2,z_size,activation_fn=tf.nn.sigmoid) 
+
+        # mew_2 = slim.fully_connected(h2,z_size,activation_fn=tf.nn.sigmoid) 
+
+        z = z*sig_2 + mew_2#(mew_2*v)
+        # z = z + (mew_2*v)
+
+
+        logdet = tf.reduce_sum(tf.log(sig_)) + tf.reduce_sum(tf.log(sig_2))
+
+        return z, v, logdet
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class New_NormFlow(Factorized_Gaussian_model):
+
+    def __init__(self, log_posterior, n_flows=3):
+
+        tf.reset_default_graph()
+
+        z_size = 2
+        self.n_samps = 1
+    
+        qz0_mean = tf.Variable(tf.zeros([z_size]))
+        qz0_logvar = tf.Variable(tf.ones([z_size])-3.)
+
+        #Sample
+        eps = tf.random_normal((self.n_samps,z_size), 0, 1, dtype=tf.float32) 
+        z0 = tf.add(qz0_mean, tf.multiply(tf.sqrt(tf.exp(qz0_logvar)), eps)) 
+
+        z = z0
+        logdetsum = 0.
+        for i in range(n_flows):
+
+            z, logdet = self.norm_flow(z, log_posterior)
+            logdetsum += logdet
+
+        self.z = z
+
+        log_q_z0 = log_normal(z0, qz0_mean, qz0_logvar) 
+        log_p_zT = log_posterior(self.z)
+
+        self.elbo = log_p_zT - log_q_z0 + logdetsum
+
+        # self.p = log_p_zT
+        # self.q = log_q_z0
+        # self.lds = logdetsum
+
+
+        self.elbo = tf.reduce_mean(self.elbo)
+        
+
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=.001, 
+                                                epsilon=1e-02).minimize(-self.elbo)
+
+        init_vars = tf.global_variables_initializer()
+        self.saver = tf.train.Saver()
+        tf.get_default_graph().finalize()
+
+        self.sess = tf.Session()
+        self.sess.run(init_vars)
+
+
+
+
+    def norm_flow(self, z, log_posterior):
+        '''
+        z: [P,Z]
+        '''
+
+
+        z_half_size = 1
+        z1 = z[:,0]
+        z2 = z[:,1]
+        z1 = tf.reshape(z1, [self.n_samps, 1])
+        z2 = tf.reshape(z2, [self.n_samps, 1])
+
+
+        h = slim.stack(z1,slim.fully_connected,[30])
+        mew_ = slim.fully_connected(h,z_half_size,activation_fn=None) 
+        sig_ = slim.fully_connected(h,z_half_size,activation_fn=tf.nn.sigmoid) 
+
+
+        z2 = z2*sig_ + mew_ 
+
+        h2 = slim.stack(z2,slim.fully_connected,[30])
+        mew_2 = slim.fully_connected(h2,z_half_size,activation_fn=None) 
+        sig_2 = slim.fully_connected(h2,z_half_size,activation_fn=tf.nn.sigmoid) 
+
+        z1 = z1*sig_2 + mew_2
+
+        logdet = tf.reduce_sum(tf.log(sig_)) + tf.reduce_sum(tf.log(sig_2))
+        z = tf.concat([z1,z2], axis=1)
+
+        return z, logdet
+
+
+
 
 
 

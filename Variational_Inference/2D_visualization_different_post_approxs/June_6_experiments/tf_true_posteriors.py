@@ -81,9 +81,10 @@ def logprob_two_moons(x):
     term4 = tf.concat([term2, term3], axis=1) #[P,2]
     term5 = tf.reduce_logsumexp(term4, axis=1) #[P]
 
-    term6 = term1 + term5
+    prob = term1 + term5
 
-    return term6
+    # prob = tf.maximum(term6, tf.exp(-40.))
+    return prob
 
 
 
@@ -94,9 +95,11 @@ def logprob_wiggle(x):
     z2 = tf.slice(x, [0,1], [-1, 1]) #[P,1] 
 
     aaa =  -0.5 * (z2 - tf.sin(2.0 * math.pi * z1 / 4.0) / 0.4 )**2 - 0.2 * (z1**2 + z2**2)
-    aaa = tf.reshape(aaa, [-1])
+    prob = tf.reshape(aaa, [-1])
 
-    return aaa
+    # print aaa
+    # prob = tf.maximum(aaa, tf.exp(-40.))
+    return prob
 
 
 
@@ -124,6 +127,7 @@ class posterior_class(object):
 
     def run_log_post(self, z):
 
+        # print self.sess.run(self.logp, feed_dict={self.z: z})
         return self.sess.run(self.logp, feed_dict={self.z: z})
 
 

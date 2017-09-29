@@ -1,7 +1,7 @@
 
 
 
-
+# this plots all the training and test points
 
 
 #adding q(z) and p(x|z)

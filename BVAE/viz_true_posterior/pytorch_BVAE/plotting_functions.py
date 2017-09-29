@@ -173,8 +173,12 @@ def plot_isocontours2_exp_norm(ax, func, xlimits=[-6, 6], ylimits=[-6, 6],
 
     max_ = np.max(zs)
     zs_sum = np.log(np.sum(np.exp(zs-max_))) + max_
+
     zs = zs - zs_sum
     zs = np.exp(zs)
+
+    # print np.max(zs)
+    # fadsf
 
 
     Z = zs.reshape(X.shape)
@@ -725,6 +729,153 @@ def plot_means(ax, model, data, xlimits=[-6, 6], ylimits=[-6, 6],
     ax.set_yticks([])
     ax.set_xticks([])
     plt.gca().set_aspect('equal', adjustable='box')
+
+
+
+
+
+
+
+
+
+
+
+# def plot_isocontours_true_posterior_try2(ax, model, data, xlimits=[-6, 6], ylimits=[-6, 6],
+#                      numticks=101, cmap=None, alpha=1., legend=False, n_samps=10, cs_to_use=None):
+#     x = np.linspace(*xlimits, num=numticks)
+#     y = np.linspace(*ylimits, num=numticks)
+#     X, Y = np.meshgrid(x, y)
+#     # zs = np.exp(func(np.concatenate([np.atleast_2d(X.ravel()), np.atleast_2d(Y.ravel())]).T))
+#     aaa = torch.from_numpy(np.concatenate([np.atleast_2d(X.ravel()), np.atleast_2d(Y.ravel())]).T).type(torch.FloatTensor)
+
+
+#     # n_samps = n_samps
+#     if len(data) < n_samps:
+#         n_samps = len(data)
+
+
+#     for samp_i in range(n_samps):
+#         if samp_i % 100 == 0:
+#             print samp_i
+
+#         samp = data[samp_i]
+
+#         n_Ws = 1
+#         for i in range(n_Ws):
+#             # if i % 10 ==0: print i
+#             # print i
+#             Ws, logpW, logqW = model.sample_W()  #_ , [1], [1]   
+#             func = lambda zs: log_bernoulli(model.decode(Ws, Variable(torch.unsqueeze(zs,1))), Variable(torch.unsqueeze(samp,0)))+ Variable(torch.unsqueeze(lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2)), 1))
+#             bbb = func(aaa)
+#             zs = bbb.data.numpy()
+#             max_ = np.max(zs)
+#             zs_sum = np.log(np.sum(np.exp(zs-max_))) + max_
+#             zs = zs - zs_sum
+#             zs = np.exp(zs)
+
+
+
+#             Z = zs.reshape(X.shape)
+
+#             if cs_to_use != None:
+#                 cs = plt.contour(X, Y, Z, cmap=cmap, alpha=alpha, levels=cs_to_use.levels)
+#             else:
+#                 cs = plt.contour(X, Y, Z, cmap=cmap, alpha=alpha)
+
+
+#             # if i ==0:
+#             #     sum_of_all_i = zs
+#             # else:
+#             #     sum_of_all_i = sum_of_all_i + zs
+
+
+
+#     #     if samp_i ==0:
+#     #         sum_of_all = sum_of_all_i
+#     #     else:
+#     #         sum_of_all = sum_of_all + sum_of_all_i
+
+
+
+
+#     # avg_of_all = sum_of_all / n_samps
+
+
+#     # print 'sum:', np.sum(avg_of_all)
+
+
+#     # if legend:
+#     #     nm, lbl = cs.legend_elements()
+#     #     plt.legend(nm, lbl, fontsize=4) 
+
+#     ax.set_yticks([])
+#     ax.set_xticks([])
+#     plt.gca().set_aspect('equal', adjustable='box')
+
+#     return Z
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def plot_isocontours2_exp_norm_logspace(ax, func, xlimits=[-6, 6], ylimits=[-6, 6],
+                     numticks=101, cmap=None, alpha=1., legend=False):
+    x = np.linspace(*xlimits, num=numticks)
+    y = np.linspace(*ylimits, num=numticks)
+    X, Y = np.meshgrid(x, y)
+    # zs = np.exp(func(np.concatenate([np.atleast_2d(X.ravel()), np.atleast_2d(Y.ravel())]).T))
+    aaa = torch.from_numpy(np.concatenate([np.atleast_2d(X.ravel()), np.atleast_2d(Y.ravel())]).T).type(torch.FloatTensor)
+    # print '111'
+    # print aaa
+    bbb = func(aaa)
+    # bbb = Variable(bbb)
+    # if bbb.data:
+    #     bbb = bbb.data
+    # print bbb
+    zs = bbb.data.numpy()
+    # zs = np.exp(zs/784)
+
+
+
+
+    max_ = np.max(zs)
+    zs_sum = np.log(np.sum(np.exp(zs-max_))) + max_
+
+    zs = zs - zs_sum
+    # zs = np.exp(zs)
+
+    # print np.max(zs)
+    # fadsf
+
+
+    Z = zs.reshape(X.shape)
+    # Z = zs.view(X.shape)
+    # Z=Z.numpy()
+    cs = plt.contour(X, Y, Z, cmap=cmap, alpha=alpha)
+
+    if legend:
+        nm, lbl = cs.legend_elements()
+        plt.legend(nm, lbl, fontsize=4) 
+
+
+    ax.set_yticks([])
+    ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
+
+
+
+
+
 
 
 

@@ -102,14 +102,14 @@ if __name__ == '__main__':
 
     # mean = [[0.,0.]]
 
-    step_size = .1
-    n_steps = 100
+    step_size = .05
+    n_steps = 20
     pos = np.array([[0.,0.]])
 
 
     samps_kept = []
 
-    for iters in range(100):
+    for iters in range(1000):
 
 
         positions_in_this_trajectory = []
@@ -165,11 +165,16 @@ if __name__ == '__main__':
         # print H_0, H_T
         # Accept/Reject
         # accept with prob min(1, exp(orig-current))
+
         p_accept = min(1., np.exp(H_0 - H_T))
+
+        # p_accept = min(1., np.exp(H_T - H_0))
+
 
         if p_accept < np.random.uniform():
             pos = init_pos
             #else its still pos
+            prin
 
         samps_kept.append(pos)
 
@@ -190,99 +195,101 @@ if __name__ == '__main__':
         # proposal_distribution = lambda x: np.exp(infmet.sess.run(log_normal(x, mean, infmet.sess.run(infmet.log_var), 2)))
 
 
-        ax = fig.add_subplot(142, frameon=False)
-        plt.cla()
+        if iters % 50 == 0:
 
-        plot_isocontours(ax, target_distribution, cmap='Reds')    
-        # plot_isocontours(ax, proposal_distribution, cmap='Blues')
-        plt.gca().set_aspect('equal', adjustable='box')
-        ax.annotate('iter '+str(iters), xytext=(0, 1), xy=(0, 1), textcoords='axes fraction')
-        
-        # samp = np.reshape(samp, [2])
-        # mean = np.reshape(mean, [2])
-        # print samp, mean
-
-
-
-        positions_in_this_trajectory = np.array(positions_in_this_trajectory)
-        positions_in_this_trajectory = np.reshape(positions_in_this_trajectory, [n_steps+1, 2])
-
-        # print positions_in_this_trajectory
-        # fsdfa
-        # print positions_in_this_trajectory.shape
-        # for i in range(len(positions_in_this_trajectory-1)):
-
-        init_pos = np.reshape(init_pos, [2])
-        init_momentum = np.reshape(init_momentum, [2])
-
-        plt.plot([init_pos[0], init_pos[0]+init_momentum[0]], [init_pos[1], init_pos[1]+init_momentum[1]])
-
-        plt.plot(positions_in_this_trajectory.T[0], positions_in_this_trajectory.T[1])
-
-
-
-
-
-
-
-        # samp = np.reshape(samp, [1, 2])
-        # mean = np.reshape(mean, [1, 2])
-
-        # p_x = infmet.sess.run(tf.exp(log_p_true(samp, 2)))
-        # p_x_prev = infmet.sess.run(tf.exp(log_p_true(mean, 2)))
-
-        # ratio = p_x / p_x_prev
-
-        # if ratio >= 1.:
-        #     #accept
-        #     mean = samp
-        # else:
-        #     r = np.random.rand()
-        #     #accept
-        #     if ratio > r:
-        #         mean = samp
-
-
-
-        # mean = np.reshape(mean, [2])
-        # samps_kept.append(mean)
-
-        # print samps_kept_array.shape
-        # fsdf
-
-        #PLOT Scatter of samples
-        samps_kept_array = np.array(samps_kept)
-        samps_kept_array = np.reshape(samps_kept_array, [len(samps_kept_array), 2])
-
-        ax = fig.add_subplot(143, frameon=False)
-        plt.cla()
-        plt.scatter(samps_kept_array.T[0], samps_kept_array.T[1])
-        ax.set_yticks([])
-        ax.set_xticks([])
-        plt.xlim(-6, 6)
-        plt.ylim(-6, 6)
-        plot_isocontours(ax, target_distribution, cmap='Reds') 
-        plt.gca().set_aspect('equal', adjustable='box')
-
-
-        #PLOT KDE of samples
-        if iters % 5 == 2:
-
-            ax = fig.add_subplot(144, frameon=False)
+            ax = fig.add_subplot(142, frameon=False)
             plt.cla()
 
-            to_plot = samps_kept_array
-            # print to_plot.shape
-            plot_kde(ax, to_plot, cmap='Blues')
+            plot_isocontours(ax, target_distribution, cmap='Reds')    
+            # plot_isocontours(ax, proposal_distribution, cmap='Blues')
+            plt.gca().set_aspect('equal', adjustable='box')
+            ax.annotate('iter '+str(iters), xytext=(0, 1), xy=(0, 1), textcoords='axes fraction')
+            
+            # samp = np.reshape(samp, [2])
+            # mean = np.reshape(mean, [2])
+            # print samp, mean
 
+
+
+            positions_in_this_trajectory = np.array(positions_in_this_trajectory)
+            positions_in_this_trajectory = np.reshape(positions_in_this_trajectory, [n_steps+1, 2])
+
+            # print positions_in_this_trajectory
+            # fsdfa
+            # print positions_in_this_trajectory.shape
+            # for i in range(len(positions_in_this_trajectory-1)):
+
+            init_pos = np.reshape(init_pos, [2])
+            init_momentum = np.reshape(init_momentum, [2])
+
+            plt.plot([init_pos[0], init_pos[0]+init_momentum[0]], [init_pos[1], init_pos[1]+init_momentum[1]])
+
+            plt.plot(positions_in_this_trajectory.T[0], positions_in_this_trajectory.T[1])
+
+
+
+
+
+
+
+            # samp = np.reshape(samp, [1, 2])
+            # mean = np.reshape(mean, [1, 2])
+
+            # p_x = infmet.sess.run(tf.exp(log_p_true(samp, 2)))
+            # p_x_prev = infmet.sess.run(tf.exp(log_p_true(mean, 2)))
+
+            # ratio = p_x / p_x_prev
+
+            # if ratio >= 1.:
+            #     #accept
+            #     mean = samp
+            # else:
+            #     r = np.random.rand()
+            #     #accept
+            #     if ratio > r:
+            #         mean = samp
+
+
+
+            # mean = np.reshape(mean, [2])
+            # samps_kept.append(mean)
+
+            # print samps_kept_array.shape
+            # fsdf
+
+            #PLOT Scatter of samples
+            samps_kept_array = np.array(samps_kept)
+            samps_kept_array = np.reshape(samps_kept_array, [len(samps_kept_array), 2])
+
+            ax = fig.add_subplot(143, frameon=False)
+            plt.cla()
+            plt.scatter(samps_kept_array.T[0], samps_kept_array.T[1], s=.1)
+            ax.set_yticks([])
+            ax.set_xticks([])
+            plt.xlim(-6, 6)
+            plt.ylim(-6, 6)
             plot_isocontours(ax, target_distribution, cmap='Reds') 
             plt.gca().set_aspect('equal', adjustable='box')
 
 
+            #PLOT KDE of samples
+            if iters % 5 == 0 and iters > 10:
+
+                ax = fig.add_subplot(144, frameon=False)
+                plt.cla()
+
+                to_plot = samps_kept_array
+                # print to_plot.shape
+                plot_kde(ax, to_plot, cmap='Blues')
+
+                plot_isocontours(ax, target_distribution, cmap='Reds') 
+                plt.gca().set_aspect('equal', adjustable='box')
 
 
-        plt.draw()
-        plt.pause(1.0/100.0)
+
+
+            plt.draw()
+            plt.pause(1.0/100.0)
 
 
 

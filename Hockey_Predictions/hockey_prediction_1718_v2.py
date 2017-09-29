@@ -82,9 +82,35 @@ print 'Number NHL game days', str(len(days_and_which_teams_plays))
 # 	for d in range(len(days_and_which_teams_plays)):
 
 # 		if full_teams[i] in days_and_which_teams_plays[d]:
-# 			sum_ += len(days_and_which_teams_plays[d])
+# 			sum_ += len(days_and_which_teams_plays[d]) #/2.
 # 			count+=1
-# 	print full_teams[i], sum_ / count, count
+# 	print sum_ / count, full_teams[i], count
+
+
+# #Anaheim, Calgary and Chicago have the lowest
+# fasda
+
+
+# #for each team print how many times they play on same day as another team
+# min_ = -1
+# min_thing = []
+# for i in range(len(full_teams)):
+# 	for j in range(len(full_teams)):
+# 		sum_ = 0.
+# 		count = 0
+# 		for d in range(len(days_and_which_teams_plays)):
+
+# 			if full_teams[i] in days_and_which_teams_plays[d] and full_teams[j] in days_and_which_teams_plays[d]:
+# 				sum_ += 1#len(days_and_which_teams_plays[d]) #/2.
+# 				# count+=1
+# 		print sum_, full_teams[i], full_teams[j]
+# 		if sum_ < min_ or min_ ==-1:
+# 			min_=sum_
+# 			min_thing = [sum_, full_teams[i], full_teams[j]]
+
+# 	print 
+# print min_
+# print min_thing
 
 # fasda
 

@@ -54,9 +54,12 @@ if __name__ == '__main__':
 
 
 
-    posteriors = [ttp.log_posterior_0, ttp.logprob_two_moons, ttp.logprob_wiggle]
-    posterior_names = ['RIWA', 'two_moons', 'wiggles']
+    # posteriors = [ttp.log_posterior_0, ttp.logprob_two_moons, ttp.logprob_wiggle]
+    # posterior_names = ['RIWA', 'two_moons', 'wiggles']
 
+
+    posteriors = [ttp.log_posterior_0]
+    posterior_names = ['RIWA']
 
     # posteriors = [ttp.log_posterior_0, ttp.log_posterior_1, ttp.log_posterior_3, ttp.logprob_two_moons]
     # posterior_names = ['RIWA', 'top_bot',  'top_left', 'two_moons']
@@ -71,8 +74,11 @@ if __name__ == '__main__':
     # models = [FGM, IWM, AVM, NFM, HVM, AFM, HFM]
     # model_names = ['FG', 'IW', 'AV', 'NF', 'HV', 'AF', 'HF']
 
-    models = [FGM, IWM, NFM, HVM, HFM]
-    model_names = ['FFG', 'IW', 'NF', 'HVI',  'HF']
+    # models = [FGM, IWM, NFM, HVM, HFM]
+    # model_names = ['FFG', 'IW', 'NF', 'HVI',  'HF']
+
+    models = [NFM]
+    model_names = ['NF']
 
     # models = [AVM, NFM, AFM]
     # model_names = ['AV', 'NF', 'AF']
@@ -91,6 +97,9 @@ if __name__ == '__main__':
     alpha=.2
     rows = len(posteriors)
     columns = len(models) +1 #+1 for posteriors
+
+    # n_flows = range(1,10)
+    # columns += len(n_flows)
 
     fig = plt.figure(figsize=(6+columns,2+rows), facecolor='white')
 
