@@ -409,7 +409,7 @@ if __name__ == '__main__':
         train(model=model, train_x=train_x, train_y=train_y, valid_x=[], valid_y=[], 
                     path_to_load_variables=path_to_load_variables, 
                     path_to_save_variables=path_to_save_variables, 
-                    epochs=100, batch_size=100, display_epoch=1, k=2)
+                    epochs=200, batch_size=100, display_epoch=1, k=1)
 
 
     if eval_iw:
