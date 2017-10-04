@@ -122,8 +122,8 @@ def test(model, data_x, path_to_load_variables='', batch_size=20, display_epoch=
 
 def test_ais(model, data_x, path_to_load_variables='', batch_size=20, display_epoch=4, k=10):
 
-    def intermediate_dist(t, z, mean, logvar, zeros, batch):
 
+    def intermediate_dist(t, z, mean, logvar, zeros, batch):
         logp1 = lognormal(z, mean, logvar)  #[P,B]
         log_prior = lognormal(z, zeros, zeros)  #[P,B]
         log_likelihood = log_bernoulli(model.decode(z), batch)
@@ -132,8 +132,98 @@ def test_ais(model, data_x, path_to_load_variables='', batch_size=20, display_ep
         return log_intermediate_2
 
 
+    def hmc(z, intermediate_dist_func):
 
-    n_intermediate_dists = 25
+        if torch.cuda.is_available():
+            v = Variable(torch.FloatTensor(z.size()).normal_(), volatile=volatile_, requires_grad=requires_grad).cuda()
+        else:
+            v = Variable(torch.FloatTensor(z.size()).normal_()) 
+
+        v0 = v
+        z0 = z
+
+        # print torch.autograd.grad(outputs=intermediate_dist_func(z), inputs=z,
+        #                   grad_outputs=grad_outputs,
+        #                   create_graph=False, retain_graph=retain_graph, only_inputs=True)[0]
+
+        # fasf
+
+
+
+        gradients = torch.autograd.grad(outputs=intermediate_dist_func(z), inputs=z,
+                          grad_outputs=grad_outputs,
+                          create_graph=True, retain_graph=retain_graph, only_inputs=True)[0]
+
+        gradients = gradients.detach()
+
+        v = v + .5 *step_size*gradients
+        z = z + step_size*v
+
+        for LF_step in range(n_HMC_steps):
+
+            # log_intermediate_2 = intermediate_dist(t1, z, mean, logvar, zeros, batch)
+            gradients = torch.autograd.grad(outputs=intermediate_dist_func(z), inputs=z,
+                              grad_outputs=grad_outputs,
+                              create_graph=True, retain_graph=retain_graph, only_inputs=True)[0]
+            gradients = gradients.detach()
+            v = v + step_size*gradients
+            z = z + step_size*v
+
+        # log_intermediate_2 = intermediate_dist(t1, z, mean, logvar, zeros, batch)
+        gradients = torch.autograd.grad(outputs=intermediate_dist_func(z), inputs=z,
+                          grad_outputs=grad_outputs,
+                          create_graph=True, retain_graph=retain_graph, only_inputs=True)[0]
+        gradients = gradients.detach()
+        v = v + .5 *step_size*gradients
+
+        return z0, v0, z, v
+
+
+    def mh_step(z0, v0, z, v, step_size, intermediate_dist_func):
+
+        logpv0 = lognormal(v0, zeros, zeros) #[P,B]
+        hamil_0 =  intermediate_dist_func(z0) + logpv0
+        
+        logpvT = lognormal(v, zeros, zeros) #[P,B]
+        hamil_T = intermediate_dist_func(z) + logpvT
+
+        accept_prob = torch.exp(hamil_T - hamil_0)
+
+        if torch.cuda.is_available():
+            rand_uni = Variable(torch.FloatTensor(accept_prob.size()).uniform_(), volatile=volatile_, requires_grad=requires_grad).cuda()
+        else:
+            rand_uni = Variable(torch.FloatTensor(accept_prob.size()).uniform_())
+
+        accept = accept_prob > rand_uni
+
+        if torch.cuda.is_available():
+            accept = accept.type(torch.FloatTensor).cuda()
+        else:
+            accept = accept.type(torch.FloatTensor)
+        
+        accept = accept.view(k, model.B, 1)
+
+        z = (accept * z) + ((1-accept) * z0)
+
+        #Adapt step size
+        avg_acceptance_rate = torch.mean(accept)
+
+        if avg_acceptance_rate.cpu().data.numpy() > .7:
+            step_size = 1.02 * step_size
+        else:
+            step_size = .98 * step_size
+
+        if step_size < 0.0001:
+            step_size = 0.0001
+        if step_size > 0.5:
+            step_size = 0.5
+
+        return z, step_size
+
+
+
+
+    n_intermediate_dists = 10
     n_HMC_steps = 5
     step_size = .1
 
@@ -151,13 +241,12 @@ def test_ais(model, data_x, path_to_load_variables='', batch_size=20, display_ep
     data_index= 0
     for i in range(len(data_x)/ batch_size):
 
-        print i
+        # print i
 
         #AIS
 
         schedule = np.linspace(0.,1.,n_intermediate_dists)
         model.B = batch_size
-
 
         batch = data_x[data_index:data_index+batch_size]
         data_index += batch_size
@@ -165,7 +254,7 @@ def test_ais(model, data_x, path_to_load_variables='', batch_size=20, display_ep
         if torch.cuda.is_available():
             batch = Variable(batch, volatile=volatile_, requires_grad=requires_grad).cuda()
             zeros = Variable(torch.zeros(model.B, model.z_size), volatile=volatile_, requires_grad=requires_grad).cuda() # [B,Z]
-            logw = Variable(torch.zeros(k, model.B), volatile=volatile_, requires_grad=requires_grad).cuda()
+            logw = Variable(torch.zeros(k, model.B), volatile=True, requires_grad=requires_grad).cuda()
             grad_outputs = torch.ones(k, model.B).cuda()
         else:
             batch = Variable(batch)
@@ -173,163 +262,53 @@ def test_ais(model, data_x, path_to_load_variables='', batch_size=20, display_ep
             logw = Variable(torch.zeros(k, model.B))
             grad_outputs = torch.ones(k, model.B)
 
+
         #Encode x
         mean, logvar = model.encode(batch) #[B,Z]
-        # print mean.data.numpy().shape
-        # fasdf
-
         #Init z
         z, logpz, logqz = model.sample(mean, logvar, k=k)  #[P,B,Z], [P,B], [P,B]
-        # print logpz.data.numpy().shape
-        # fasdf
-
 
         for (t0, t1) in zip(schedule[:-1], schedule[1:]):
 
+
+            # z = z.detach()# = Variable(z.data) #.cuda()
+
             # gc.collect() 
-            memReport()
 
-            print t0
+            # memReport()
 
-            #Compute intermediate distribution log prob
-            # (1-t)*logp1(z) + (t)*logpT(z)
-            logp1 = lognormal(z, mean, logvar)  #[P,B]
-            # print z.size()
-            # print zeros.size()
-            log_prior = lognormal(z, zeros, zeros)  #[P,B]
-            log_likelihood = log_bernoulli(model.decode(z), batch)
-            logpT = log_prior + log_likelihood
+            # print t0
 
-            #log pt-1(zt-1)
-            log_intermediate_1 = (1-float(t0))*logp1 + float(t0)*logpT
-            #log pt(zt-1)
-            log_intermediate_2 = (1-float(t1))*logp1 + float(t1)*logpT
-
+            #logw = logw + logpt-1(zt-1) - logpt(zt-1)
+            log_intermediate_1 = intermediate_dist(t0, z, mean, logvar, zeros, batch)
+            log_intermediate_2 = intermediate_dist(t1, z, mean, logvar, zeros, batch)
             logw += log_intermediate_2 - log_intermediate_1
 
 
-
-            #HMC
-
-
-            if torch.cuda.is_available():
-                v = Variable(torch.FloatTensor(z.size()).normal_(), volatile=volatile_, requires_grad=requires_grad).cuda()
-            else:
-                v = Variable(torch.FloatTensor(z.size()).normal_()) 
-
-            v0 = v
-            z0 = z
+            # z = Variable(torch.FloatTensor(z.cpu().data.numpy())).cuda()
+            # mean = Variable(torch.FloatTensor(mean.cpu().data.numpy())).cuda()
+            # logvar = Variable(torch.FloatTensor(logvar.cpu().data.numpy())).cuda()
+            # zeros = Variable(torch.FloatTensor(zeros.cpu().data.numpy())).cuda()
+            # batch = Variable(torch.FloatTensor(batch.cpu().data.numpy())).cuda()
 
 
-            gradients = torch.autograd.grad(outputs=log_intermediate_2, inputs=z,
-                              grad_outputs=grad_outputs,
-                              create_graph=True, retain_graph=retain_graph, only_inputs=True)[0]
-
-            v = v + .5 *step_size*gradients
-            z = z + step_size*v
-
-            for LF_step in range(n_HMC_steps):
-            # for LF_step in range(1):
-
-                # print LF_step
-
-                # logp1 = lognormal(z, mean, logvar)  #[P,B]
-                # log_prior = lognormal(z, zeros, zeros)  #[P,B]
-                # log_likelihood = log_bernoulli(model.decode(z), batch)
-                # logpT = log_prior + log_likelihood
-                # log_intermediate_2 = (1-float(t1))*logp1 + float(t1)*logpT
-                log_intermediate_2 = intermediate_dist(t1, z, mean, logvar, zeros, batch)
-
-                gradients = torch.autograd.grad(outputs=log_intermediate_2, inputs=z,
-                                  grad_outputs=grad_outputs,
-                                  create_graph=True, retain_graph=retain_graph, only_inputs=True)[0]
-
-                v = v + step_size*gradients
-                z = z + step_size*v
-
-
-
-            # logp1 = lognormal(z, mean, logvar)  #[P,B]
-            # log_prior = lognormal(z, zeros, zeros)  #[P,B]
-            # log_likelihood = log_bernoulli(model.decode(z), batch)
-            # logpT = log_prior + log_likelihood
-            # log_intermediate_2 = (1-float(t1))*logp1 + float(t1)*logpT
-            log_intermediate_2 = intermediate_dist(t1, z, mean, logvar, zeros, batch)
-
-            gradients = torch.autograd.grad(outputs=log_intermediate_2, inputs=z,
-                              grad_outputs=grad_outputs,
-                              create_graph=True, retain_graph=retain_graph, only_inputs=True)[0]
-
-            v = v + .5 *step_size*gradients
-
+            #HMC dynamics
+            intermediate_dist_func = lambda aaa: intermediate_dist(t1, aaa, mean, logvar, zeros, batch)
+            z0, v0, z, v = hmc(z, intermediate_dist_func)
 
             #MH step
-            # logp1 = lognormal(z0, mean, logvar)  #[P,B]
-            # log_prior = lognormal(z0, zeros, zeros)  #[P,B]
-            # log_likelihood = log_bernoulli(model.decode(z0), batch)
-            # logpT = log_prior + log_likelihood
-            # log_intermediate_2 = (1-float(t1))*logp1 + float(t1)*logpT
-            log_intermediate_2 = intermediate_dist(t1, z0, mean, logvar, zeros, batch)
+            z, step_size = mh_step(z0, v0, z, v, step_size, intermediate_dist_func)
 
-            logpv0 = lognormal(v0, zeros, zeros) #[P,B]
-            hamil_0 =  log_intermediate_2 + logpv0
+            # del z0
+            # del v0
+            # del v
+            # del log_intermediate_1
+            # del log_intermediate_2
 
-            # logp1 = lognormal(z, mean, logvar)  #[P,B]
-            # log_prior = lognormal(z, zeros, zeros)  #[P,B]
-            # log_likelihood = log_bernoulli(model.decode(z), batch)
-            # logpT = log_prior + log_likelihood
-            # log_intermediate_2 = (1-float(t1))*logp1 + float(t1)*logpT
-            log_intermediate_2 = intermediate_dist(t1, z, mean, logvar, zeros, batch)
-            
-            logpvT = lognormal(v, zeros, zeros) #[P,B]
-
-            hamil_T = log_intermediate_2 + logpvT
-            # print hamil_T.data.numpy().shape
-
-            accept_prob = torch.exp(hamil_T - hamil_0)
-
-            if torch.cuda.is_available():
-                rand_uni = Variable(torch.FloatTensor(accept_prob.size()).uniform_(), volatile=volatile_, requires_grad=requires_grad).cuda()
-            else:
-                rand_uni = Variable(torch.FloatTensor(accept_prob.size()).uniform_())
+            # v.backward()
 
 
-            accept = accept_prob > rand_uni
-
-            if torch.cuda.is_available():
-                accept = accept.type(torch.FloatTensor).cuda()
-            else:
-                accept = accept.type(torch.FloatTensor)
-
-
-            
-            accept = accept.view(k, model.B, 1)
-            # print accept.data.numpy().shape
-
-            # print torch.mean(accept)
-
-
-            z = (accept * z) + ((1-accept) * z0)
-
-            avg_acceptance_rate = torch.mean(accept)
-            # print avg_acceptance_rate.data.numpy()
-
-            # if avg_acceptance_rate.data.numpy() > .7:
-            # if avg_acceptance_rate > .7:
-            if avg_acceptance_rate.cpu().data.numpy() > .7:
-                step_size = 1.02 * step_size
-            else:
-                step_size = .98 * step_size
-
-            if step_size < 0.0001:
-                step_size = 0.0001
-            if step_size > 0.5:
-                step_size = 0.5
-
-
-
-
-        #lgo sum exp
+        #log sum exp
         max_ = torch.max(logw,0)[0] #[B]
         logw = torch.log(torch.mean(torch.exp(logw - max_), 0)) + max_ #[B]
 
@@ -453,8 +432,8 @@ class IWAE(nn.Module):
 if __name__ == '__main__':
 
     train_ = 0
-    eval_iw = 0
-    eval_ais = 1
+    eval_iw = 1
+    eval_ais = 0
 
     print 'Loading data'
     with open(home+'/Documents/MNIST_data/mnist.pkl','rb') as f:
