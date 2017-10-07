@@ -192,6 +192,7 @@ class VAE(nn.Module):
             train_x = train_x[arr]
 
             data_index= 0
+            print (n_data/batch_size)
             for i in range(n_data/batch_size):
                 batch = train_x[data_index:data_index+batch_size]
                 data_index += batch_size
