@@ -258,6 +258,10 @@ if __name__ == "__main__":
     
     model = VAE(hyper_config)
 
+    if torch.cuda.is_available():
+        model.cuda()
+
+
 
 
 
