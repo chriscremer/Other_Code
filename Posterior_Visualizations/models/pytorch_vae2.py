@@ -314,7 +314,7 @@ if __name__ == "__main__":
 
         path_to_load_variables=''
         # path_to_load_variables=home+'/Documents/tmp/pytorch_bvae.pt'
-        path_to_save_variables=home+'/Documents/tmp/pytorch_vae'+str(epochs)'.pt'
+        path_to_save_variables=home+'/Documents/tmp/pytorch_vae'+str(epochs)+'.pt'
         # path_to_save_variables=''
 
 
