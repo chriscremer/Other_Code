@@ -147,8 +147,9 @@ class VAE(nn.Module):
 
             for batch_idx, (data, target) in enumerate(train_loader):
 
-                if data.is_cuda:
-                    data, target = Variable(data), Variable(target).type(torch.cuda.LongTensor)
+                # if data.is_cuda:
+                if torch.cuda.is_available():
+                    data, target = Variable(data).type(torch.cuda.LongTensor), Variable(target).type(torch.cuda.LongTensor)
                 else:
                     data, target = Variable(data), Variable(target)
 
