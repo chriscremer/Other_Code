@@ -149,7 +149,7 @@ class VAE(nn.Module):
 
                 # if data.is_cuda:
                 if torch.cuda.is_available():
-                    data, target = Variable(data).type(torch.cuda.LongTensor), Variable(target).type(torch.cuda.LongTensor)
+                    data, target = Variable(data).type(self.dtype), Variable(target).type(torch.cuda.LongTensor)
                 else:
                     data, target = Variable(data), Variable(target)
 
@@ -258,8 +258,8 @@ if __name__ == "__main__":
     
     model = VAE(hyper_config)
 
-    if torch.cuda.is_available():
-        model.cuda()
+    # if torch.cuda.is_available():
+    #     model.cuda()
 
 
 
