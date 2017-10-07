@@ -104,8 +104,12 @@ class VAE(nn.Module):
             elbo = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
             
         elbo = torch.mean(elbo) #[1]
+        logpx = torch.mean(logpx)
+        logpz = torch.mean(logpz)
+        logqz = torch.mean(logqz)
 
-        return elbo
+
+        return elbo, logpx, logpz, logqz
 
 
 
@@ -131,69 +135,115 @@ class VAE(nn.Module):
 
 
 
+    # def train(self, train_x, train_y, k, epochs, batch_size, display_epoch, learning_rate):
+
+    #     train = torch.utils.data.TensorDataset(train_x, train_y)
+    #     train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
+    #     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    #     time_ = time.time()
+
+    #     for epoch in range(1, epochs + 1):
+
+    #         for batch_idx, (data, target) in enumerate(train_loader):
+
+    #             if torch.cuda.is_available():
+    #                 data, target = Variable(data).type(self.dtype), Variable(target).type(torch.cuda.LongTensor)
+    #             else:
+    #                 data, target = Variable(data), Variable(target)
+
+    #             optimizer.zero_grad()
+
+    #             # elbo, logpx, logpz, logqz = model.forward(data, k=k)
+    #             elbo, logpx, logpz, logqz = model.forward(data, k=k)
+
+    #             loss = -(elbo)
+
+    #             loss.backward()
+    #             optimizer.step()
+
+
+    #             if epoch%display_epoch==0 and batch_idx == 0:
+    #                 print ('Train Epoch: {}/{}'.format(epoch, epochs),
+    #                     'Loss:{:.3f}'.format(loss.data[0]),
+    #                     'logpx:{:.3f}'.format(logpx.data[0]),
+    #                     'logpz:{:.3f}'.format(logpz.data[0]),
+    #                     'logqz:{:.3f}'.format(logqz.data[0]),
+    #                     'T:{:.2f}'.format(time.time()-time_))
+
+    #                 time_ = time.time()
 
 
 
-    def train(self, train_x, train_y, k, valid_x=[], valid_y=[], 
-                path_to_load_variables='', path_to_save_variables='', 
-                epochs=10, batch_size=20, display_epoch=2):
 
-        train = torch.utils.data.TensorDataset(train_x, train_y)
-        train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
-        optimizer = optim.Adam(model.parameters(), lr=.0001)
+
+    def train(self, train_x, k, epochs, batch_size, display_epoch, learning_rate):
+
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         time_ = time.time()
+        n_data = len(train_x)
 
         for epoch in range(1, epochs + 1):
 
-            for batch_idx, (data, target) in enumerate(train_loader):
 
-                # if data.is_cuda:
-                if torch.cuda.is_available():
-                    data, target = Variable(data).type(self.dtype), Variable(target).type(torch.cuda.LongTensor)
-                else:
-                    data, target = Variable(data), Variable(target)
 
+            data_index= 0
+            for i in range(n_data/batch_size):
+                batch = data_x[data_index:data_index+batch_size]
+                data_index += batch_size
+
+                batch = Variable(batch).type(self.dtype)
                 optimizer.zero_grad()
 
-                # elbo, logpx, logpz, logqz = model.forward(data, k=k)
-                elbo = model.forward(data, k=k)
+                elbo, logpx, logpz, logqz = model.forward(batch, k=k)
 
                 loss = -(elbo)
-
                 loss.backward()
                 optimizer.step()
-
-                # print(elbo)
-
-                # if epoch%display_epoch==0 and batch_idx == 0:
-                #     print 'Train Epoch: {}/{} [{}/{} ({:.0f}%)]'.format(epoch, epochs, 
-                #             batch_idx * len(data), len(train_loader.dataset),
-                #             100. * batch_idx / len(train_loader)), \
-                #         'Loss:{:.4f}'.format(loss.data[0]), \
-                #         'logpx:{:.4f}'.format(logpx.data[0]), \
-                #         'logpz:{:.4f}'.format(logpz.data[0]), \
-                #         'logqz:{:.4f}'.format(logqz.data[0]) 
-
 
 
                 if epoch%display_epoch==0 and batch_idx == 0:
                     print ('Train Epoch: {}/{}'.format(epoch, epochs),
-                        'Loss:{:.4f}'.format(loss.data[0]),
-                        'T:{:.4f}'.format(time.time()-time_)
-                            )#, \
-                        # 'logpx:{:.4f}'.format(logpx.data[0]), \
-                        # 'logpz:{:.4f}'.format(logpz.data[0]), \
-                        # 'logqz:{:.4f}'.format(logqz.data[0]) 
+                        'Loss:{:.3f}'.format(loss.data[0]),
+                        'logpx:{:.3f}'.format(logpx.data[0]),
+                        'logpz:{:.3f}'.format(logpz.data[0]),
+                        'logqz:{:.3f}'.format(logqz.data[0]),
+                        'T:{:.2f}'.format(time.time()-time_))
 
-                    # print(time_ - time.time())
                     time_ = time.time()
 
 
 
 
 
+    def test(self, data_x, batch_size, display, k):
+        
+        elbos = []
+        data_index= 0
+        for i in range(len(data_x)/ batch_size):
+
+            batch = data_x[data_index:data_index+batch_size]
+            data_index += batch_size
+
+            if torch.cuda.is_available():
+                elbo, logpx, logpz, logqz = model(Variable(batch).cuda(), k=k)
+            else:
+                elbo, logpx, logpz, logqz = model(Variable(batch), k=k)
+
+
+            elbos.append(elbo.data[0])
+
+            if i%display_epoch==0:
+                print i,len(data_x)/ batch_size, elbo.data[0]
+
+        return np.mean(elbos)
+
+
+
+
+
     def load_params(self, path_to_load_variables=''):
-        model.load_state_dict(torch.load(path_to_load_variables))
+        # model.load_state_dict(torch.load(path_to_load_variables))
+        model.load_state_dict(torch.load(path_to_load_variables, map_location=lambda storage, loc: storage))
         print ('loaded variables ' + path_to_load_variables)
 
 
@@ -240,15 +290,6 @@ if __name__ == "__main__":
 
     print (train_x.shape)
     print (test_x.shape)
-    # print (train_y.shape)
-
-
-    # path_to_load_variables=''
-    # # path_to_load_variables=home+'/Documents/tmp/pytorch_bvae.pt'
-    # path_to_save_variables=home+'/Documents/tmp/pytorch_biwae'+str(i)+'.pt'
-    # # path_to_save_variables=''
-
-
 
     hyper_config = { 
                     'x_size': 784,
@@ -264,27 +305,40 @@ if __name__ == "__main__":
 
 
 
-
-
     if train_:
 
         #Train params
-        # LR
-        # batch size
-        # epochs
-        # display freq
-        # k
+        learning_rate = .0001
+        batch size = 100
+        epochs = 1000
+        display_epoch = 1
+        k = 1
+
+        path_to_load_variables=''
+        # path_to_load_variables=home+'/Documents/tmp/pytorch_bvae.pt'
+        path_to_save_variables=home+'/Documents/tmp/pytorch_vae'+str(epochs)'.pt'
+        # path_to_save_variables=''
 
 
-        model.train(train_x=train_x, train_y=train_y, k=10, valid_x=valid_x, valid_y=valid_y, 
-                    # path_to_load_variables=path_to_load_variables, 
-                    # path_to_save_variables=path_to_save_variables, 
-                    epochs=10000, batch_size=100, display_epoch=1)
+        model.train(train_x=train_x, train_y=train_y, 
+                    k=k, epochs=epochs, batch_size=batch_size, 
+                    display_epoch=display_epoch, learning_rate=learning_rate)
 
-        # print 'scores', qW_weight_scores
+        model.save_params(path_to_save_variables)
 
-    # print test(model=model, data_x=test_x, path_to_load_variables='', 
-    #             batch_size=20, display_epoch=100, k=1000)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
