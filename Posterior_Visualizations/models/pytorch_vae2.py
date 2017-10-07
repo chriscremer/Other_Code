@@ -178,8 +178,6 @@ class VAE(nn.Module):
 
     def train(self, train_x, k, epochs, batch_size, display_epoch, learning_rate):
 
-        # train_x = torch.from_numpy(train_x)
-
         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         time_ = time.time()
         n_data = len(train_x)
