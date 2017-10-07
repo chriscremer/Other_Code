@@ -206,15 +206,15 @@ class VAE(nn.Module):
                 optimizer.step()
 
 
-                if epoch%display_epoch==0 and batch_idx == 0:
-                    print ('Train Epoch: {}/{}'.format(epoch, epochs),
-                        'Loss:{:.3f}'.format(loss.data[0]),
-                        'logpx:{:.3f}'.format(logpx.data[0]),
-                        'logpz:{:.3f}'.format(logpz.data[0]),
-                        'logqz:{:.3f}'.format(logqz.data[0]),
-                        'T:{:.2f}'.format(time.time()-time_))
+            if epoch%display_epoch==0:
+                print ('Train Epoch: {}/{}'.format(epoch, epochs),
+                    'Loss:{:.3f}'.format(loss.data[0]),
+                    'logpx:{:.3f}'.format(logpx.data[0]),
+                    'logpz:{:.3f}'.format(logpz.data[0]),
+                    'logqz:{:.3f}'.format(logqz.data[0]),
+                    'T:{:.2f}'.format(time.time()-time_))
 
-                    time_ = time.time()
+                time_ = time.time()
 
 
 
