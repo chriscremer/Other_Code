@@ -179,7 +179,8 @@ class VAE(nn.Module):
                 if epoch%display_epoch==0 and batch_idx == 0:
                     print ('Train Epoch: {}/{}'.format(epoch, epochs),
                         'Loss:{:.4f}'.format(loss.data[0]),
-                            time.time()-time_)#, \
+                        'T:{:.4f}'.format(time.time()-time_)
+                            )#, \
                         # 'logpx:{:.4f}'.format(logpx.data[0]), \
                         # 'logpz:{:.4f}'.format(logpz.data[0]), \
                         # 'logqz:{:.4f}'.format(logqz.data[0]) 
