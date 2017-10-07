@@ -307,7 +307,7 @@ if __name__ == "__main__":
 
         #Train params
         learning_rate = .0001
-        batch size = 100
+        batch_size = 100
         epochs = 50
         display_epoch = 2
         k = 1
