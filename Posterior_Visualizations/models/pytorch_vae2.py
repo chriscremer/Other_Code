@@ -178,7 +178,7 @@ class VAE(nn.Module):
 
     def train(self, train_x, k, epochs, batch_size, display_epoch, learning_rate):
 
-        train_x = torch.from_numpy(train_x)
+        # train_x = torch.from_numpy(train_x)
 
         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         time_ = time.time()
@@ -196,7 +196,7 @@ class VAE(nn.Module):
                 batch = train_x[data_index:data_index+batch_size]
                 data_index += batch_size
 
-                batch = Variable(batch).type(self.dtype)
+                batch = Variable(torch.from_numpy(batch)).type(self.dtype)
                 optimizer.zero_grad()
 
                 elbo, logpx, logpz, logqz = model.forward(batch, k=k)
