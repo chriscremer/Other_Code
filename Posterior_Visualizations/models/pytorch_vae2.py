@@ -183,7 +183,7 @@ class VAE(nn.Module):
         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         time_ = time.time()
         n_data = len(train_x)
-        arr = range(n_data)
+        arr = np.array(range(n_data))
 
         for epoch in range(1, epochs + 1):
 
