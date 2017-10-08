@@ -1,6 +1,6 @@
 
 
-
+#Adding more expressive posteriors
 
 
 import numpy as np
@@ -23,6 +23,7 @@ from utils import lognormal2 as lognormal
 from utils import log_bernoulli
 from ais import test_ais
 
+from approx_posteriors import flow1
 
 
 
@@ -36,14 +37,23 @@ class VAE(nn.Module):
 
         torch.manual_seed(seed)
 
+
+        self.z_size = hyper_config['z_size']
+        self.x_size = hyper_config['x_size']
+        self.act_func = hyper_config['act_func']
+        self.flow_bool = hyper_config['flow_bool']
+
+        if self.flow_bool:
+            self.q_dist = hyper_config['q_dist'](self, hyper_config=hyper_config)
+
+
         if torch.cuda.is_available():
             self.dtype = torch.cuda.FloatTensor
+            if self.flow_bool:
+                self.q_dist.cuda()
         else:
             self.dtype = torch.FloatTensor
             
-        self.z_size = hyper_config['z_size']
-        self.x_size = hyper_config['x_size']
-        self.act_func = hyper_config['act_func'] #F.relu
 
 
         #Encoder
@@ -55,6 +65,17 @@ class VAE(nn.Module):
         self.fc5 = nn.Linear(200, 200)
         self.fc6 = nn.Linear(200, self.x_size)
 
+
+
+
+        # for aaa in self.parameters():
+        #     print (aaa.size())
+        # fsadfsa
+
+
+
+
+
     def encode(self, x):
         out = self.act_func(self.fc1(x))
         out = self.act_func(self.fc2(out))
@@ -65,14 +86,22 @@ class VAE(nn.Module):
 
     def sample(self, mu, logvar, k):
         B = mu.size()[0]
+
+
         eps = Variable(torch.FloatTensor(k, B, self.z_size).normal_().type(self.dtype)) #[P,B,Z]
         z = eps.mul(torch.exp(.5*logvar)) + mu  #[P,B,Z]
+        logqz = lognormal(z, mu, logvar) #[P,B]
+
+        #[P,B,Z], [P,B]
+        if self.flow_bool:
+            z, logdet = self.q_dist.forward(z)
+            logqz = logqz - logdet
 
         logpz = lognormal(z, Variable(torch.zeros(B, self.z_size).type(self.dtype)), 
                             Variable(torch.zeros(B, self.z_size)).type(self.dtype))  #[P,B]
-        logqz = lognormal(z, mu, logvar)
 
         return z, logpz, logqz
+
 
     def decode(self, z):
         k = z.size()[0]
@@ -164,11 +193,13 @@ class VAE(nn.Module):
 
             if epoch%display_epoch==0:
                 print ('Train Epoch: {}/{}'.format(epoch, epochs),
-                    'Loss:{:.3f}'.format(loss.data[0]),
+                    'LL:{:.3f}'.format(-loss.data[0]),
                     'logpx:{:.3f}'.format(logpx.data[0]),
                     'logpz:{:.3f}'.format(logpz.data[0]),
                     'logqz:{:.3f}'.format(logqz.data[0]),
-                    'T:{:.2f}'.format(time.time()-time_))
+                    'T:{:.2f}'.format(time.time()-time_),
+                    # 'logdet:{:.3f}'.format(torch.sum(self.logdet).data[0]),
+                    )
 
                 time_ = time.time()
 
@@ -227,9 +258,9 @@ class VAE(nn.Module):
 
 if __name__ == "__main__":
 
-    load_params = 1
-    train_ = 0
-    eval_IW = 0
+    load_params = 0
+    train_ = 1
+    eval_IW = 1
     eval_AIS = 1
 
     print ('Loading data')
@@ -250,7 +281,10 @@ if __name__ == "__main__":
     hyper_config = { 
                     'x_size': 784,
                     'z_size': 50,
-                    'act_func': F.relu,
+                    'act_func': F.tanh,# F.relu,
+                    'flow_bool': False,
+                    'q_dist': flow1,
+                    'n_flows': 2
                 }
 
     
@@ -264,8 +298,8 @@ if __name__ == "__main__":
     #Train params
     learning_rate = .0001
     batch_size = 100
-    epochs = 100
-    display_epoch = 2
+    epochs = 3000
+    display_epoch = 50
     k = 1
 
     path_to_load_variables=''
@@ -281,7 +315,7 @@ if __name__ == "__main__":
 
     if train_:
 
-        print('Training')
+        print('\nTraining')
         model.train(train_x=train_x, k=k, epochs=epochs, batch_size=batch_size, 
                     display_epoch=display_epoch, learning_rate=learning_rate)
         model.save_params(path_to_save_variables)

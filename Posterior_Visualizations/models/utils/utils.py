@@ -4,7 +4,7 @@
 import math
 import torch
 from torch.autograd import Variable
-
+import numpy as np
 
 
 
@@ -103,6 +103,34 @@ def lognormal4(x, mean, logvar):
     # print aaa.size()
 
     return aaa
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
