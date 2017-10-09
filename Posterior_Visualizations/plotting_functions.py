@@ -35,7 +35,7 @@ def plot_isocontours(ax, func, xlimits=[-6, 6], ylimits=[-6, 6],
 
 
 
-    print 'prior sum:', np.sum(Z)
+    # print 'prior sum:', np.sum(Z)
 
     cs = plt.contour(X, Y, Z, cmap=cmap, alpha=alpha)
 
@@ -165,7 +165,12 @@ def plot_isocontours2_exp_norm(ax, func, xlimits=[-6, 6], ylimits=[-6, 6],
     # if bbb.data:
     #     bbb = bbb.data
     # print bbb
-    zs = bbb.data.numpy()
+
+
+    # zs = bbb.data.numpy()
+
+    zs = bbb.data.cpu().numpy()
+
     # zs = np.exp(zs/784)
 
 
@@ -217,8 +222,8 @@ def plot_isocontours_expected(ax, model, data, xlimits=[-6, 6], ylimits=[-6, 6],
 
 
     for samp_i in range(n_samps):
-        if samp_i % 1000 == 0:
-            print samp_i
+        # if samp_i % 1000 == 0:
+        #     print samp_i
         mean, logvar = model.encode(Variable(torch.unsqueeze(data[samp_i],0)))
         func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
         # print aaa.size()
@@ -283,8 +288,8 @@ def plot_isocontours_expected_norm(ax, model, data, xlimits=[-6, 6], ylimits=[-6
 
 
     for samp_i in range(n_samps):
-        if samp_i % 1000 == 0:
-            print samp_i
+        # if samp_i % 1000 == 0:
+        #     print samp_i
         mean, logvar = model.encode(Variable(torch.unsqueeze(data[samp_i],0)))
         func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
         # print aaa.size()
@@ -320,7 +325,7 @@ def plot_isocontours_expected_norm(ax, model, data, xlimits=[-6, 6], ylimits=[-6
     # Z = avg_of_all.view(X.shape)
     # Z=Z.numpy()
 
-    print 'sum:', np.sum(Z)
+    # print 'sum:', np.sum(Z)
 
     if cs_to_use != None:
         cs = plt.contour(X, Y, Z, cmap=cmap, alpha=alpha, levels=cs_to_use.levels)
@@ -356,8 +361,8 @@ def plot_isocontours_expected_norm_ind(ax, model, data, xlimits=[-6, 6], ylimits
 
 
     for samp_i in range(n_samps):
-        if samp_i % 1000 == 0:
-            print samp_i
+        # if samp_i % 1000 == 0:
+        #     print samp_i
         mean, logvar = model.encode(Variable(torch.unsqueeze(data[samp_i],0)))
         func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
         # print aaa.size()
@@ -452,7 +457,7 @@ def plot_isocontours_expected_W(ax, model, samp, xlimits=[-6, 6], ylimits=[-6, 6
     n_Ws = 10
 
     for i in range(n_Ws):
-        if i % 10 ==0: print i
+        # if i % 10 ==0: print i
 
         Ws, logpW, logqW = model.sample_W()  #_ , [1], [1]   
         func = lambda zs: log_bernoulli(model.decode(Ws, Variable(torch.unsqueeze(zs,1))), Variable(torch.unsqueeze(samp,0)))+ Variable(torch.unsqueeze(lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2)), 1))
@@ -528,8 +533,8 @@ def plot_isocontours_expected_true_posterior(ax, model, data, xlimits=[-6, 6], y
 
 
     for samp_i in range(n_samps):
-        if samp_i % 100 == 0:
-            print samp_i
+        # if samp_i % 100 == 0:
+        #     print samp_i
 
         samp = data[samp_i]
 
@@ -564,7 +569,7 @@ def plot_isocontours_expected_true_posterior(ax, model, data, xlimits=[-6, 6], y
     avg_of_all = sum_of_all / n_samps
 
 
-    print 'sum:', np.sum(avg_of_all)
+    # print 'sum:', np.sum(avg_of_all)
 
 
     Z = avg_of_all.reshape(X.shape)
@@ -606,8 +611,8 @@ def plot_isocontours_expected_true_posterior_ind(ax, model, data, xlimits=[-6, 6
 
 
     for samp_i in range(n_samps):
-        if samp_i % 100 == 0:
-            print samp_i
+        # if samp_i % 100 == 0:
+        #     print samp_i
 
         samp = data[samp_i]
 
@@ -681,7 +686,7 @@ def plot_isocontours_of_matrix(ax, matrix, xlimits=[-6, 6], ylimits=[-6, 6],
 
 
     # cs = plt.contour(X, Y, matrix, cmap=cmap, alpha=alpha)
-    print 'dif sum:', np.sum(matrix)
+    # print 'dif sum:', np.sum(matrix)
 
 
     if cs_to_use != None:
@@ -713,8 +718,8 @@ def plot_means(ax, model, data, xlimits=[-6, 6], ylimits=[-6, 6],
 
     means = []
     for samp_i in range(n_samps):
-        if samp_i % 1000 == 0:
-            print samp_i
+        # if samp_i % 1000 == 0:
+        #     print samp_i
         mean, logvar = model.encode(Variable(torch.unsqueeze(data[samp_i],0)))
         # print mean.data[0][0]
         means.append(np.array([mean.data[0][0],mean.data[0][1]]))
@@ -729,6 +734,50 @@ def plot_means(ax, model, data, xlimits=[-6, 6], ylimits=[-6, 6],
     ax.set_yticks([])
     ax.set_xticks([])
     plt.gca().set_aspect('equal', adjustable='box')
+
+
+
+
+
+
+
+
+
+def plot_scatter(ax, samps, xlimits=[-6, 6], ylimits=[-6, 6],
+                     numticks=101, cmap=None, alpha=1., legend=False, n_samps=10, cs_to_use=None):
+    x = np.linspace(*xlimits, num=numticks)
+    y = np.linspace(*ylimits, num=numticks)
+    X, Y = np.meshgrid(x, y)
+    # aaa = torch.from_numpy(np.concatenate([np.atleast_2d(X.ravel()), np.atleast_2d(Y.ravel())]).T).type(torch.FloatTensor)
+
+    # if len(data) < n_samps:
+    #     n_samps = len(data)
+
+    # means = []
+    # for samp_i in range(n_samps):
+    #     # if samp_i % 1000 == 0:
+    #     #     print samp_i
+    #     mean, logvar = model.encode(Variable(torch.unsqueeze(data[samp_i],0)))
+    #     # print mean.data[0][0]
+    #     means.append(np.array([mean.data[0][0],mean.data[0][1]]))
+    #     # print mean
+    #     # print mean[0][0].data[0]
+    # means=np.array(means)
+    # # print means.T[0]
+    # plt.scatter(means.T[0],means.T[1], marker='x', s=3, alpha=alpha)
+    # print (samps.T[0])
+    # fsa
+    plt.scatter(samps.T[0],samps.T[1], s=.01, alpha=alpha)
+
+
+    ax.set_yticks([])
+    ax.set_xticks([])
+    ax.set_xlim(xlimits)
+    ax.set_ylim(ylimits)
+    plt.gca().set_aspect('equal', adjustable='box')
+
+
+
 
 
 
@@ -837,6 +886,8 @@ def plot_isocontours2_exp_norm_logspace(ax, func, xlimits=[-6, 6], ylimits=[-6, 
     aaa = torch.from_numpy(np.concatenate([np.atleast_2d(X.ravel()), np.atleast_2d(Y.ravel())]).T).type(torch.FloatTensor)
     # print '111'
     # print aaa
+
+    aaa = Variable(aaa)
     bbb = func(aaa)
     # bbb = Variable(bbb)
     # if bbb.data:

@@ -66,6 +66,7 @@ class VAE(nn.Module):
             self.add_module(str(count), self.decoder_weights[i])
             count+=1
 
+
         # See params
         # for aaa in self.parameters():
         #     print (aaa.size())
@@ -110,6 +111,29 @@ class VAE(nn.Module):
         return elbo, logpxz, logqz
 
 
+    def sample_q(self, x, k):
+
+        self.B = x.size()[0] #batch size
+        self.zeros = Variable(torch.zeros(self.B, self.z_size).type(self.dtype))
+
+        self.logposterior = lambda aa: lognormal(aa, self.zeros, self.zeros) + log_bernoulli(self.decode(aa), x)
+
+        # print (x)
+        # fsda
+        z, logqz = self.q_dist.forward(k=k, x=x, logposterior=self.logposterior)
+
+        return z
+
+
+    def logposterior_func(self, x, z):
+        self.B = x.size()[0] #batch size
+        self.zeros = Variable(torch.zeros(self.B, self.z_size).type(self.dtype))
+
+        # print (x)  #[B,X]
+        # print(z)    #[P,Z]
+        z = Variable(z).type(self.dtype)
+        z = z.view(-1,self.B,self.z_size)
+        return lognormal(z, self.zeros, self.zeros) + log_bernoulli(self.decode(z), x)
 
 
 
@@ -124,7 +148,7 @@ class VAE(nn.Module):
 
     def train(self, train_x, k, epochs, batch_size, display_epoch, learning_rate):
 
-        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        optimizer = optim.Adam(self.parameters(), lr=learning_rate)
         time_ = time.time()
         n_data = len(train_x)
         arr = np.array(range(n_data))
@@ -143,7 +167,7 @@ class VAE(nn.Module):
                 batch = Variable(torch.from_numpy(batch)).type(self.dtype)
                 optimizer.zero_grad()
 
-                elbo, logpxz, logqz = model.forward(batch, k=k)
+                elbo, logpxz, logqz = self.forward(batch, k=k)
 
                 loss = -(elbo)
                 loss.backward()
@@ -177,7 +201,7 @@ class VAE(nn.Module):
 
             batch = Variable(torch.from_numpy(batch)).type(self.dtype)
 
-            elbo, logpxz, logqz = model(batch, k=k)
+            elbo, logpxz, logqz = self(batch, k=k)
 
             elbos.append(elbo.data[0])
 
@@ -193,12 +217,12 @@ class VAE(nn.Module):
 
     def load_params(self, path_to_load_variables=''):
         # model.load_state_dict(torch.load(path_to_load_variables))
-        model.load_state_dict(torch.load(path_to_load_variables, map_location=lambda storage, loc: storage))
+        self.load_state_dict(torch.load(path_to_load_variables, map_location=lambda storage, loc: storage))
         print ('loaded variables ' + path_to_load_variables)
 
 
     def save_params(self, path_to_save_variables=''):
-        torch.save(model.state_dict(), path_to_save_variables)
+        torch.save(self.state_dict(), path_to_save_variables)
         print ('saved variables ' + path_to_save_variables)
 
 

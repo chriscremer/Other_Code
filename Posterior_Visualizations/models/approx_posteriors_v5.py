@@ -350,6 +350,10 @@ class aux_nf(nn.Module):
         self.B = x.size()[0]
         self.P = k
 
+        # print (self.B, 'B')
+        # print (k)
+        # fsdaf
+
 
 
         #q(v|x)
@@ -383,14 +387,33 @@ class aux_nf(nn.Module):
         mean = out[:,:self.z_size]
         logvar = out[:,self.z_size:]
 
+        self.B = x.size()[0]
+        # print (self.B, 'B')
         #Sample z0
         eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_().type(self.dtype)) #[P,B,Z]
+        # print (eps.size(),'eps')
+        # print (mean.size(),'mean')
+        # print (self.P, 'P')
+
+
+        mean = mean.contiguous().view(self.P,1,self.z_size)
+        logvar = logvar.contiguous().view(self.P,1,self.z_size)
+
+
+        # print (mean.size(),'mean')
+
         z = eps.mul(torch.exp(.5*logvar)) + mean  #[P,B,Z]
+        # print (z.size(),'z')
+
+        mean = mean.contiguous().view(self.P,self.z_size)
+        logvar = logvar.contiguous().view(self.P,self.z_size)
+
         logqz0 = lognormal(z, mean, logvar) #[P,B]
 
         #[PB,Z]
         z = z.view(-1,self.z_size)
 
+        # print (z.size())
 
         logdetsum = 0.
         for i in range(self.n_flows):
@@ -414,6 +437,11 @@ class aux_nf(nn.Module):
 
         z = z.view(k,self.B,self.z_size)
 
+        # print(logqz0.size(), 'here')
+        # print(logqv0.size())
+        # print(logdetsum.size())
+        # print(logrvT.size())
+
         return z, logqz0+logqv0-logdetsum-logrvT
 
 
@@ -421,9 +449,15 @@ class aux_nf(nn.Module):
  
     def norm_flow(self, params, z, v):
 
+        # print (z.size())
         h = F.tanh(params[0][0](z))
         mew_ = params[0][1](h)
         sig_ = F.sigmoid(params[0][2](h)+5.) #[PB,Z]
+
+        # print (v.size())
+        # print (mew_.size())
+        # print (self.B)
+        # print (self.P)
 
         v = v*sig_ + mew_
 
@@ -586,7 +620,16 @@ class hnf(nn.Module):
 
         #Sample z0
         eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_().type(self.dtype)) #[P,B,Z]
+
+        mean = mean.contiguous().view(self.P,1,self.z_size)
+        logvar = logvar.contiguous().view(self.P,1,self.z_size)
+
         z = eps.mul(torch.exp(.5*logvar)) + mean  #[P,B,Z]
+
+        mean = mean.contiguous().view(self.P,self.z_size)
+        logvar = logvar.contiguous().view(self.P,self.z_size)
+
+
         logqz0 = lognormal(z, mean, logvar) #[P,B]
 
         #[PB,Z]
