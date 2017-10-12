@@ -1,6 +1,8 @@
 
 
 
+# same as before, except small N, larger LR. 
+    # less epochs, actually nervermind, each epoch has less training sicne dataset is smaller
 
 import sys, os
 sys.path.insert(0, '../models')
@@ -21,7 +23,7 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ais3 import test_ais
+from ais2 import test_ais
 
 from pytorch_vae_v5 import VAE
 
@@ -33,17 +35,14 @@ from approx_posteriors_v5 import hnf
 import argparse
 
 
-directory = home+'/Documents/tmp/first_try'
+# directory = home+'/Documents/tmp/small_N'
+directory = home+'/Documents/tmp/large_N'
 
 
+if not os.path.exists(directory):
+    os.makedirs(directory)
+    print ('Made directory:'+directory)
 
-
-#since theres too moany checkpoints select which ones to eval:
-checkpoints = [100,1000,1900,2800]
-
-#Steps:
-# take as arg, which model you want to eval
-# 
 
 
 
@@ -68,9 +67,9 @@ print (train_x.shape)
 print (train_x.shape)
 print (test_x.shape)
 
-train_x = train_x[:1000]
-test_x = test_x[:1000]
 
+#Small N
+# train_x = train_x[:1000]
 
 
 print (train_x.shape)
@@ -81,15 +80,11 @@ x_size = 784
 z_size = 50
 
 
-eval_file = '/log_eval_only100datapoints.txt'
-
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-m",'--model', default="standard")
 args = parser.parse_args()
-
-
 
 
 
@@ -101,7 +96,7 @@ if args.model == 'standard':
         print ('Made directory:'+this_dir)
 
 
-    experiment_log = this_dir+eval_file
+    experiment_log = this_dir+'/log.txt'
 
     with open(experiment_log, "a") as myfile:
         myfile.write("Standard" +'\n')
@@ -119,7 +114,7 @@ if args.model == 'standard':
                     'q_dist': standard,#hnf,#aux_nf,#flow1,#,
                 }
 
-    model = VAE(hyper_config)
+    # model = VAE(hyper_config)
 
 
 
@@ -130,7 +125,7 @@ elif args.model == 'flow1':
         os.makedirs(this_dir)
         print ('Made directory:'+this_dir)
 
-    experiment_log = this_dir+eval_file
+    experiment_log = this_dir+'/log.txt'
 
     with open(experiment_log, "a") as myfile:
         myfile.write("Flow1" +'\n')
@@ -147,7 +142,7 @@ elif args.model == 'flow1':
                     'flow_hidden_size': 100
                 }
 
-    model = VAE(hyper_config)
+    # model = VAE(hyper_config)
 
 
 
@@ -158,7 +153,7 @@ elif args.model == 'aux_nf':
         os.makedirs(this_dir)
         print ('Made directory:'+this_dir)
 
-    experiment_log = this_dir+eval_file
+    experiment_log = this_dir+'/log.txt'
 
     with open(experiment_log, "a") as myfile:
         myfile.write("aux_nf" +'\n')
@@ -178,7 +173,7 @@ elif args.model == 'aux_nf':
                     'flow_hidden_size': 100
                 }
 
-    model = VAE(hyper_config)
+    # model = VAE(hyper_config)
 
 
 
@@ -189,7 +184,7 @@ elif args.model == 'hnf':
         os.makedirs(this_dir)
         print ('Made directory:'+this_dir)
 
-    experiment_log = this_dir+eval_file
+    experiment_log = this_dir+'/log.txt'
 
     with open(experiment_log, "a") as myfile:
         myfile.write("hnf" +'\n')
@@ -209,45 +204,46 @@ elif args.model == 'hnf':
                     'flow_hidden_size': 100
                 }
 
-    model = VAE(hyper_config)
+    # model = VAE(hyper_config)
 
 else:
     print ('What')
     fadas
 
 
+model = VAE(hyper_config)
+model.load_params(home+'/Documents/tmp/first_try/'+args.model+'/params_'+args.model+'_2800.pt')
 
 
-# #Train params
-# learning_rate = .0001
-# batch_size = 100
-# k = 1
-# epochs = 3000
 
-# #save params and compute IW and AIS
-# start_at = 100
-# save_freq = 300
-# display_epoch = 10
+#Train params
+learning_rate = .001
+batch_size = 100
+k = 1
+epochs = 3000
+
+#save params and compute IW and AIS
+start_at = 100
+save_freq = 300
+display_epoch = 10
 
 
 # Test params
-k_IW = 5000
+k_IW = 2000
 batch_size_IW = 20
-
 k_AIS = 10
 batch_size_AIS = 100
-n_intermediate_dists = 500
+n_intermediate_dists = 100
+
+print('\nTraining')
+print('k='+str(k), 'lr='+str(learning_rate), 'batch_size='+str(batch_size))
+print('\nModel:', hyper_config,'\n')
 
 
-# print('\nTraining')
-# print('k='+str(k), 'lr='+str(learning_rate), 'batch_size='+str(batch_size))
-# print('\nModel:', hyper_config,'\n')
-
-
-# with open(experiment_log, "a") as myfile:
-#     myfile.write(str(hyper_config)+'\n\n')
-# with open(experiment_log, "a") as myfile:
-#     myfile.write('k='+str(k)+' lr='+str(learning_rate)+' batch_size='+str(batch_size) +'\n\n')
+with open(experiment_log, "a") as myfile:
+    myfile.write(str(hyper_config)+'\n\n')
+with open(experiment_log, "a") as myfile:
+    myfile.write('k='+str(k)+' lr='+str(learning_rate)+' batch_size='+str(batch_size) +'\n\n')
 
 
 
@@ -263,8 +259,6 @@ path_to_save_variables=this_dir+'/params_'+args.model+'_'
 
 if torch.cuda.is_available():
     model.cuda()
-
-
 
 
 
@@ -305,89 +299,101 @@ def test(model, data_x, batch_size, display, k):
 
 
 
+def train_with_log(model, train_x, test_x, k, batch_size, learning_rate,
+                    epochs, start_at, save_freq, display_epoch, 
+                    path_to_save_variables, experiment_log):
 
-
-
-
-for ckt in checkpoints:
-
-
-    #find model
-    this_ckt_file = path_to_save_variables + str(ckt) + '.pt'
-
-    #load model
-    model.load_params(path_to_load_variables=this_ckt_file)
-
-
-    # log it
-    with open(experiment_log, "a") as myfile:
-        myfile.write('Checkpoint' +str(ckt)+'\n')
-
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    time_ = time.time()
     start_time = time.time()
+    
+    n_data = len(train_x)
+    arr = np.array(range(n_data))
+
+    for epoch in range(1, epochs + 1):
+
+        #shuffle
+        np.random.shuffle(arr)
+        train_x = train_x[arr]
+
+        data_index= 0
+        for i in range(int(n_data/batch_size)):
+            batch = train_x[data_index:data_index+batch_size]
+            data_index += batch_size
+
+            batch = Variable(torch.from_numpy(batch)).type(model.dtype)
+            optimizer.zero_grad()
+
+            elbo, logpxz, logqz = model.forward(batch, k=k)
+
+            loss = -(elbo)
+            loss.backward()
+            optimizer.step()
 
 
-    # compute LL 
-    print('\nTesting with IW, Train set, B'+str(batch_size_IW)+' k'+str(k_IW))
-    IW_train = test(model=model, data_x=train_x, batch_size=batch_size_IW, display=10, k=k_IW)
-    print ('IW_train', IW_train)
-    with open(experiment_log, "a") as myfile:
-        myfile.write('IW_train '+ str(IW_train) +'\n')
-        myfile.write('time'+str(time.time()-start_time)+'\n\n')
-
-                
-    print('\nTesting with IW, Test set, B'+str(batch_size_IW)+' k'+str(k_IW))
-    IW_test = test(model=model, data_x=test_x, batch_size=batch_size_IW, display=10, k=k_IW)
-    print ('IW_test', IW_test)
-    with open(experiment_log, "a") as myfile:
-        myfile.write('IW_test '+ str(IW_test) +'\n')
-        myfile.write('time'+str(time.time()-start_time)+'\n\n')
+        if epoch%display_epoch==0:
+            print ('Train Epoch: {}/{}'.format(epoch, epochs),
+                'LL:{:.3f}'.format(-loss.data[0]),
+                'logpxz:{:.3f}'.format(logpxz.data[0]),
+                'logqz:{:.3f}'.format(logqz.data[0]),
+                'T:{:.2f}'.format(time.time()-time_),
+                )
+            time_ = time.time()
 
 
-    print('\nTesting with AIS, Train set, B'+str(batch_size_AIS)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
-    AIS_train = test_ais(model=model, data_x=train_x, batch_size=batch_size_AIS, display=2, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
-    print ('AIS_train', AIS_train)
-    with open(experiment_log, "a") as myfile:
-        myfile.write('AIS_train '+ str(AIS_train) +'\n')
-        myfile.write('time'+str(time.time()-start_time)+'\n\n')
+        if epoch >= start_at and (epoch-start_at)%save_freq==0:
+
+            # save params
+            save_file = path_to_save_variables+str(epoch)+'.pt'
+            torch.save(model.state_dict(), save_file)
+            print ('saved variables ' + save_file)
+            with open(experiment_log, "a") as myfile:
+                myfile.write('\nepoch'+str(epoch)+'\nsaved variables ' + save_file+'\n')
+                myfile.write('time'+str(time.time()-start_time)+'\n\n')
 
 
-    print('\nTesting with AIS, Test set, B'+str(batch_size_AIS)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
-    AIS_test = test_ais(model=model, data_x=test_x, batch_size=batch_size_AIS, display=2, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
-    print ('AIS_test', AIS_test)
-    with open(experiment_log, "a") as myfile:
-        myfile.write('AIS_test '+ str(AIS_test) +'\n\n')
-        myfile.write('time'+str(time.time()-start_time)+'\n\n')
+            # compute LL 
+            # print('\nTesting with IW, Train set, B'+str(batch_size_IW)+' k'+str(k_IW))
+            # IW_train = test(model=model, data_x=train_x, batch_size=batch_size_IW, display=1000, k=k_IW)
+            # print('\nTesting with IW, Test set, B'+str(batch_size_IW)+' k'+str(k_IW))
+            # IW_test = test(model=model, data_x=test_x, batch_size=batch_size_IW, display=1000, k=k_IW)
+            # print('\nTesting with AIS, Train set, B'+str(batch_size_AIS)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
+            # AIS_train = test_ais(model=model, data_x=train_x, batch_size=batch_size_AIS, display=1000, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
+            # print('\nTesting with AIS, Test set, B'+str(batch_size_AIS)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
+            # AIS_test = test_ais(model=model, data_x=test_x, batch_size=batch_size_AIS, display=10000, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
 
 
-    # # log results
-    # with open(experiment_log, "a") as myfile:
-    #     myfile.write('\nIW_train '+str(IW_train)
-    #                     +'\nIW_test '+str(IW_test)
-    #                     +'\nAIS_train '+str(AIS_train)
-    #                     +'\nAIS_test '+str(AIS_test))
-
+            # # log results
+            # with open(experiment_log, "a") as myfile:
+            #     myfile.write('\nIW_train '+str(IW_train)
+            #                     +'\nIW_test '+str(IW_test)
+            #                     +'\nAIS_train '+str(AIS_train)
+            #                     +'\nAIS_test '+str(AIS_test))
 
 
 
 
 
-    # log it
 
 
 
 
-# train_with_log(model=model, train_x=train_x, test_x=test_x, k=k, batch_size=batch_size, learning_rate=learning_rate,
-#                     epochs=epochs, start_at=start_at, save_freq=save_freq, display_epoch=display_epoch, 
-#                     path_to_save_variables=path_to_save_variables, experiment_log=experiment_log)
 
 
-
-
+train_with_log(model=model, train_x=train_x, test_x=test_x, k=k, batch_size=batch_size, learning_rate=learning_rate,
+                    epochs=epochs, start_at=start_at, save_freq=save_freq, display_epoch=display_epoch, 
+                    path_to_save_variables=path_to_save_variables, experiment_log=experiment_log)
 
 
 with open(experiment_log, "a") as myfile:
     myfile.write('\n\nDone.\n')
 print ('Done.')
+
+
+
+
+
+
 
 
 

@@ -25,8 +25,9 @@ from utils import log_bernoulli
 #Sample q
 # from ais import test_ais
 #Sample prior
-from ais2 import test_ais
-
+# from ais2 import test_ais
+#for debugging
+from ais3 import test_ais
 
 from approx_posteriors import flow1
 
@@ -265,8 +266,8 @@ if __name__ == "__main__":
 
     load_params = 1
     train_ = 0
-    eval_IW = 0
-    eval_AIS = 1
+    eval_IW = 1
+    eval_AIS = 0
 
     print ('Loading data')
     with open(home+'/Documents/MNIST_data/mnist.pkl','rb') as f:
@@ -337,15 +338,15 @@ if __name__ == "__main__":
         model.test(data_x=test_x, batch_size=batch_size, display=100, k=k_IW)
 
     if eval_AIS:
-        k_AIS = 100
-        batch_size = 10
-        n_intermediate_dists = 100
+        k_AIS = 10
+        batch_size = 1000
+        n_intermediate_dists = 500
         
         print('\nTesting with AIS, Train set[:10000], B'+str(batch_size)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
-        LL_ais_train = test_ais(model, data_x=train_x[:10000], batch_size=batch_size, display=2, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
+        LL_ais_train = test_ais(model, data_x=train_x[:10000], batch_size=batch_size, display=1, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
 
         print('\nTesting with AIS, Test set, B'+str(batch_size)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
-        LL_ais_test = test_ais(model, data_x=test_x, batch_size=batch_size, display=2, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
+        LL_ais_test = test_ais(model, data_x=test_x, batch_size=batch_size, display=1, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
 
 
 

@@ -395,9 +395,13 @@ class aux_nf(nn.Module):
         # print (mean.size(),'mean')
         # print (self.P, 'P')
 
+        # print (mean)
+        mean = mean.contiguous().view(self.P,self.B,self.z_size)
+        logvar = logvar.contiguous().view(self.P,self.B,self.z_size)
 
-        mean = mean.contiguous().view(self.P,1,self.z_size)
-        logvar = logvar.contiguous().view(self.P,1,self.z_size)
+        # print (mean)
+        # mean = mean.contiguous().view(self.P,1,self.z_size)
+        # logvar = logvar.contiguous().view(self.P,1,self.z_size)
 
 
         # print (mean.size(),'mean')
@@ -405,8 +409,8 @@ class aux_nf(nn.Module):
         z = eps.mul(torch.exp(.5*logvar)) + mean  #[P,B,Z]
         # print (z.size(),'z')
 
-        mean = mean.contiguous().view(self.P,self.z_size)
-        logvar = logvar.contiguous().view(self.P,self.z_size)
+        mean = mean.contiguous().view(self.P*self.B,self.z_size)
+        logvar = logvar.contiguous().view(self.P*self.B,self.z_size)
 
         logqz0 = lognormal(z, mean, logvar) #[P,B]
 
@@ -621,13 +625,13 @@ class hnf(nn.Module):
         #Sample z0
         eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_().type(self.dtype)) #[P,B,Z]
 
-        mean = mean.contiguous().view(self.P,1,self.z_size)
-        logvar = logvar.contiguous().view(self.P,1,self.z_size)
+        mean = mean.contiguous().view(self.P,self.B,self.z_size)
+        logvar = logvar.contiguous().view(self.P,self.B,self.z_size)
 
         z = eps.mul(torch.exp(.5*logvar)) + mean  #[P,B,Z]
 
-        mean = mean.contiguous().view(self.P,self.z_size)
-        logvar = logvar.contiguous().view(self.P,self.z_size)
+        mean = mean.contiguous().view(self.P*self.B,self.z_size)
+        logvar = logvar.contiguous().view(self.P*self.B,self.z_size)
 
 
         logqz0 = lognormal(z, mean, logvar) #[P,B]
