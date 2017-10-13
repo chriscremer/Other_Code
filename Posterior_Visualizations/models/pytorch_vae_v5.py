@@ -137,6 +137,21 @@ class VAE(nn.Module):
 
 
 
+    def logposterior_func2(self, x, z):
+        self.B = x.size()[0] #batch size
+        self.zeros = Variable(torch.zeros(self.B, self.z_size).type(self.dtype))
+
+        # print (x)  #[B,X]
+        # print(z)    #[P,Z]
+        # z = Variable(z).type(self.dtype)
+        z = z.view(-1,self.B,self.z_size)
+
+        # print (z)
+        return lognormal(z, self.zeros, self.zeros) + log_bernoulli(self.decode(z), x)
+
+
+
+
 
 
 
