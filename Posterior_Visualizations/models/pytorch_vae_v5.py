@@ -67,8 +67,11 @@ class VAE(nn.Module):
             count+=1
 
 
-        # See params
+        # self.hyper_config = hyper_config
+
+        # # See params
         # for aaa in self.parameters():
+        #     print (aaa)
         #     print (aaa.size())
         # fsadfsa
 
@@ -149,6 +152,30 @@ class VAE(nn.Module):
         # print (z)
         return lognormal(z, self.zeros, self.zeros) + log_bernoulli(self.decode(z), x)
 
+
+
+    def forward2(self, x, k):
+
+        self.B = x.size()[0] #batch size
+        self.zeros = Variable(torch.zeros(self.B, self.z_size).type(self.dtype))
+
+        self.logposterior = lambda aa: lognormal(aa, self.zeros, self.zeros) + log_bernoulli(self.decode(aa), x)
+
+        z, logqz = self.q_dist.forward(k, x, self.logposterior)
+
+        logpxz = self.logposterior(z)
+
+        #Compute elbo
+        elbo = logpxz - logqz #[P,B]
+        # if k>1:
+        #     max_ = torch.max(elbo, 0)[0] #[B]
+        #     elbo = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
+            
+        elbo = torch.mean(elbo) #[1]
+        logpxz = torch.mean(logpxz) #[1]
+        logqz = torch.mean(logqz)
+
+        return elbo, logpxz, logqz
 
 
 

@@ -37,7 +37,7 @@ import argparse
 
 # directory = home+'/Documents/tmp/small_N'
 # directory = home+'/Documents/tmp/large_N'
-directory = home+'/Documents/tmp/large_N_time'
+directory = home+'/Documents/tmp/large_N_time_2'
 
 
 
@@ -215,7 +215,7 @@ else:
 
 model = VAE(hyper_config)
 print ('done init')
-# model.load_params(home+'/Documents/tmp/first_try/'+args.model+'/params_'+args.model+'_2800.pt')
+model.load_params(home+'/Documents/tmp/large_N_time/'+args.model+'/params_'+args.model+'_1.pt')
 
 
 
@@ -314,15 +314,16 @@ def train_with_log(model, train_x, test_x, k, batch_size, learning_rate,
     arr = np.array(range(n_data))
 
 
-    max_time = 18000 # 5 hours
-    # max_time = 10800 # 3 hours
+    # max_time = 18000 # 5 hours
+    max_time = 10800 # 3 hours
 
     max_epochs = 99999999 # no limit
 
     completed = [0,0,0,0,0]
-    current_t = 1
+    current_t = 5
 
-    for epoch in range(1, epochs + 1):
+
+    for epoch in range(1, max_epochs + 1):
 
         #shuffle
         np.random.shuffle(arr)
@@ -344,11 +345,13 @@ def train_with_log(model, train_x, test_x, k, batch_size, learning_rate,
 
 
         if epoch%display_epoch==0:
-            print ('Train Epoch: {}/{}'.format(epoch, epochs),
+            print ('Train Epoch: {}/{}'.format(epoch, max_epochs),
                 'LL:{:.3f}'.format(-loss.data[0]),
                 'logpxz:{:.3f}'.format(logpxz.data[0]),
                 'logqz:{:.3f}'.format(logqz.data[0]),
                 'T:{:.2f}'.format(time.time()-time_),
+                'TimeLeft:{:.2f}'.format(max_time-(time.time()-start_time)),
+
                 )
             time_ = time.time()
 

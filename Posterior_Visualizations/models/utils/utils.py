@@ -48,7 +48,35 @@ def lognormal2(x, mean, logvar):
     output: [P,B]
     '''
 
-    return -.5 * (logvar.sum(1) + ((x - mean).pow(2)/torch.exp(logvar)).sum(2))
+    assert len(x.size()) == 3
+    assert len(mean.size()) == 2
+    assert len(logvar.size()) == 2
+    assert x.size()[1] == mean.size()[0]
+
+    D = x.size()[2]
+    term1 = D * torch.log(torch.cuda.FloatTensor([2.*math.pi])) #[1]
+
+    return -.5 * (Variable(term1) + logvar.sum(1) + ((x - mean).pow(2)/torch.exp(logvar)).sum(2))
+
+
+def lognormal333(x, mean, logvar):
+    '''
+    x: [P,B,Z]
+    mean,logvar: [P,B,Z]
+    output: [P,B]
+    '''
+
+    assert len(x.size()) == 3
+    assert len(mean.size()) == 3
+    assert len(logvar.size()) == 3
+    assert x.size()[0] == mean.size()[0]
+    assert x.size()[1] == mean.size()[1]
+
+    D = x.size()[2]
+    term1 = D * torch.log(torch.cuda.FloatTensor([2.*math.pi])) #[1]
+
+    return -.5 * (Variable(term1) + logvar.sum(2) + ((x - mean).pow(2)/torch.exp(logvar)).sum(2))
+
 
 
     

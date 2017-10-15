@@ -35,7 +35,11 @@ import argparse
 
 # directory = home+'/Documents/tmp/first_try'
 # directory = home+'/Documents/tmp/small_N'
-directory = home+'/Documents/tmp/large_N'
+# directory = home+'/Documents/tmp/large_N'
+# directory = home+'/Documents/tmp/large_N_time_2'
+
+directory = home+'/Documents/tmp/large_N_2'
+
 
 
 # directory = home+'/Documents/tmp/2D_models'
@@ -46,6 +50,9 @@ directory = home+'/Documents/tmp/large_N'
 
 #since theres too moany checkpoints select which ones to eval:
 checkpoints = [1000,1900,2800]
+# checkpoints = [1,2,3,4,5]
+
+
 # checkpoints = [1000,2000,3000]
 
 
@@ -53,10 +60,11 @@ checkpoints = [1000,1900,2800]
 # take as arg, which model you want to eval
 # 
 
-models = ['standard', 'flow1', 'aux_nf', 'hnf']
+models = ['standard', 'flow1', 'aux_nf']#, 'hnf']
 # models = ['hnf']
 
 # models = ['standard']
+
 
 
 

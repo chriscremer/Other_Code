@@ -13,6 +13,8 @@ import torch.nn.functional as F
 import sys
 sys.path.insert(0, 'utils')
 from utils import lognormal2 as lognormal
+from utils import lognormal333
+
 
 
 
@@ -409,10 +411,10 @@ class aux_nf(nn.Module):
         z = eps.mul(torch.exp(.5*logvar)) + mean  #[P,B,Z]
         # print (z.size(),'z')
 
-        mean = mean.contiguous().view(self.P*self.B,self.z_size)
-        logvar = logvar.contiguous().view(self.P*self.B,self.z_size)
+        # mean = mean.contiguous().view(self.P*self.B,self.z_size)
+        # logvar = logvar.contiguous().view(self.P*self.B,self.z_size)
 
-        logqz0 = lognormal(z, mean, logvar) #[P,B]
+        logqz0 = lognormal333(z, mean, logvar) #[P,B]
 
         #[PB,Z]
         z = z.view(-1,self.z_size)
@@ -436,8 +438,11 @@ class aux_nf(nn.Module):
         mean = out[:,:self.z_size]
         logvar = out[:,self.z_size:]
 
+        mean = mean.contiguous().view(self.P,self.B,self.z_size)
+        logvar = logvar.contiguous().view(self.P,self.B,self.z_size)
+
         v = v.view(k,self.B,self.z_size)
-        logrvT = lognormal(v, mean, logvar) #[P,B]
+        logrvT = lognormal333(v, mean, logvar) #[P,B]
 
         z = z.view(k,self.B,self.z_size)
 

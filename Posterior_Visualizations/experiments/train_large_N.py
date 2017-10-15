@@ -36,7 +36,8 @@ import argparse
 
 
 # directory = home+'/Documents/tmp/small_N'
-directory = home+'/Documents/tmp/large_N'
+directory = home+'/Documents/tmp/large_N_2'
+
 
 
 if not os.path.exists(directory):
@@ -212,7 +213,7 @@ else:
 
 
 model = VAE(hyper_config)
-model.load_params(home+'/Documents/tmp/first_try/'+args.model+'/params_'+args.model+'_2800.pt')
+# model.load_params(home+'/Documents/tmp/first_try/'+args.model+'/params_'+args.model+'_2800.pt')
 
 
 

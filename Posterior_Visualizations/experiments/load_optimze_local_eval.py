@@ -34,6 +34,8 @@ from approx_posteriors_v5 import hnf
 import argparse
 
 from optimize_local import optimize_local_gaussian
+from optimize_local import optimize_local_expressive
+# from optimize_local import aux_nf__
 
 
 
@@ -49,7 +51,9 @@ directory = home+'/Documents/tmp/large_N'
 
 
 #since theres too moany checkpoints select which ones to eval:
-checkpoints = [1000,1900,2800]
+# checkpoints = [1000,1900,2800]
+checkpoints = [2800]
+
 # checkpoints = [1000,2000,3000]
 
 
@@ -57,41 +61,67 @@ checkpoints = [1000,1900,2800]
 # take as arg, which model you want to eval
 # 
 
-models = ['standard', 'flow1', 'aux_nf', 'hnf']
+# models = ['standard']#, 'flow1', 'aux_nf', 'hnf']
 # models = ['hnf']
 
-# models = ['standard']
+models = ['aux_nf', 'standard']
 
 
 
 
 
 
-
-
-# def test(model, data_x, batch_size, display, k):
+def test_vae(model, data_x, batch_size, display, k):
     
-#     time_ = time.time()
-#     elbos = []
-#     data_index= 0
-#     for i in range(int(len(data_x)/ batch_size)):
+    time_ = time.time()
+    elbos = []
+    data_index= 0
+    for i in range(int(len(data_x)/ batch_size)):
 
-#         batch = data_x[data_index:data_index+batch_size]
-#         data_index += batch_size
+        batch = data_x[data_index:data_index+batch_size]
+        data_index += batch_size
 
-#         batch = Variable(torch.from_numpy(batch)).type(model.dtype)
+        batch = Variable(torch.from_numpy(batch)).type(model.dtype)
 
-#         elbo, logpxz, logqz = model(batch, k=k)
+        elbo, logpxz, logqz = model.forward2(batch, k=k)
 
-#         elbos.append(elbo.data[0])
+        elbos.append(elbo.data[0])
 
-#         if i%display==0:
-#             print (i,len(data_x)/ batch_size, np.mean(elbos))
+        if i%display==0:
+            print (i,len(data_x)/ batch_size, np.mean(elbos))
 
-#     mean_ = np.mean(elbos)
-#     print(mean_, 'T:', time.time()-time_)
+    mean_ = np.mean(elbos)
+    print(mean_, 'T:', time.time()-time_)
 
-#     return mean_#, time.time()-time_
+    return mean_#, time.time()-time_
+
+
+
+
+
+def test(model, data_x, batch_size, display, k):
+    
+    time_ = time.time()
+    elbos = []
+    data_index= 0
+    for i in range(int(len(data_x)/ batch_size)):
+
+        batch = data_x[data_index:data_index+batch_size]
+        data_index += batch_size
+
+        batch = Variable(torch.from_numpy(batch)).type(model.dtype)
+
+        elbo, logpxz, logqz = model(batch, k=k)
+
+        elbos.append(elbo.data[0])
+
+        if i%display==0:
+            print (i,len(data_x)/ batch_size, np.mean(elbos))
+
+    mean_ = np.mean(elbos)
+    print(mean_, 'T:', time.time()-time_)
+
+    return mean_#, time.time()-time_
 
 
 
@@ -200,34 +230,34 @@ for model_ in models:
 
 
 
-    # elif model_ == 'aux_nf':
+    elif model_ == 'aux_nf':
 
-    #     this_dir = directory+'/aux_nf'
-    #     if not os.path.exists(this_dir):
-    #         os.makedirs(this_dir)
-    #         print ('Made directory:'+this_dir)
+        this_dir = directory+'/aux_nf'
+        # if not os.path.exists(this_dir):
+        #     os.makedirs(this_dir)
+        #     print ('Made directory:'+this_dir)
 
-    #     experiment_log = this_dir+eval_file
+        # experiment_log = this_dir+eval_file
 
-    #     with open(experiment_log, "a") as myfile:
-    #         myfile.write("aux_nf" +'\n')
+        # with open(experiment_log, "a") as myfile:
+        #     myfile.write("aux_nf" +'\n')
 
-    #     print('Init aux nf model')
-    #     hyper_config = { 
-    #                     'x_size': x_size,
-    #                     'z_size': z_size,
-    #                     'act_func': F.tanh,# F.relu,
-    #                     'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
-    #                     'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
-    #                     'q_dist': aux_nf,#aux_nf,#flow1,#standard,#, #, #, #,#, #,# ,
-    #                     'n_flows': 2,
-    #                     'qv_arch': [[x_size,200],[200,200],[200,z_size*2]],
-    #                     'qz_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
-    #                     'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
-    #                     'flow_hidden_size': 100
-    #                 }
+        print('Init aux nf model')
+        hyper_config = { 
+                        'x_size': x_size,
+                        'z_size': z_size,
+                        'act_func': F.tanh,# F.relu,
+                        'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+                        'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+                        'q_dist': aux_nf,#aux_nf,#flow1,#standard,#, #, #, #,#, #,# ,
+                        'n_flows': 2,
+                        'qv_arch': [[x_size,200],[200,200],[200,z_size*2]],
+                        'qz_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+                        'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+                        'flow_hidden_size': 100
+                    }
 
-    #     model = VAE(hyper_config)
+        model = VAE(hyper_config)
 
 
 
@@ -341,22 +371,61 @@ for model_ in models:
 
         # start_time = time.time()
 
+        n_data = 2
 
-        for i in range(len(train_x)):
+        vaes = []
+        iwaes = []
+        vaes_flex = []
+        iwaes_flex = []
+        for i in range(len(train_x[:n_data])):
+
+            print (i)
 
             x = train_x[i]
-            print (x.shape)
             x = Variable(torch.from_numpy(x)).type(model.dtype)
             x = x.view(1,784)
-            # print (x)
-            # fas
 
-            # Do it
             logposterior = lambda aa: model.logposterior_func2(x=x,z=aa)
-            vae, iwae = optimize_local_gaussian(logposterior, model, x)
 
-            print (vae,iwae)
-            fsda
+
+            # flex_model = aux_nf__(model, hyper_config)
+            # if torch.cuda.is_available():
+            #     flex_model.cuda()
+            # vae, iwae = flex_model.train_and_eval(logposterior=logposterior, model=model, x=x)
+            vae, iwae = optimize_local_expressive(logposterior, model, x)
+            print (vae.data.cpu().numpy(),iwae.data.cpu().numpy(),'flex')
+            vaes_flex.append(vae.data.cpu().numpy())
+            iwaes_flex.append(iwae.data.cpu().numpy())
+
+            vae, iwae = optimize_local_gaussian(logposterior, model, x)
+            print (vae.data.cpu().numpy(),iwae.data.cpu().numpy(),'reg')
+            vaes.append(vae.data.cpu().numpy())
+            iwaes.append(iwae.data.cpu().numpy())
+
+
+
+
+
+
+
+        print ('opt vae',np.mean(vaes))
+        print ('opt iwae',np.mean(iwaes))
+        print()
+
+        print ('opt vae flex',np.mean(vaes_flex))
+        print ('opt iwae flex',np.mean(iwaes_flex))
+        print()
+
+
+        VAE_train = test_vae(model=model, data_x=train_x[:n_data], batch_size=n_data, display=10, k=50)
+        IW_train = test(model=model, data_x=train_x[:n_data], batch_size=n_data, display=10, k=50)
+        print ('amortized VAE',VAE_train)
+        print ('amortized IW',IW_train)
+
+        print()
+        AIS_train = test_ais(model=model, data_x=train_x[:n_data], batch_size=n_data, display=2, k=50, n_intermediate_dists=500)
+        print ('AIS_train',AIS_train)
+
 
 
 
@@ -425,8 +494,8 @@ for model_ in models:
 
 
 
-with open(experiment_log, "a") as myfile:
-    myfile.write('\n\nDone.\n')
+# with open(experiment_log, "a") as myfile:
+#     myfile.write('\n\nDone.\n')
 print ('Done.')
 
 

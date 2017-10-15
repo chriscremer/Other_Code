@@ -124,139 +124,6 @@ import matplotlib.pyplot as plt
 
 
 
-# IW_train = 
-# IW_test = 
-# AIS_train =
-# AIS_test=
-
-
-# #Aux nf
-# IW_train =
-# IW_test =
-# AIS_train =
-# AIS_test=
-
-
-
-
-# Large N early experiment, lr was still .0001
-
-
-x = [1000,1900,2800]
-
-
-standard=[[-92.0210244751,-90.9609240723,-90.4828463745],
-[-93.0489350891,-92.2423101807,-91.9248104858],
-[-91.9124,-90.8787,-90.4299],
-[-92.6238,-91.7527,-91.3643]]
-
-
-flow1=[
-[-91.5039059448,  -90.5030630493,  -89.9896644592],
-[-92.4487319946, -91.6231837463, -91.2205012512],
-[-91.4004,  -90.4505, -89.9924],
-[-92.1416, -91.3033, -90.8853] ]
-
-
-aux_nf = [
-[-91.187793273925777, -90.245821075439451, -89.789920806884766],
-[-92.114274902343752, -91.29430206298828, -90.890433349609381],
-[-91.132156, -90.212952, -89.77301],
-[-91.857346, -90.957596, -90.491089]]
-
-
-
-models = [standard,flow1,aux_nf]#,hnf]
-# model_names = ['standard','flow1','aux_nf','hnf']
-model_names = ['VAE','NF','Aux+NF']#,'HNF']
-
-
-legends = ['IW_train', 'IW_test', 'AIS_train', 'AIS_test']
-
-
-
-rows = 1
-cols = 5
-
-legend=False
-
-fig = plt.figure(figsize=(8+cols,2+rows), facecolor='white')
-
-# Get y-axis limits
-min_ = None
-max_ = None
-for m in range(len(models)):
-    for i in range(len(legends)):
-        this_min = np.min(models[m][i])
-        this_max = np.max(models[m][i])
-        if min_ ==None or this_min < min_:
-            min_ = this_min
-        if max_ ==None or this_max > max_:
-            max_ = this_max
-
-min_ -= .1
-max_ += .1
-# print (min_)
-# print (max_)
-ylimits = [min_, max_]
-# fasd
-
-# ax.plot(x,hnf_ais, label='hnf_ais')
-# ax.set_yticks([])
-# ax.set_xticks([])
-# if samp_i==0:  ax.annotate('Sample', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
-
-for m in range(len(models)):
-    ax = plt.subplot2grid((rows,cols), (0,m), frameon=False)
-    for i in range(len(legends)):
-        ax.set_title(model_names[m])
-        ax.plot(x,models[m][i], label=legends[i])
-        plt.legend(fontsize=4) 
-        # ax.set(adjustable='box-forced', aspect='equal')
-        plt.yticks(size=6)
-        # ax.set_xlim(xlimits)
-        ax.set_ylim(ylimits)
-
-m+=1
-ax = plt.subplot2grid((rows,cols), (0,m), frameon=False)
-ax.set_title('AIS_test')
-for m in range(len(models)):
-    ax.plot(x,models[m][3], label=model_names[m])
-    plt.legend(fontsize=4) 
-    plt.yticks(size=6)
-
-
-
-
-
-# plt.gca().set_aspect('equal', adjustable='box')
-name_file = home+'/Documents/tmp/plot.png'
-plt.savefig(name_file)
-print ('Saved fig', name_file)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -634,6 +501,239 @@ print ('Saved fig', name_file)
 # print ('Saved fig', name_file)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# # Large N time
+ 
+
+# x = [5,4,3,2,1]
+
+
+# standard=[[-90.702315826416012, -90.960945129394531, -91.179870147705074, -91.307066497802737, -91.541283416748044],
+# [-92.829085235595699, -92.696218719482417, -92.845530853271484, -92.93976242065429, -93.093510894775392],
+# [-90.295609, -90.575516, -90.793289, -90.928864, -91.13958],
+# [-91.31221, -91.548203, -91.802658, -91.898094, -92.046806]]
+
+
+# flow1=[
+# [-90.650220947265623, -91.05579483032227, -91.573744201660162, -91.739595489501951, -91.889657592773432],
+# [-92.378957519531255, -92.69502883911133, -92.973268890380865, -93.272323150634762, -93.358189849853517],
+# [-90.309952, -90.780884, -91.281883, -91.422859, -91.600243],
+# [-91.268311, -91.766647, -92.079201, -92.365234, -92.574211]]
+
+
+# aux_nf = [
+# [-90.918987426757809, -91.276008605957031, -91.658234100341801, -91.994766693115238, -92.16865295410156],
+# [-92.661103820800776, -92.726740264892584, -93.02299407958985, -93.323872985839841, -93.435993652343754],
+# [-90.553062, -90.913162, -91.319992, -91.596596, -91.829086],
+# [-91.37339, -91.731262, -92.110397, -92.388535, -92.630745]]
+
+
+
+# models = [standard,flow1,aux_nf]#,hnf]
+# # model_names = ['standard','flow1','aux_nf','hnf']
+# model_names = ['VAE','NF','Aux+NF']#,'HNF']
+
+
+# legends = ['IW_train', 'IW_test', 'AIS_train', 'AIS_test']
+
+
+
+# rows = 1
+# cols = 5
+
+# legend=False
+
+# fig = plt.figure(figsize=(8+cols,2+rows), facecolor='white')
+
+# # Get y-axis limits
+# min_ = None
+# max_ = None
+# for m in range(len(models)):
+#     for i in range(len(legends)):
+#         this_min = np.min(models[m][i])
+#         this_max = np.max(models[m][i])
+#         if min_ ==None or this_min < min_:
+#             min_ = this_min
+#         if max_ ==None or this_max > max_:
+#             max_ = this_max
+
+# min_ -= 2
+# max_ += 2
+# # print (min_)
+# # print (max_)
+# ylimits = [min_, max_]
+# # fasd
+
+# # ax.plot(x,hnf_ais, label='hnf_ais')
+# # ax.set_yticks([])
+# # ax.set_xticks([])
+# # if samp_i==0:  ax.annotate('Sample', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+
+# for m in range(len(models)):
+#     ax = plt.subplot2grid((rows,cols), (0,m), frameon=False)
+#     for i in range(len(legends)):
+#         ax.set_title(model_names[m])
+#         ax.plot(x,models[m][i], label=legends[i])
+#         plt.legend(fontsize=4) 
+#         # ax.set(adjustable='box-forced', aspect='equal')
+#         plt.yticks(size=6)
+#         # ax.set_xlim(xlimits)
+#         ax.set_ylim(ylimits)
+
+# m+=1
+# ax = plt.subplot2grid((rows,cols), (0,m), frameon=False)
+# ax.set_title('AIS_test')
+# for m in range(len(models)):
+#     ax.plot(x,models[m][3], label=model_names[m])
+#     plt.legend(fontsize=4) 
+#     plt.yticks(size=6)
+
+
+
+
+
+# # plt.gca().set_aspect('equal', adjustable='box')
+# name_file = home+'/Documents/tmp/plot.png'
+# plt.savefig(name_file)
+# print ('Saved fig', name_file)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Large N time, started at 3 hours
+ 
+
+x = [5,4,3,2,1]
+
+
+standard=[[-90.356217041015626, -90.680784301757811, -90.540812988281246, -90.587139282226559, -90.636305389404299],
+[-92.610456390380861, -92.716960754394535, -92.693904876708984, -92.830287017822272, -92.77354675292969],
+[-90.034859, -90.31353, -90.199432, -90.210648, -90.290329],
+[-91.100952, -91.249527, -91.232422, -91.359818, -91.309135]]
+
+
+flow1=[
+[-90.271184082031255, -90.411840667724604, -90.525875854492185, -90.586142272949218, -90.5160971069336],
+[-92.296845092773438, -92.239070434570309, -92.321230316162115, -92.415106201171881, -92.322035980224612],
+[-89.973557, -90.179146, -90.283897, -90.282059, -90.281517],
+[-90.983269, -91.187912, -91.268188, -91.260056, -91.231453]]
+
+
+aux_nf = [
+[-90.619600219726564, -90.864978485107429, -90.739211883544925, -90.871030578613286, -90.804663848876956],
+[-92.693523559570309, -92.736759033203128, -92.500957794189446, -92.672872161865229, -92.511756896972656],
+[-90.226097, -90.397934, -90.423958, -90.483292, -90.528809],
+[-91.142136, -91.265198, -91.21122, -91.290939, -91.295013]]
+
+
+
+models = [standard,flow1,aux_nf]#,hnf]
+# model_names = ['standard','flow1','aux_nf','hnf']
+model_names = ['VAE','NF','Aux+NF']#,'HNF']
+
+
+legends = ['IW_train', 'IW_test', 'AIS_train', 'AIS_test']
+
+
+
+rows = 1
+cols = 5
+
+legend=False
+
+fig = plt.figure(figsize=(8+cols,2+rows), facecolor='white')
+
+# Get y-axis limits
+min_ = None
+max_ = None
+for m in range(len(models)):
+    for i in range(len(legends)):
+        this_min = np.min(models[m][i])
+        this_max = np.max(models[m][i])
+        if min_ ==None or this_min < min_:
+            min_ = this_min
+        if max_ ==None or this_max > max_:
+            max_ = this_max
+
+min_ -= 2
+max_ += 2
+# print (min_)
+# print (max_)
+ylimits = [min_, max_]
+# fasd
+
+# ax.plot(x,hnf_ais, label='hnf_ais')
+# ax.set_yticks([])
+# ax.set_xticks([])
+# if samp_i==0:  ax.annotate('Sample', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+
+for m in range(len(models)):
+    ax = plt.subplot2grid((rows,cols), (0,m), frameon=False)
+    for i in range(len(legends)):
+        ax.set_title(model_names[m])
+        ax.plot(x,models[m][i], label=legends[i])
+        plt.legend(fontsize=4) 
+        # ax.set(adjustable='box-forced', aspect='equal')
+        plt.yticks(size=6)
+        # ax.set_xlim(xlimits)
+        ax.set_ylim(ylimits)
+
+m+=1
+ax = plt.subplot2grid((rows,cols), (0,m), frameon=False)
+ax.set_title('AIS_test')
+for m in range(len(models)):
+    ax.plot(x,models[m][3], label=model_names[m])
+    plt.legend(fontsize=4) 
+    plt.yticks(size=6)
+
+
+
+
+
+# plt.gca().set_aspect('equal', adjustable='box')
+name_file = home+'/Documents/tmp/plot.png'
+plt.savefig(name_file)
+print ('Saved fig', name_file)
 
 
 
