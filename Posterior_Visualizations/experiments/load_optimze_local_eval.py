@@ -371,7 +371,7 @@ for model_ in models:
 
         # start_time = time.time()
 
-        n_data = 2
+        n_data = 10
 
         vaes = []
         iwaes = []
@@ -425,6 +425,7 @@ for model_ in models:
         print()
         AIS_train = test_ais(model=model, data_x=train_x[:n_data], batch_size=n_data, display=2, k=50, n_intermediate_dists=500)
         print ('AIS_train',AIS_train)
+
 
 
 

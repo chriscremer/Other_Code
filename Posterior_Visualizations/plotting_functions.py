@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from utils import lognormal4 
 from utils import log_bernoulli
 
+import scipy.stats as st
 
 def plot_isocontours(ax, func, xlimits=[-6, 6], ylimits=[-6, 6],
                      numticks=101, cmap=None, alpha=1., legend=False):
@@ -923,6 +924,39 @@ def plot_isocontours2_exp_norm_logspace(ax, func, xlimits=[-6, 6], ylimits=[-6, 
     ax.set_xticks([])
     plt.gca().set_aspect('equal', adjustable='box')
 
+
+
+
+def plot_kde(ax, samps, xlimits=[-6, 6], ylimits=[-6, 6],
+                     numticks=101, cmap=None, alpha=1., legend=False):
+
+
+    
+
+    samps = np.array(samps)
+    x_ = samps[:, 0]
+    y_ = samps[:, 1]
+
+    values = np.vstack([x_, y_])
+    kernel = st.gaussian_kde(values)
+
+
+    # Peform the kernel density estimate
+    x = np.linspace(*xlimits, num=numticks)
+    y = np.linspace(*ylimits, num=numticks)
+    X, Y = np.meshgrid(x, y)
+
+    positions = np.vstack([X.ravel(), Y.ravel()])
+
+    f = np.reshape(kernel(positions).T, X.shape)
+
+    # cfset = ax.contourf(X, Y, f, cmap=cmap)
+    cfset = ax.contour(X, Y, f, cmap=cmap)
+
+
+    ax.set_yticks([])
+    ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
 
 
 
