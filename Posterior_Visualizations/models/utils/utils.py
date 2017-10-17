@@ -87,6 +87,10 @@ def log_bernoulli(pred_no_sig, target):
     output is [P, B]
     '''
 
+    assert len(pred_no_sig.size()) == 3
+    assert len(target.size()) == 2
+    assert pred_no_sig.size()[1] == target.size()[0]
+
     return -(torch.clamp(pred_no_sig, min=0)
                         - pred_no_sig * target
                         + torch.log(1. + torch.exp(-torch.abs(pred_no_sig)))).sum(2) #sum over dimensions

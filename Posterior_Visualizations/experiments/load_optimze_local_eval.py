@@ -371,7 +371,7 @@ for model_ in models:
 
         # start_time = time.time()
 
-        n_data = 10
+        n_data = 100
 
         vaes = []
         iwaes = []

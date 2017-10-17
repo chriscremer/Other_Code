@@ -71,6 +71,63 @@ models = ['standard', 'flow1', 'aux_nf']#, 'hnf']
 
 
 
+def test_prior(model, data_x, batch_size, display, k):
+    
+    time_ = time.time()
+    elbos = []
+    data_index= 0
+    for i in range(int(len(data_x)/ batch_size)):
+
+        batch = data_x[data_index:data_index+batch_size]
+        data_index += batch_size
+
+        batch = Variable(torch.from_numpy(batch)).type(model.dtype)
+
+        elbo = model.forward3_prior(batch, k=k)
+
+        elbos.append(elbo.data[0])
+
+        if i%display==0:
+            print (i,len(data_x)/ batch_size, np.mean(elbos))
+
+    mean_ = np.mean(elbos)
+    print(mean_, 'T:', time.time()-time_)
+
+    return mean_#, time.time()-time_
+
+
+
+
+
+
+def test_vae(model, data_x, batch_size, display, k):
+    
+    time_ = time.time()
+    elbos = []
+    data_index= 0
+    for i in range(int(len(data_x)/ batch_size)):
+
+        batch = data_x[data_index:data_index+batch_size]
+        data_index += batch_size
+
+        batch = Variable(torch.from_numpy(batch)).type(model.dtype)
+
+        elbo, logpxz, logqz = model.forward2(batch, k=k)
+
+        elbos.append(elbo.data[0])
+
+        if i%display==0:
+            print (i,len(data_x)/ batch_size, np.mean(elbos))
+
+    mean_ = np.mean(elbos)
+    print(mean_, 'T:', time.time()-time_)
+
+    return mean_#, time.time()-time_
+
+
+
+
+
 
 
 def test(model, data_x, batch_size, display, k):
@@ -330,8 +387,10 @@ for model_ in models:
 
 
 
-
-
+    prior_train_list = []
+    prior_test_list = []
+    vae_train_list = []
+    vae_test_list = []
     iw_train_list = []
     iw_test_list = []
     ais_train_list = []
@@ -356,38 +415,76 @@ for model_ in models:
 
 
         # compute LL 
-        print('\nTesting with IW, Train set, B'+str(batch_size_IW)+' k'+str(k_IW))
-        IW_train = test(model=model, data_x=train_x, batch_size=batch_size_IW, display=10, k=k_IW)
-        print ('IW_train', IW_train)
+        print('\nTesting with prior, Train set, B'+str(batch_size_IW)+' k'+str(k_IW))
+        vae_train = test_prior(model=model, data_x=train_x, batch_size=batch_size_IW, display=10, k=k_IW)
+        print ('prior_train', vae_train)
         with open(experiment_log, "a") as myfile:
-            myfile.write('IW_train '+ str(IW_train) +'\n')
+            myfile.write('prior_train '+ str(vae_train) +'\n')
             myfile.write('time'+str(time.time()-start_time)+'\n\n')
-        iw_train_list.append(IW_train)
+        prior_train_list.append(vae_train)
                     
-        print('\nTesting with IW, Test set, B'+str(batch_size_IW)+' k'+str(k_IW))
-        IW_test = test(model=model, data_x=test_x, batch_size=batch_size_IW, display=10, k=k_IW)
-        print ('IW_test', IW_test)
+        print('\nTesting with prior, Test set, B'+str(batch_size_IW)+' k'+str(k_IW))
+        vae_test = test_prior(model=model, data_x=test_x, batch_size=batch_size_IW, display=10, k=k_IW)
+        print ('prior_test', vae_test)
         with open(experiment_log, "a") as myfile:
-            myfile.write('IW_test '+ str(IW_test) +'\n')
+            myfile.write('prior_test '+ str(vae_test) +'\n')
             myfile.write('time'+str(time.time()-start_time)+'\n\n')
-        iw_test_list.append(IW_test)
-
-        print('\nTesting with AIS, Train set, B'+str(batch_size_AIS)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
-        AIS_train = test_ais(model=model, data_x=train_x, batch_size=batch_size_AIS, display=2, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
-        print ('AIS_train', AIS_train)
-        with open(experiment_log, "a") as myfile:
-            myfile.write('AIS_train '+ str(AIS_train) +'\n')
-            myfile.write('time'+str(time.time()-start_time)+'\n\n')
-        ais_train_list.append(AIS_train)
+        prior_test_list.append(vae_test)
 
 
-        print('\nTesting with AIS, Test set, B'+str(batch_size_AIS)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
-        AIS_test = test_ais(model=model, data_x=test_x, batch_size=batch_size_AIS, display=2, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
-        print ('AIS_test', AIS_test)
+
+        print('\nTesting with VAE, Train set, B'+str(batch_size_IW)+' k'+str(k_IW))
+        vae_train = test_vae(model=model, data_x=train_x, batch_size=batch_size_IW, display=10, k=k_IW)
+        print ('vae_train', vae_train)
         with open(experiment_log, "a") as myfile:
-            myfile.write('AIS_test '+ str(AIS_test) +'\n\n')
+            myfile.write('vae_train '+ str(vae_train) +'\n')
             myfile.write('time'+str(time.time()-start_time)+'\n\n')
-        ais_test_list.append(AIS_test)
+        vae_train_list.append(vae_train)
+                    
+        print('\nTesting with VAE, Test set, B'+str(batch_size_IW)+' k'+str(k_IW))
+        vae_test = test_vae(model=model, data_x=test_x, batch_size=batch_size_IW, display=10, k=k_IW)
+        print ('vae_test', vae_test)
+        with open(experiment_log, "a") as myfile:
+            myfile.write('vae_test '+ str(vae_test) +'\n')
+            myfile.write('time'+str(time.time()-start_time)+'\n\n')
+        vae_test_list.append(vae_test)
+
+        #uncomment this next time
+
+        # print('\nTesting with IW, Train set, B'+str(batch_size_IW)+' k'+str(k_IW))
+        # IW_train = test(model=model, data_x=train_x, batch_size=batch_size_IW, display=10, k=k_IW)
+        # print ('IW_train', IW_train)
+        # with open(experiment_log, "a") as myfile:
+        #     myfile.write('IW_train '+ str(IW_train) +'\n')
+        #     myfile.write('time'+str(time.time()-start_time)+'\n\n')
+        # iw_train_list.append(IW_train)
+                    
+        # print('\nTesting with IW, Test set, B'+str(batch_size_IW)+' k'+str(k_IW))
+        # IW_test = test(model=model, data_x=test_x, batch_size=batch_size_IW, display=10, k=k_IW)
+        # print ('IW_test', IW_test)
+        # with open(experiment_log, "a") as myfile:
+        #     myfile.write('IW_test '+ str(IW_test) +'\n')
+        #     myfile.write('time'+str(time.time()-start_time)+'\n\n')
+        # iw_test_list.append(IW_test)
+
+
+
+        # print('\nTesting with AIS, Train set, B'+str(batch_size_AIS)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
+        # AIS_train = test_ais(model=model, data_x=train_x, batch_size=batch_size_AIS, display=2, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
+        # print ('AIS_train', AIS_train)
+        # with open(experiment_log, "a") as myfile:
+        #     myfile.write('AIS_train '+ str(AIS_train) +'\n')
+        #     myfile.write('time'+str(time.time()-start_time)+'\n\n')
+        # ais_train_list.append(AIS_train)
+
+
+        # print('\nTesting with AIS, Test set, B'+str(batch_size_AIS)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
+        # AIS_test = test_ais(model=model, data_x=test_x, batch_size=batch_size_AIS, display=2, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
+        # print ('AIS_test', AIS_test)
+        # with open(experiment_log, "a") as myfile:
+        #     myfile.write('AIS_test '+ str(AIS_test) +'\n\n')
+        #     myfile.write('time'+str(time.time()-start_time)+'\n\n')
+        # ais_test_list.append(AIS_test)
 
 
     # # log results
@@ -397,10 +494,13 @@ for model_ in models:
     #                     +'\nAIS_train '+str(AIS_train)
     #                     +'\nAIS_test '+str(AIS_test))
 
+    print(vae_train_list)
+    print(vae_test_list)
     print(iw_train_list)
     print(iw_test_list)
     print(ais_train_list)
     print(ais_test_list)
+
 
 
 

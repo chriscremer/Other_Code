@@ -1,16 +1,14 @@
 
 
-#Refactored
-# Allow to pass in architecture
 
+import time
 import numpy as np
-import pickle
-# import cPickle as pickle
+import pickle#, cPickle
+import _pickle as cPickle
 from os.path import expanduser
 home = expanduser("~")
-import time
-import sys
-sys.path.insert(0, 'utils')
+
+
 
 import torch
 from torch.autograd import Variable
@@ -19,34 +17,49 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 
+
+
+
+import sys
+sys.path.insert(0, '../utils')
+
 from utils import lognormal2 as lognormal
 from utils import log_bernoulli
 from ais import test_ais
 
-from approx_posteriors_v5 import standard
-from approx_posteriors_v5 import flow1
-from approx_posteriors_v5 import aux_nf
-from approx_posteriors_v5 import hnf
+# from approx_posteriors_v5 import standard
+# from approx_posteriors_v5 import flow1
+# from approx_posteriors_v5 import aux_nf
+# from approx_posteriors_v5 import hnf
+
+from approx_posteriors_cifar import standard
+
+
+
+class VAE_deconv1(nn.Module):
+    def __init__(self):
+        super(VAE_deconv1, self).__init__()
+
+        torch.manual_seed(1)
+
+        self.x_size = 3072
+        self.z_size = 200
+
+
+        self.act_func = F.tanh
+
+        # self.conv1 = torch.nn.Conv2d(in_channels=3, out_channels=10, kernel_size=5, stride=2, padding=0, dilation=1, bias=True)
+
+        # self.conv2 = torch.nn.Conv2d(in_channels=10, out_channels=10, kernel_size=5, stride=2, padding=0, dilation=1, bias=True)
+
+        # self.fc1 = nn.Linear(1960, 200)
+        # self.fc2 = nn.Linear(200, self.z_size*2)
 
 
 
 
+        self.q_dist = standard(self)
 
-
-
-
-class VAE(nn.Module):
-    def __init__(self, hyper_config, seed=1):
-        super(VAE, self).__init__()
-
-        torch.manual_seed(seed)
-
-
-        self.z_size = hyper_config['z_size']
-        self.x_size = hyper_config['x_size']
-        self.act_func = hyper_config['act_func']
-
-        self.q_dist = hyper_config['q_dist'](self, hyper_config=hyper_config)
 
 
         if torch.cuda.is_available():
@@ -56,48 +69,98 @@ class VAE(nn.Module):
             self.dtype = torch.FloatTensor
             
 
-        #Decoder
-        self.decoder_weights = []
-        for i in range(len(hyper_config['decoder_arch'])):
-            self.decoder_weights.append(nn.Linear(hyper_config['decoder_arch'][i][0], hyper_config['decoder_arch'][i][1]))
-
-        count =1
-        for i in range(len(self.decoder_weights)):
-            self.add_module(str(count), self.decoder_weights[i])
-            count+=1
 
 
-        # self.hyper_config = hyper_config
+        self.fc3 = nn.Linear(self.z_size, 200)
+        # self.fc4 = nn.Linear(200, 1960)
+        self.fc4 = nn.Linear(200, 250)
 
-        # # See params
-        # for aaa in self.parameters():
-        #     print (aaa)
-        #     print (aaa.size())
-        # fsadfsa
+
+        self.deconv1 = torch.nn.ConvTranspose2d(in_channels=10, out_channels=10, kernel_size=5, stride=2, padding=0, output_padding=1, groups=1, bias=True, dilation=1)
+
+        self.deconv2 = torch.nn.ConvTranspose2d(in_channels=10, out_channels=3, kernel_size=5, stride=2, padding=0, output_padding=1, groups=1, bias=True, dilation=1)
+
+
+    # def encode(self, x):
+
+    #     x = x.view(-1, 3, 32, 32)
+    #     x = F.relu(self.conv1(x))
+
+    #     x = x.view(-1, 1960)
+
+    #     h1 = F.relu(self.fc1(x))
+    #     h2 = self.fc2(h1)
+    #     mean = h2[:,:self.z_size]
+    #     logvar = h2[:,self.z_size:]
+    #     return mean, logvar
+
+
+
+    # def sample(self, mu, logvar, k):
+    #     if torch.cuda.is_available():
+    #         eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_()).cuda() #[P,B,Z]
+    #         z = eps.mul(torch.exp(.5*logvar)) + mu  #[P,B,Z]
+    #         logpz = lognormal(z, Variable(torch.zeros(self.B, self.z_size).cuda()), 
+    #                             Variable(torch.zeros(self.B, self.z_size)).cuda())  #[P,B]
+    #         logqz = lognormal(z, mu, logvar)
+    #     else:
+    #         eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_())#[P,B,Z]
+    #         z = eps.mul(torch.exp(.5*logvar)) + mu  #[P,B,Z]
+    #         logpz = lognormal(z, Variable(torch.zeros(self.B, self.z_size)), 
+    #                             Variable(torch.zeros(self.B, self.z_size)))  #[P,B]
+    #         logqz = lognormal(z, mu, logvar) 
+    #     return z, logpz, logqz
 
 
     def decode(self, z):
+
+        # print (z.size())  #[P,B,Z]
+        # fsdafa
         k = z.size()[0]
         B = z.size()[1]
-        z = z.view(-1, self.z_size)
 
-        out = z
-        for i in range(len(self.decoder_weights)-1):
-            out = self.act_func(self.decoder_weights[i](out))
-        out = self.decoder_weights[-1](out)
+        z = z.view(-1,self.z_size) #[PB,Z]
 
-        x = out.view(k, B, self.x_size)
+        # z = self.act_func(self.fc3(z)) 
+        # z = self.act_func(self.fc4(z))  #[PB,1960]
+
+        z = F.relu(self.fc3(z)) 
+        z = F.relu(self.fc4(z))  #[PB,1960]
+
+        # print (z.size())  #[PB,250]
+        # fsdafa
+
+        # z = z.view(-1, 10, 14, 14)
+        z = z.view(-1, 10, 5, 5)
+
+        z = self.deconv1(z)
+        z = F.relu(z)
+        # z = self.act_func(z)
+        z = self.deconv2(z)
+        # z = z.view(-1, self.x_size)
+
+
+        x = z.view(k, B, self.x_size)
+
+        # print (x.size())  #[P,B,3072]
+        # fsdafa
+
         return x
 
 
-    def forward(self, x, k):
 
+    def forward(self, x, k=1, warmup=1.):
+        
         self.B = x.size()[0] #batch size
-        self.zeros = Variable(torch.zeros(self.B, self.z_size).type(self.dtype))
+        self.zeros = Variable(torch.zeros(self.B, self.z_size).type(self.dtype))  #[B,Z]
 
         self.logposterior = lambda aa: lognormal(aa, self.zeros, self.zeros) + log_bernoulli(self.decode(aa), x)
 
+
         z, logqz = self.q_dist.forward(k, x, self.logposterior)
+
+        # [PB,Z]
+        # z = z.view(-1,self.z_size)
 
         logpxz = self.logposterior(z)
 
@@ -111,7 +174,45 @@ class VAE(nn.Module):
         logpxz = torch.mean(logpxz) #[1]
         logqz = torch.mean(logqz)
 
-        return elbo, logpxz, logqz
+
+        # mu, logvar = self.encode(x)
+        # z, logpz, logqz = self.sample(mu, logvar, k=k)  #[P,B,Z]
+        # x_hat = self.decode(z)  #[PB,X]
+        # x_hat = x_hat.view(k, self.B, -1)
+        # logpx = log_bernoulli(x_hat, x)  #[P,B]
+
+        # elbo = logpx +  warmup*(logpz - logqz)  #[P,B]
+
+        # if k>1:
+        #     max_ = torch.max(elbo, 0)[0] #[B]
+        #     elbo = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
+
+        # elbo = torch.mean(elbo) #[1]
+
+        # #for printing
+        # logpx = torch.mean(logpx)
+        # logpz = torch.mean(logpz)
+        # logqz = torch.mean(logqz)
+        # self.x_hat_sigmoid = F.sigmoid(x_hat)
+
+        # return elbo, logpx, logpz, logqz
+
+
+        return elbo, logpxz, logqz 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     def sample_q(self, x, k):
@@ -180,30 +281,7 @@ class VAE(nn.Module):
 
 
 
-    def forward3_prior(self, x, k):
 
-        self.B = x.size()[0] #batch size
-        self.zeros = Variable(torch.zeros(self.B, self.z_size).type(self.dtype))
-
-        self.logposterior = lambda aa:  log_bernoulli(self.decode(aa), x) + #lognormal(aa, self.zeros, self.zeros)
-
-        # z, logqz = self.q_dist.forward(k, x, self.logposterior)
-
-        z = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_().type(self.dtype)) #[P,B,Z]
-
-        logpxz = self.logposterior(z)
-
-        #Compute elbo
-        elbo = logpxz #- logqz #[P,B]
-        if k>1:
-            max_ = torch.max(elbo, 0)[0] #[B]
-            elbo = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
-            
-        elbo = torch.mean(elbo) #[1]
-        # logpxz = torch.mean(logpxz) #[1]
-        # logqz = torch.mean(logqz)
-
-        return elbo#, logpxz, logqz
 
 
 
@@ -305,98 +383,6 @@ class VAE(nn.Module):
 
 
 
-
-
-if __name__ == "__main__":
-
-    load_params = 0
-    train_ = 1
-    eval_IW = 1
-    eval_AIS = 0
-
-    print ('Loading data')
-    with open(home+'/Documents/MNIST_data/mnist.pkl','rb') as f:
-        mnist_data = pickle.load(f, encoding='latin1')
-
-    train_x = mnist_data[0][0]
-    valid_x = mnist_data[1][0]
-    test_x = mnist_data[2][0]
-
-    train_x = np.concatenate([train_x, valid_x], axis=0)
-
-    print (train_x.shape)
-
-    x_size = 784
-    z_size = 50
-
-    hyper_config = { 
-                    'x_size': x_size,
-                    'z_size': z_size,
-                    'act_func': F.tanh,# F.relu,
-                    'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
-                    'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
-                    'q_dist': hnf,#aux_nf,#flow1,#standard,#, #, #, #,#, #,# ,
-                    'n_flows': 2,
-                    'qv_arch': [[x_size,200],[200,200],[200,z_size*2]],
-                    'qz_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
-                    'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
-                    'flow_hidden_size': 100
-                }
-
-    
-    model = VAE(hyper_config)
-
-    if torch.cuda.is_available():
-        model.cuda()
-
-
-
-    #Train params
-    learning_rate = .0001
-    batch_size = 100
-    epochs = 3000
-    display_epoch = 2
-    k = 1
-
-    path_to_load_variables=''
-    # path_to_load_variables=home+'/Documents/tmp/pytorch_bvae.pt'
-    path_to_save_variables=home+'/Documents/tmp/pytorch_vae'+str(epochs)+'.pt'
-    # path_to_save_variables=''
-
-
-
-    if load_params:
-        print ('\nLoading parameters')
-        model.load_params(path_to_save_variables)
-
-    if train_:
-
-        print('\nTraining')
-        print('k='+str(k), 'lr='+str(learning_rate), 'batch_size='+str(batch_size))
-        print('\nModel:', hyper_config,'\n')
-        model.train(train_x=train_x, k=k, epochs=epochs, batch_size=batch_size, 
-                    display_epoch=display_epoch, learning_rate=learning_rate)
-        model.save_params(path_to_save_variables)
-
-
-    if eval_IW:
-        k_IW = 2000
-        batch_size = 20
-        print('\nTesting with IW, Train set[:10000], B'+str(batch_size)+' k'+str(k_IW))
-        model.test(data_x=train_x[:10000], batch_size=batch_size, display=100, k=k_IW)
-
-        print('\nTesting with IW, Test set, B'+str(batch_size)+' k'+str(k_IW))
-        model.test(data_x=test_x, batch_size=batch_size, display=100, k=k_IW)
-
-    if eval_AIS:
-        k_AIS = 10
-        batch_size = 100
-        n_intermediate_dists = 100
-        print('\nTesting with AIS, Train set[:10000], B'+str(batch_size)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
-        test_ais(model, data_x=train_x[:10000], batch_size=batch_size, display=10, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
-
-        print('\nTesting with AIS, Test set, B'+str(batch_size)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
-        test_ais(model, data_x=test_x, batch_size=batch_size, display=10, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
 
 
 
