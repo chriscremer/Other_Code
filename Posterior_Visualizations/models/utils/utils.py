@@ -7,6 +7,14 @@ from torch.autograd import Variable
 import numpy as np
 
 
+import torch
+from torch.autograd import Variable
+import torch.utils.data
+import torch.optim as optim
+import torch.nn as nn
+import torch.nn.functional as F
+
+
 
 # def lognormal(x, mean, logvar):
 #     '''
@@ -36,6 +44,19 @@ import numpy as np
 #     # one line 
 #     return -.5 * (logvar.sum(1) + ((x - mean).pow(2)/torch.exp(logvar)).sum(1))
 
+
+class LayerNorm(nn.Module):
+
+    def __init__(self, features, eps=1e-6):
+        super().__init__()
+        self.gamma = nn.Parameter(torch.ones(features))
+        self.beta = nn.Parameter(torch.zeros(features))
+        self.eps = eps
+
+    def forward(self, x):
+        mean = x.mean(-1, keepdim=True)
+        std = x.std(-1, keepdim=True)
+        return self.gamma * (x - mean) / (std + self.eps) + self.beta
 
     
 

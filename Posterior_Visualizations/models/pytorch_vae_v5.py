@@ -21,6 +21,10 @@ import torch.nn.functional as F
 
 from utils import lognormal2 as lognormal
 from utils import log_bernoulli
+
+
+
+
 from ais import test_ais
 
 from approx_posteriors_v5 import standard
@@ -90,7 +94,7 @@ class VAE(nn.Module):
         return x
 
 
-    def forward(self, x, k):
+    def forward(self, x, k, warmup=1.):
 
         self.B = x.size()[0] #batch size
         self.zeros = Variable(torch.zeros(self.B, self.z_size).type(self.dtype))
@@ -102,7 +106,7 @@ class VAE(nn.Module):
         logpxz = self.logposterior(z)
 
         #Compute elbo
-        elbo = logpxz - logqz #[P,B]
+        elbo = logpxz - (warmup*logqz) #[P,B]
         if k>1:
             max_ = torch.max(elbo, 0)[0] #[B]
             elbo = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
@@ -185,7 +189,7 @@ class VAE(nn.Module):
         self.B = x.size()[0] #batch size
         self.zeros = Variable(torch.zeros(self.B, self.z_size).type(self.dtype))
 
-        self.logposterior = lambda aa:  log_bernoulli(self.decode(aa), x) + #lognormal(aa, self.zeros, self.zeros)
+        self.logposterior = lambda aa:  log_bernoulli(self.decode(aa), x) #+ lognormal(aa, self.zeros, self.zeros)
 
         # z, logqz = self.q_dist.forward(k, x, self.logposterior)
 

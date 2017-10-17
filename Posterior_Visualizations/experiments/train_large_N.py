@@ -36,7 +36,7 @@ import argparse
 
 
 # directory = home+'/Documents/tmp/small_N'
-directory = home+'/Documents/tmp/large_N_2'
+directory = home+'/Documents/tmp/large_encoder'
 
 
 
@@ -206,6 +206,68 @@ elif args.model == 'hnf':
                 }
 
     # model = VAE(hyper_config)
+
+
+
+
+elif args.model == 'standard_large_encoder':
+
+    this_dir = directory+'/standard'
+    if not os.path.exists(this_dir):
+        os.makedirs(this_dir)
+        print ('Made directory:'+this_dir)
+
+
+    experiment_log = this_dir+'/log.txt'
+
+    with open(experiment_log, "a") as myfile:
+        myfile.write("Standard" +'\n')
+    
+
+
+    print('Init standard model')
+    
+    hyper_config = { 
+                    'x_size': x_size,
+                    'z_size': z_size,
+                    'act_func': F.tanh,# F.relu,
+                    'encoder_arch': [[x_size,500],[500,500],[500,200],[200,z_size*2]],
+                    'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+                    'q_dist': standard,#hnf,#aux_nf,#flow1,#,
+                }
+
+    # model = VAE(hyper_config)
+
+elif args.model == 'aux_large_encoder':
+
+    this_dir = directory+'/aux_nf'
+    if not os.path.exists(this_dir):
+        os.makedirs(this_dir)
+        print ('Made directory:'+this_dir)
+
+    experiment_log = this_dir+'/log.txt'
+
+    with open(experiment_log, "a") as myfile:
+        myfile.write("aux_nf" +'\n')
+
+    print('Init flow model')
+    hyper_config = { 
+                    'x_size': x_size,
+                    'z_size': z_size,
+                    'act_func': F.tanh,# F.relu,
+                    'encoder_arch': [[x_size,500],[500,500],[500,200],[200,z_size*2]],
+                    'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+                    'q_dist': aux_nf,#aux_nf,#flow1,#standard,#, #, #, #,#, #,# ,
+                    'n_flows': 2,
+                    'qv_arch': [[x_size,200],[200,200],[200,z_size*2]],
+                    'qz_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+                    'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+                    'flow_hidden_size': 100
+                }
+
+    # model = VAE(hyper_config)
+
+
 
 else:
     print ('What')

@@ -413,23 +413,25 @@ for model_ in models:
 
         start_time = time.time()
 
+        k_prior = 50000
+        batch_prior =1
 
         # compute LL 
-        print('\nTesting with prior, Train set, B'+str(batch_size_IW)+' k'+str(k_IW))
-        vae_train = test_prior(model=model, data_x=train_x, batch_size=batch_size_IW, display=10, k=k_IW)
-        print ('prior_train', vae_train)
-        with open(experiment_log, "a") as myfile:
-            myfile.write('prior_train '+ str(vae_train) +'\n')
-            myfile.write('time'+str(time.time()-start_time)+'\n\n')
-        prior_train_list.append(vae_train)
+        # print('\nTesting with prior, Train set, B'+str(batch_prior)+' k'+str(k_prior))
+        # vae_train = test_prior(model=model, data_x=train_x, batch_size=batch_prior, display=10, k=k_prior)
+        # print ('prior_train', vae_train)
+        # with open(experiment_log, "a") as myfile:
+        #     myfile.write('prior_train '+ str(vae_train) +'\n')
+        #     myfile.write('time'+str(time.time()-start_time)+'\n\n')
+        # prior_train_list.append(vae_train)
                     
-        print('\nTesting with prior, Test set, B'+str(batch_size_IW)+' k'+str(k_IW))
-        vae_test = test_prior(model=model, data_x=test_x, batch_size=batch_size_IW, display=10, k=k_IW)
-        print ('prior_test', vae_test)
-        with open(experiment_log, "a") as myfile:
-            myfile.write('prior_test '+ str(vae_test) +'\n')
-            myfile.write('time'+str(time.time()-start_time)+'\n\n')
-        prior_test_list.append(vae_test)
+        # print('\nTesting with prior, Test set, B'+str(batch_prior)+' k'+str(k_prior))
+        # vae_test = test_prior(model=model, data_x=test_x, batch_size=batch_prior, display=10, k=k_prior)
+        # print ('prior_test', vae_test)
+        # with open(experiment_log, "a") as myfile:
+        #     myfile.write('prior_test '+ str(vae_test) +'\n')
+        #     myfile.write('time'+str(time.time()-start_time)+'\n\n')
+        # prior_test_list.append(vae_test)
 
 
 

@@ -15,7 +15,7 @@ sys.path.insert(0, 'utils')
 from utils import lognormal2 as lognormal
 from utils import lognormal333
 
-
+from utils import LayerNorm
 
 
 
@@ -38,13 +38,21 @@ class standard(nn.Module):
 
         #Encoder
         self.encoder_weights = []
+        self.layer_norms = []
         for i in range(len(hyper_config['encoder_arch'])):
             self.encoder_weights.append(nn.Linear(hyper_config['encoder_arch'][i][0], hyper_config['encoder_arch'][i][1]))
+            
+            if i != len(hyper_config['encoder_arch'])-1:
+                self.layer_norms.append(LayerNorm(hyper_config['encoder_arch'][i][1]))
 
         count =1
         for i in range(len(self.encoder_weights)):
             self.add_module(str(count), self.encoder_weights[i])
             count+=1
+
+            if i != len(hyper_config['encoder_arch'])-1:
+                self.add_module(str(count), self.layer_norms[i])
+                count+=1         
 
 
     def forward(self, k, x, logposterior):
@@ -59,7 +67,9 @@ class standard(nn.Module):
         #Encode
         out = x
         for i in range(len(self.encoder_weights)-1):
-            out = self.act_func(self.encoder_weights[i](out))
+            # out = self.act_func(self.encoder_weights[i](out))
+            out = self.act_func(self.layer_norms[i].forward(self.encoder_weights[i](out)))
+
         out = self.encoder_weights[-1](out)
         mean = out[:,:self.z_size]
         logvar = out[:,self.z_size:]
