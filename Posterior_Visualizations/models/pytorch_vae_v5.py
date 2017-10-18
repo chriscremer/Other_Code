@@ -52,6 +52,12 @@ class VAE(nn.Module):
 
         self.q_dist = hyper_config['q_dist'](self, hyper_config=hyper_config)
 
+        # for aaa in self.q_dist.parameters():
+        #     # print (aaa)
+        #     print (aaa.size())
+
+        # # fasdfs
+
 
         if torch.cuda.is_available():
             self.dtype = torch.cuda.FloatTensor
@@ -74,8 +80,9 @@ class VAE(nn.Module):
         # self.hyper_config = hyper_config
 
         # # See params
+        # print('all')
         # for aaa in self.parameters():
-        #     print (aaa)
+        #     # print (aaa)
         #     print (aaa.size())
         # fsadfsa
 

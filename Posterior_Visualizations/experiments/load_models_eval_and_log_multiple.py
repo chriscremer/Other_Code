@@ -38,7 +38,13 @@ import argparse
 # directory = home+'/Documents/tmp/large_N'
 # directory = home+'/Documents/tmp/large_N_time_2'
 
-directory = home+'/Documents/tmp/large_N_2'
+# directory = home+'/Documents/tmp/large_N_2'
+
+# directory = home+'/Documents/tmp/new_training'
+
+directory = home+'/Documents/tmp/new_training_2'
+
+
 
 
 
@@ -49,7 +55,14 @@ directory = home+'/Documents/tmp/large_N_2'
 
 
 #since theres too moany checkpoints select which ones to eval:
-checkpoints = [1000,1900,2800]
+# checkpoints = [1000,1900,2800]
+
+
+# checkpoints = [100,400,700,1000]
+
+checkpoints = [100,1000,2200,3100]
+
+
 # checkpoints = [1,2,3,4,5]
 
 
@@ -60,7 +73,10 @@ checkpoints = [1000,1900,2800]
 # take as arg, which model you want to eval
 # 
 
-models = ['standard', 'flow1', 'aux_nf']#, 'hnf']
+# models = ['standard', 'flow1', 'aux_nf']#, 'hnf']
+
+models = ['standard', 'standard_large_encoder']#, 'aux_nf', 'aux_large_encoder']#, 'hnf']
+
 # models = ['hnf']
 
 # models = ['standard']
@@ -321,8 +337,83 @@ for model_ in models:
 
         model = VAE(hyper_config)
 
+
+
+
+
+    elif model_ == 'standard_large_encoder':
+
+        this_dir = directory+'/standard'
+        if not os.path.exists(this_dir):
+            os.makedirs(this_dir)
+            print ('Made directory:'+this_dir)
+
+
+        experiment_log = this_dir+eval_file
+
+        with open(experiment_log, "a") as myfile:
+            myfile.write("Standard LE" +'\n')
+        
+
+
+        print('Init standard LE model')
+            
+        hyper_config = { 
+                        'x_size': x_size,
+                        'z_size': z_size,
+                        'act_func': F.tanh,# F.relu,
+                        'encoder_arch': [[x_size,500],[500,500],[500,200],[200,z_size*2]],
+                        'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+                        'q_dist': standard,#hnf,#aux_nf,#flow1,#,
+                    }
+
+
+        model = VAE(hyper_config)
+
+
+
+    elif model_ == 'aux_large_encoder':
+
+        this_dir = directory+'/aux_nf'
+        if not os.path.exists(this_dir):
+            os.makedirs(this_dir)
+            print ('Made directory:'+this_dir)
+
+
+        experiment_log = this_dir+eval_file
+
+        with open(experiment_log, "a") as myfile:
+            myfile.write("aux nf LE" +'\n')
+        
+
+
+        print('Aux LE')
+        hyper_config = { 
+                        'x_size': x_size,
+                        'z_size': z_size,
+                        'act_func': F.tanh,# F.relu,
+                        'encoder_arch': [[x_size,500],[500,500],[500,200],[200,z_size*2]],
+                        'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+                        'q_dist': aux_nf,#aux_nf,#flow1,#standard,#, #, #, #,#, #,# ,
+                        'n_flows': 2,
+                        'qv_arch': [[x_size,200],[200,200],[200,z_size*2]],
+                        'qz_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+                        'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+                        'flow_hidden_size': 100
+                    }
+
+
+        model = VAE(hyper_config)
+
+
+
+
+
+
+
     else:
         print ('What')
+        print (model_)
         fadas
 
 
@@ -451,25 +542,25 @@ for model_ in models:
             myfile.write('time'+str(time.time()-start_time)+'\n\n')
         vae_test_list.append(vae_test)
 
-        #uncomment this next time
 
-        # print('\nTesting with IW, Train set, B'+str(batch_size_IW)+' k'+str(k_IW))
-        # IW_train = test(model=model, data_x=train_x, batch_size=batch_size_IW, display=10, k=k_IW)
-        # print ('IW_train', IW_train)
-        # with open(experiment_log, "a") as myfile:
-        #     myfile.write('IW_train '+ str(IW_train) +'\n')
-        #     myfile.write('time'+str(time.time()-start_time)+'\n\n')
-        # iw_train_list.append(IW_train)
+
+        print('\nTesting with IW, Train set, B'+str(batch_size_IW)+' k'+str(k_IW))
+        IW_train = test(model=model, data_x=train_x, batch_size=batch_size_IW, display=10, k=k_IW)
+        print ('IW_train', IW_train)
+        with open(experiment_log, "a") as myfile:
+            myfile.write('IW_train '+ str(IW_train) +'\n')
+            myfile.write('time'+str(time.time()-start_time)+'\n\n')
+        iw_train_list.append(IW_train)
                     
-        # print('\nTesting with IW, Test set, B'+str(batch_size_IW)+' k'+str(k_IW))
-        # IW_test = test(model=model, data_x=test_x, batch_size=batch_size_IW, display=10, k=k_IW)
-        # print ('IW_test', IW_test)
-        # with open(experiment_log, "a") as myfile:
-        #     myfile.write('IW_test '+ str(IW_test) +'\n')
-        #     myfile.write('time'+str(time.time()-start_time)+'\n\n')
-        # iw_test_list.append(IW_test)
+        print('\nTesting with IW, Test set, B'+str(batch_size_IW)+' k'+str(k_IW))
+        IW_test = test(model=model, data_x=test_x, batch_size=batch_size_IW, display=10, k=k_IW)
+        print ('IW_test', IW_test)
+        with open(experiment_log, "a") as myfile:
+            myfile.write('IW_test '+ str(IW_test) +'\n')
+            myfile.write('time'+str(time.time()-start_time)+'\n\n')
+        iw_test_list.append(IW_test)
 
-
+        #uncomment this next time
 
         # print('\nTesting with AIS, Train set, B'+str(batch_size_AIS)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
         # AIS_train = test_ais(model=model, data_x=train_x, batch_size=batch_size_AIS, display=2, k=k_AIS, n_intermediate_dists=n_intermediate_dists)

@@ -39,7 +39,7 @@ import argparse
 # directory = home+'/Documents/tmp/large_encoder'
 # directory = home+'/Documents/tmp/test_can_delete'
 
-directory = home+'/Documents/tmp/new_training'
+directory = home+'/Documents/tmp/new_training_2'
 
 
 
@@ -223,7 +223,7 @@ elif args.model == 'hnf':
 
 elif args.model == 'standard_large_encoder':
 
-    this_dir = directory+'/standard'
+    this_dir = directory+'/standard_large_encoder'
     if not os.path.exists(this_dir):
         os.makedirs(this_dir)
         print ('Made directory:'+this_dir)
@@ -259,7 +259,7 @@ elif args.model == 'standard_large_encoder':
 
 elif args.model == 'aux_large_encoder':
 
-    this_dir = directory+'/aux_nf'
+    this_dir = directory+'/aux_large_encoder'
     if not os.path.exists(this_dir):
         os.makedirs(this_dir)
         print ('Made directory:'+this_dir)
@@ -326,6 +326,7 @@ print('\nModel:', hyper_config,'\n')
 #     myfile.write(str(hyper_config)+'\n\n')
 # with open(experiment_log, "a") as myfile:
 #     myfile.write('k='+str(k)+' lr='+str(learning_rate)+' batch_size='+str(batch_size) +'\n\n')
+
 
 
 
@@ -470,11 +471,12 @@ def train_lr_schedule(model, train_x, test_x, k, batch_size,
 
     total_epochs = 0
 
-    i_max = 6
+    i_max = 7
 
     warmup_over_epochs = 100.
 
     for i in range(0,i_max+1):
+
         lr = .001 * 10**(-i/float(i_max))
         print (i, 'LR:', lr)
 
