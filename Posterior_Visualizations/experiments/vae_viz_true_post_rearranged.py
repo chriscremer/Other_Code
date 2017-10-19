@@ -49,7 +49,7 @@ from plotting_functions import plot_scatter
 
 from plotting_functions import plot_kde
 
-
+from optimize_local import optimize_local_expressive_only_sample
 
 from utils import lognormal4 
 
@@ -76,6 +76,7 @@ if __name__ == "__main__":
 
 
 
+
     x_size = 784
     z_size = 2
 
@@ -94,23 +95,24 @@ if __name__ == "__main__":
     # if args.model == 'standard':
 
 
+    which_model = 'standard'
 
 
+    if which_model == 'standard':
+        print(which_model)
+        this_dir = directory+'/standard'    
+        hyper_config = { 
+                        'x_size': x_size,
+                        'z_size': z_size,
+                        'act_func': F.tanh,# F.relu,
+                        'encoder_arch': [[x_size,l_size],[l_size,l_size],[l_size,z_size*2]],
+                        'decoder_arch': [[z_size,l_size],[l_size,l_size],[l_size,x_size]],
+                        'q_dist': standard,#hnf,#aux_nf,#flow1,#,
+                    }
 
+        model = VAE(hyper_config)
 
-    # this_dir = directory+'/standard'    
-    # hyper_config = { 
-    #                 'x_size': x_size,
-    #                 'z_size': z_size,
-    #                 'act_func': F.tanh,# F.relu,
-    #                 'encoder_arch': [[x_size,l_size],[l_size,l_size],[l_size,z_size*2]],
-    #                 'decoder_arch': [[z_size,l_size],[l_size,l_size],[l_size,x_size]],
-    #                 'q_dist': standard,#hnf,#aux_nf,#flow1,#,
-    #             }
-
-    # model = VAE(hyper_config)
-
-    # path_to_save_variables=this_dir+'/params_standard' +'_'
+        path_to_save_variables=this_dir+'/params_standard' +'_'
 
 
 
@@ -149,26 +151,29 @@ if __name__ == "__main__":
 
 
 
-    this_dir = directory+'/aux_nf'
 
-    hyper_config = { 
-                    'x_size': x_size,
-                    'z_size': z_size,
-                    'act_func': F.tanh,# F.relu,
-                    'encoder_arch': [[x_size,l_size],[l_size,l_size],[l_size,z_size*2]],
-                    'decoder_arch': [[z_size,l_size],[l_size,l_size],[l_size,x_size]],
-                    'q_dist': aux_nf,#aux_nf,#flow1,#standard,#, #, #, #,#, #,# ,
-                    'n_flows': 2,
-                    'qv_arch': [[x_size,l_size],[l_size,l_size],[l_size,z_size*2]],
-                    'qz_arch': [[x_size+z_size,l_size],[l_size,l_size],[l_size,z_size*2]],
-                    'rv_arch': [[x_size+z_size,l_size],[l_size,l_size],[l_size,z_size*2]],
-                    'flow_hidden_size': f_size
-                }
+    elif which_model == 'aux':
+        print(which_model)
+        this_dir = directory+'/aux_nf'
 
-    model = VAE(hyper_config)
+        hyper_config = { 
+                        'x_size': x_size,
+                        'z_size': z_size,
+                        'act_func': F.tanh,# F.relu,
+                        'encoder_arch': [[x_size,l_size],[l_size,l_size],[l_size,z_size*2]],
+                        'decoder_arch': [[z_size,l_size],[l_size,l_size],[l_size,x_size]],
+                        'q_dist': aux_nf,#aux_nf,#flow1,#standard,#, #, #, #,#, #,# ,
+                        'n_flows': 2,
+                        'qv_arch': [[x_size,l_size],[l_size,l_size],[l_size,z_size*2]],
+                        'qz_arch': [[x_size+z_size,l_size],[l_size,l_size],[l_size,z_size*2]],
+                        'rv_arch': [[x_size+z_size,l_size],[l_size,l_size],[l_size,z_size*2]],
+                        'flow_hidden_size': f_size
+                    }
+
+        model = VAE(hyper_config)
+        path_to_save_variables=this_dir+'/params_aux_nf_'
 
 
-    path_to_save_variables=this_dir+'/params_aux_nf_'
 
 
 
@@ -233,16 +238,21 @@ if __name__ == "__main__":
 
     
 
-    ffg_samps = [0,1,2,3]
+    # ffg_samps = [0,1,2,3]
     # ffg_samps = [5,6,7,8]
 
 
     # # used for standard
-    # ffg_samps = [6,3,2,5]
+    ffg_samps = [6,3,2,5]
+    # ffg_samps = [5]
+    # ffg_samps = [6]
 
 
-    rows = 2
-    cols = len(ffg_samps)
+
+
+
+    rows = 3
+    cols = len(ffg_samps) +1 #for annotation
 
     legend=False
 
@@ -252,7 +262,31 @@ if __name__ == "__main__":
     xlimits=[-lim_val, lim_val]
     ylimits=[-lim_val, lim_val]
 
+    #annotate
+    ax = plt.subplot2grid((rows,cols), (0,0), frameon=False)
+    ax.annotate('True', xytext=(.8, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Blue', size='large')
+    ax.set_yticks([])
+    ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
+
+
+    ax = plt.subplot2grid((rows,cols), (1,0), frameon=False)
+    ax.annotate('Amortized\nFFG', xytext=(.8, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Green', size='large')
+    ax.set_yticks([])
+    ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
+
+    ax = plt.subplot2grid((rows,cols), (2,0), frameon=False)
+    ax.annotate('Optimal\nFlow', xytext=(.8, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Red', size='large')
+    ax.set_yticks([])
+    ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
+
+
+
     for samp_i in range(len(ffg_samps)):
+
+
 
         #Get a sample
         samp = train_x[ffg_samps[samp_i]]
@@ -266,6 +300,8 @@ if __name__ == "__main__":
         # print samp.shape
         # col = 0
         row = 0
+
+        
 
 
 
@@ -282,6 +318,8 @@ if __name__ == "__main__":
         z = z.view(-1,z_size)
         z = z.data.cpu().numpy()
 
+        # print (z)
+
         center_val_x = np.mean(z, axis=0)[0] #z[0][0]
         center_val_y = np.mean(z, axis=0)[1] #z[0][0]
         # center_val_x = z[0][0]
@@ -289,6 +327,8 @@ if __name__ == "__main__":
         xlimits=[center_val_x-lim_val, center_val_x+lim_val]
         ylimits=[center_val_y-lim_val, center_val_y+lim_val]
 
+        # xlimits = [-2,2]
+        # ylimits = [-2,2]
 
         # #Plot prior
         # col +=1
@@ -304,7 +344,8 @@ if __name__ == "__main__":
 
 
 
-        ax = plt.subplot2grid((rows,cols), (row,samp_i), frameon=False)
+        ax = plt.subplot2grid((rows,cols), (row,samp_i+1), frameon=False)
+
         # Ws, logpW, logqW = model.sample_W()  #_ , [1], [1]   
         # func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
         # plot_isocontours(ax, func, cmap='Reds',xlimits=xlimits,ylimits=ylimits)
@@ -430,15 +471,27 @@ if __name__ == "__main__":
 
         #Plot prob
         row +=1
-        ax = plt.subplot2grid((rows,cols), (row, samp_i), frameon=False)
+        ax = plt.subplot2grid((rows,cols), (row, samp_i+1), frameon=False)
 
+        # print ('did')
         # print (z)
 
-        # plot_scatter(ax, samps=z ,xlimits=xlimits,ylimits=ylimits)
-        plot_kde(ax,samps=z,xlimits=xlimits,ylimits=ylimits,cmap='Blues')
-
         func = lambda zs: model.logposterior_func(samp_torch,zs)
-        plot_isocontours2_exp_norm(ax, func, cmap='Greys', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=.2)
+        # plot_isocontours2_exp_norm(ax, func, cmap='Greys', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=.2)
+        plot_isocontours2_exp_norm(ax, func, cmap='Blues', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
+
+
+
+        # plot_scatter(ax, samps=z ,xlimits=xlimits,ylimits=ylimits)
+        # plot_kde(ax,samps=z,xlimits=xlimits,ylimits=ylimits,cmap='Blues')
+
+
+        # plot_kde(ax,samps=z,xlimits=xlimits,ylimits=ylimits,cmap='Greens')
+
+
+        mean, logvar = model.q_dist.get_mean_logvar(samp_torch)
+        func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data.cpu()), torch.squeeze(logvar.data.cpu()))
+        plot_isocontours(ax, func, cmap='Greens',xlimits=xlimits,ylimits=ylimits)
 
 
 
@@ -459,6 +512,46 @@ if __name__ == "__main__":
         # if samp_i==0:  ax.annotate('p(z|x,W1)', xytext=(.1, 1.1), xy=(0, 1), textcoords='axes fraction')
         # # func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
         # # plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+
+
+
+
+
+
+
+
+
+
+
+        #plot local optima
+
+        row +=1
+        ax = plt.subplot2grid((rows,cols), (row, samp_i+1), frameon=False)
+        func = lambda zs: model.logposterior_func(samp_torch,zs)
+        # plot_isocontours2_exp_norm(ax, func, cmap='Greys', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=.2)
+        plot_isocontours2_exp_norm(ax, func, cmap='Blues', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
+
+
+
+        # x = train_x[i]
+        x = samp
+        x = Variable(torch.from_numpy(x)).type(model.dtype)
+        x = x.view(1,784)
+
+        save_to = this_dir+'/local_params'+str(samp_i)+'.pt'
+        load_from = save_to
+
+        logposterior = lambda aa: model.logposterior_func2(x=x,z=aa)
+        print ('optimiznig local', samp_i)
+        z = optimize_local_expressive_only_sample(logposterior, model, x, save_to=save_to, load_from=load_from)
+
+        z = z.view(-1,z_size)
+        z = z.data.cpu().numpy()
+
+        # print (z)
+
+
+        plot_kde(ax,samps=z,xlimits=xlimits,ylimits=ylimits,cmap='Reds')
 
 
 
@@ -507,12 +600,16 @@ if __name__ == "__main__":
     # name_file = home+'/Documents/tmp/2D_models/'+ args.model +'/'+args.model+'_'+args.epoch+'_'+args.set+ '.png'
 
     name_file = home+'/Documents/tmp/2D_models/rearranged_real.png'
-
     plt.savefig(name_file)
-
     print ('Saved fig', name_file)
     
-
+    name_file = home+'/Documents/tmp/2D_models/rearranged_real.eps'
+    plt.savefig(name_file)
+    print ('Saved fig', name_file)
+    
+    name_file = home+'/Documents/tmp/2D_models/rearranged_real.pdf'
+    plt.savefig(name_file)
+    print ('Saved fig', name_file)
 
  # assert not torch.is_tensor(other)
 

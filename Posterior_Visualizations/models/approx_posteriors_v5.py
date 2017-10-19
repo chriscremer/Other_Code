@@ -42,6 +42,95 @@ class standard(nn.Module):
         for i in range(len(hyper_config['encoder_arch'])):
             self.encoder_weights.append(nn.Linear(hyper_config['encoder_arch'][i][0], hyper_config['encoder_arch'][i][1]))
             
+            # if i != len(hyper_config['encoder_arch'])-1:
+            #     self.layer_norms.append(LayerNorm(hyper_config['encoder_arch'][i][1]))
+
+        count =1
+        for i in range(len(self.encoder_weights)):
+            self.add_module(str(count), self.encoder_weights[i])
+            count+=1
+
+            # if i != len(hyper_config['encoder_arch'])-1:
+            #     self.add_module(str(count), self.layer_norms[i])
+            #     count+=1         
+
+
+    def forward(self, k, x, logposterior):
+        '''
+        k: number of samples
+        x: [B,X]
+        logposterior(z) -> [P,B]
+        '''
+
+        self.B = x.size()[0]
+
+        #Encode
+        out = x
+        for i in range(len(self.encoder_weights)-1):
+            out = self.act_func(self.encoder_weights[i](out))
+            # out = self.act_func(self.layer_norms[i].forward(self.encoder_weights[i](out)))
+
+        out = self.encoder_weights[-1](out)
+        mean = out[:,:self.z_size]
+        logvar = out[:,self.z_size:]
+
+        #Sample
+        eps = Variable(torch.FloatTensor(k, self.B, self.z_size).normal_().type(self.dtype)) #[P,B,Z]
+        z = eps.mul(torch.exp(.5*logvar)) + mean  #[P,B,Z]
+        logqz = lognormal(z, mean, logvar) #[P,B]
+
+        return z, logqz
+
+
+
+    def get_mean_logvar(self, x):
+        '''
+        k: number of samples
+        x: [B,X]
+        logposterior(z) -> [P,B]
+        '''
+
+        self.B = x.size()[0]
+
+        #Encode
+        out = x
+        for i in range(len(self.encoder_weights)-1):
+            out = self.act_func(self.encoder_weights[i](out))
+            # out = self.act_func(self.layer_norms[i].forward(self.encoder_weights[i](out)))
+        out = self.encoder_weights[-1](out)
+        mean = out[:,:self.z_size]
+        logvar = out[:,self.z_size:]
+
+        return mean, logvar
+
+
+
+
+
+
+
+
+class standard_layernorm(nn.Module):
+
+    def __init__(self, model, hyper_config):
+        super(standard_layernorm, self).__init__()
+
+        if torch.cuda.is_available():
+            self.dtype = torch.cuda.FloatTensor
+        else:
+            self.dtype = torch.FloatTensor
+
+        self.z_size = model.z_size
+        self.x_size = model.x_size
+        self.act_func = model.act_func
+
+
+        #Encoder
+        self.encoder_weights = []
+        self.layer_norms = []
+        for i in range(len(hyper_config['encoder_arch'])):
+            self.encoder_weights.append(nn.Linear(hyper_config['encoder_arch'][i][0], hyper_config['encoder_arch'][i][1]))
+            
             if i != len(hyper_config['encoder_arch'])-1:
                 self.layer_norms.append(LayerNorm(hyper_config['encoder_arch'][i][1]))
 
@@ -80,6 +169,7 @@ class standard(nn.Module):
         logqz = lognormal(z, mean, logvar) #[P,B]
 
         return z, logqz
+
 
 
 
@@ -460,6 +550,12 @@ class aux_nf(nn.Module):
         # print(logqv0.size())
         # print(logdetsum.size())
         # print(logrvT.size())
+
+        logdetsum = logdetsum.view(k,self.B)
+
+        # print (logqz0+logqv0-logdetsum-logrvT)
+
+        # fadfdsa
 
         return z, logqz0+logqv0-logdetsum-logrvT
 

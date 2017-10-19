@@ -30,6 +30,11 @@ from approx_posteriors_v5 import flow1
 from approx_posteriors_v5 import aux_nf
 from approx_posteriors_v5 import hnf
 
+from approx_posteriors_v5 import standard_layernorm
+
+
+
+
 import argparse
 
 
@@ -60,7 +65,7 @@ directory = home+'/Documents/tmp/new_training_2'
 
 # checkpoints = [100,400,700,1000]
 
-checkpoints = [100,1000,2200,3100]
+checkpoints = [400,1300,2500,3100]
 
 
 # checkpoints = [1,2,3,4,5]
@@ -75,11 +80,13 @@ checkpoints = [100,1000,2200,3100]
 
 # models = ['standard', 'flow1', 'aux_nf']#, 'hnf']
 
-models = ['standard', 'standard_large_encoder']#, 'aux_nf', 'aux_large_encoder']#, 'hnf']
+# models = ['standard', 'standard_large_encoder']#, 'aux_nf', 'aux_large_encoder']#, 'hnf']
+# models = ['standard_large_encoder']#, 'aux_nf', 'aux_large_encoder']#, 'hnf']
+
 
 # models = ['hnf']
 
-# models = ['standard']
+models = ['standard', 'aux_nf']
 
 
 
@@ -242,7 +249,7 @@ for model_ in models:
                         'act_func': F.tanh,# F.relu,
                         'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
                         'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
-                        'q_dist': standard,#hnf,#aux_nf,#flow1,#,
+                        'q_dist': standard_layernorm # standard,#hnf,#aux_nf,#flow1,#,
                     }
 
         model = VAE(hyper_config)
@@ -343,7 +350,7 @@ for model_ in models:
 
     elif model_ == 'standard_large_encoder':
 
-        this_dir = directory+'/standard'
+        this_dir = directory+'/standard_large_encoder'
         if not os.path.exists(this_dir):
             os.makedirs(this_dir)
             print ('Made directory:'+this_dir)
@@ -374,7 +381,7 @@ for model_ in models:
 
     elif model_ == 'aux_large_encoder':
 
-        this_dir = directory+'/aux_nf'
+        this_dir = directory+'/aux_large_encoder'
         if not os.path.exists(this_dir):
             os.makedirs(this_dir)
             print ('Made directory:'+this_dir)
@@ -560,24 +567,26 @@ for model_ in models:
             myfile.write('time'+str(time.time()-start_time)+'\n\n')
         iw_test_list.append(IW_test)
 
+
         #uncomment this next time
 
-        # print('\nTesting with AIS, Train set, B'+str(batch_size_AIS)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
-        # AIS_train = test_ais(model=model, data_x=train_x, batch_size=batch_size_AIS, display=2, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
-        # print ('AIS_train', AIS_train)
-        # with open(experiment_log, "a") as myfile:
-        #     myfile.write('AIS_train '+ str(AIS_train) +'\n')
-        #     myfile.write('time'+str(time.time()-start_time)+'\n\n')
-        # ais_train_list.append(AIS_train)
+        print('\nTesting with AIS, Train set, B'+str(batch_size_AIS)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
+        AIS_train = test_ais(model=model, data_x=train_x, batch_size=batch_size_AIS, display=2, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
+        print ('AIS_train', AIS_train)
+        with open(experiment_log, "a") as myfile:
+            myfile.write('AIS_train '+ str(AIS_train) +'\n')
+            myfile.write('time'+str(time.time()-start_time)+'\n\n')
+        ais_train_list.append(AIS_train)
 
 
-        # print('\nTesting with AIS, Test set, B'+str(batch_size_AIS)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
-        # AIS_test = test_ais(model=model, data_x=test_x, batch_size=batch_size_AIS, display=2, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
-        # print ('AIS_test', AIS_test)
-        # with open(experiment_log, "a") as myfile:
-        #     myfile.write('AIS_test '+ str(AIS_test) +'\n\n')
-        #     myfile.write('time'+str(time.time()-start_time)+'\n\n')
-        # ais_test_list.append(AIS_test)
+        print('\nTesting with AIS, Test set, B'+str(batch_size_AIS)+' k'+str(k_AIS)+' intermediates'+str(n_intermediate_dists))
+        AIS_test = test_ais(model=model, data_x=test_x, batch_size=batch_size_AIS, display=2, k=k_AIS, n_intermediate_dists=n_intermediate_dists)
+        print ('AIS_test', AIS_test)
+        with open(experiment_log, "a") as myfile:
+            myfile.write('AIS_test '+ str(AIS_test) +'\n\n')
+            myfile.write('time'+str(time.time()-start_time)+'\n\n')
+        ais_test_list.append(AIS_test)
+
 
 
     # # log results
