@@ -1575,7 +1575,7 @@ models = [standard,aux_nf]#, aux_nf aux_large_encoder]#,hnf]
 # model_names = ['VAE','NF','Aux+NF']#,'HNF']
 # model_names = ['FFG','Flow']#,'HNF']
 # model_names = ['FFG','Flow']#,'HNF']
-model_names = ['standard','aux_nf']#  'aux_nf','aux_large_encoder']#,'HNF']
+model_names = ['FFG','Flex']#  'aux_nf','aux_large_encoder']#,'HNF']
 
 
 
