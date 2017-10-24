@@ -6,6 +6,7 @@ import sys, os
 sys.path.insert(0, '../models')
 sys.path.insert(0, '../models/utils')
 
+import gzip
 import time
 import numpy as np
 import pickle
@@ -23,14 +24,14 @@ import torch.nn.functional as F
 
 from ais3 import test_ais
 
-from pytorch_vae_v5 import VAE
+# from pytorch_vae_v5 import VAE
 
-from approx_posteriors_v5 import standard
-from approx_posteriors_v5 import flow1
-from approx_posteriors_v5 import aux_nf
-from approx_posteriors_v5 import hnf
+# from approx_posteriors_v5 import standard
+# from approx_posteriors_v5 import flow1
+# from approx_posteriors_v5 import aux_nf
+# from approx_posteriors_v5 import hnf
 
-from approx_posteriors_v5 import standard_layernorm
+# from approx_posteriors_v5 import standard_layernorm
 
 from approx_posteriors_v6 import FFG_LN
 from approx_posteriors_v6 import ANF_LN
@@ -50,9 +51,9 @@ import argparse
 
 # directory = home+'/Documents/tmp/new_training_2'
 
-# directory = home+'/Documents/tmp/fashion_2'
+directory = home+'/Documents/tmp/fashion_2'
 
-directory = home+'/Documents/tmp/batch20_correct'
+# directory = home+'/Documents/tmp/batch20_correct'
 
 
 
@@ -69,7 +70,10 @@ directory = home+'/Documents/tmp/batch20_correct'
 
 # checkpoints = [100,400,700,1000]
 
-checkpoints = [400,1300,2500]#,3100]
+# checkpoints = [400,1300,1900,2500,3100,3280]
+
+checkpoints = [1000,1600,2200,2800,3280]
+
 
 
 # checkpoints = [1,2,3,4,5]
@@ -91,7 +95,12 @@ checkpoints = [400,1300,2500]#,3100]
 # models = ['hnf']
 
 # models = ['standard', 'aux_nf']
-models = ['FFG']
+# models = ['FFG']
+
+# models = ['FFG_LE', 'FFG_LD']
+models = ['FFG_LD']
+
+
 
 
 
@@ -188,29 +197,66 @@ def test(model, data_x, batch_size, display, k):
 
 
 
-print ('Loading data')
-with open(home+'/Documents/MNIST_data/mnist.pkl','rb') as f:
-    mnist_data = pickle.load(f, encoding='latin1')
-train_x = mnist_data[0][0]
-valid_x = mnist_data[1][0]
-test_x = mnist_data[2][0]
-train_x = np.concatenate([train_x, valid_x], axis=0)
-print (train_x.shape)
 
-# #For debug purposes
-# train_x = train_x[:1000]
-# test_x = test_x[:500]
+def load_mnist(path, kind='train'):
 
-print (train_x.shape)
-print (test_x.shape)
+    images_path = os.path.join(path,
+                               '%s-images-idx3-ubyte.gz'
+                               % kind)
+
+    with gzip.open(images_path, 'rb') as imgpath:
+        images = np.frombuffer(imgpath.read(), dtype=np.uint8,
+                               offset=16).reshape(-1, 784)
+
+    return images#, labels
+
+
+path = home+'/Documents/fashion_MNIST'
+
+train_x = load_mnist(path=path)
+test_x = load_mnist(path=path, kind='t10k')
+
+train_x = train_x / 255.
+test_x = test_x / 255.
 
 train_x = train_x[:1000]
 test_x = test_x[:1000]
 
 
-
 print (train_x.shape)
 print (test_x.shape)
+
+
+
+
+
+
+
+# print ('Loading data')
+# with open(home+'/Documents/MNIST_data/mnist.pkl','rb') as f:
+#     mnist_data = pickle.load(f, encoding='latin1')
+# train_x = mnist_data[0][0]
+# valid_x = mnist_data[1][0]
+# test_x = mnist_data[2][0]
+# train_x = np.concatenate([train_x, valid_x], axis=0)
+# print (train_x.shape)
+
+# # #For debug purposes
+# # train_x = train_x[:1000]
+# # test_x = test_x[:500]
+
+# print (train_x.shape)
+# print (test_x.shape)
+
+# train_x = train_x[:1000]
+# test_x = test_x[:1000]
+
+# print (train_x.shape)
+# print (test_x.shape)
+
+
+
+
 
 
 x_size = 784
@@ -232,194 +278,194 @@ for model_ in models:
 
 
 
-    if model_ == 'standard':
+    # if model_ == 'standard':
 
-        this_dir = directory+'/standard'
-        if not os.path.exists(this_dir):
-            os.makedirs(this_dir)
-            print ('Made directory:'+this_dir)
+    #     this_dir = directory+'/standard'
+    #     if not os.path.exists(this_dir):
+    #         os.makedirs(this_dir)
+    #         print ('Made directory:'+this_dir)
 
 
-        experiment_log = this_dir+eval_file
+    #     experiment_log = this_dir+eval_file
 
-        with open(experiment_log, "a") as myfile:
-            myfile.write("Standard" +'\n')
+    #     with open(experiment_log, "a") as myfile:
+    #         myfile.write("Standard" +'\n')
         
 
 
-        print('Init standard model')
+    #     print('Init standard model')
         
-        hyper_config = { 
-                        'x_size': x_size,
-                        'z_size': z_size,
-                        'act_func': F.tanh,# F.relu,
-                        'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
-                        'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
-                        'q_dist': standard_layernorm # standard,#hnf,#aux_nf,#flow1,#,
-                    }
+    #     hyper_config = { 
+    #                     'x_size': x_size,
+    #                     'z_size': z_size,
+    #                     'act_func': F.tanh,# F.relu,
+    #                     'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+    #                     'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+    #                     'q_dist': standard_layernorm # standard,#hnf,#aux_nf,#flow1,#,
+    #                 }
 
-        model = VAE(hyper_config)
-
-
-
-    elif model_ == 'flow1':
-
-        this_dir = directory+'/flow1'
-        if not os.path.exists(this_dir):
-            os.makedirs(this_dir)
-            print ('Made directory:'+this_dir)
-
-        experiment_log = this_dir+eval_file
-
-        with open(experiment_log, "a") as myfile:
-            myfile.write("Flow1" +'\n')
-
-        print('Init flow model')
-        hyper_config = { 
-                        'x_size': x_size,
-                        'z_size': z_size,
-                        'act_func': F.tanh,# F.relu,
-                        'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
-                        'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
-                        'q_dist': flow1,#hnf,#aux_nf,#,#standard,#, #
-                        'n_flows': 2,
-                        'flow_hidden_size': 100
-                    }
-
-        model = VAE(hyper_config)
+    #     model = VAE(hyper_config)
 
 
 
-    elif model_ == 'aux_nf':
+    # elif model_ == 'flow1':
 
-        this_dir = directory+'/aux_nf'
-        if not os.path.exists(this_dir):
-            os.makedirs(this_dir)
-            print ('Made directory:'+this_dir)
+    #     this_dir = directory+'/flow1'
+    #     if not os.path.exists(this_dir):
+    #         os.makedirs(this_dir)
+    #         print ('Made directory:'+this_dir)
 
-        experiment_log = this_dir+eval_file
+    #     experiment_log = this_dir+eval_file
 
-        with open(experiment_log, "a") as myfile:
-            myfile.write("aux_nf" +'\n')
+    #     with open(experiment_log, "a") as myfile:
+    #         myfile.write("Flow1" +'\n')
 
-        print('Init aux nf model')
-        hyper_config = { 
-                        'x_size': x_size,
-                        'z_size': z_size,
-                        'act_func': F.tanh,# F.relu,
-                        'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
-                        'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
-                        'q_dist': aux_nf,#aux_nf,#flow1,#standard,#, #, #, #,#, #,# ,
-                        'n_flows': 2,
-                        'qv_arch': [[x_size,200],[200,200],[200,z_size*2]],
-                        'qz_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
-                        'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
-                        'flow_hidden_size': 100
-                    }
+    #     print('Init flow model')
+    #     hyper_config = { 
+    #                     'x_size': x_size,
+    #                     'z_size': z_size,
+    #                     'act_func': F.tanh,# F.relu,
+    #                     'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+    #                     'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+    #                     'q_dist': flow1,#hnf,#aux_nf,#,#standard,#, #
+    #                     'n_flows': 2,
+    #                     'flow_hidden_size': 100
+    #                 }
 
-        model = VAE(hyper_config)
+    #     model = VAE(hyper_config)
 
 
 
-    elif model_ == 'hnf':
+    # elif model_ == 'aux_nf':
 
-        this_dir = directory+'/hnf'
-        if not os.path.exists(this_dir):
-            os.makedirs(this_dir)
-            print ('Made directory:'+this_dir)
+    #     this_dir = directory+'/aux_nf'
+    #     if not os.path.exists(this_dir):
+    #         os.makedirs(this_dir)
+    #         print ('Made directory:'+this_dir)
 
-        experiment_log = this_dir+eval_file
+    #     experiment_log = this_dir+eval_file
 
-        with open(experiment_log, "a") as myfile:
-            myfile.write("hnf" +'\n')
+    #     with open(experiment_log, "a") as myfile:
+    #         myfile.write("aux_nf" +'\n')
 
-        print('Init hnf model')
-        hyper_config = { 
-                        'x_size': x_size,
-                        'z_size': z_size,
-                        'act_func': F.tanh,# F.relu,
-                        'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
-                        'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
-                        'q_dist': hnf,#aux_nf,#flow1,#standard,#, #, #, #,#, #,# ,
-                        'n_flows': 2,
-                        'qv_arch': [[x_size,200],[200,200],[200,z_size*2]],
-                        'qz_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
-                        'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
-                        'flow_hidden_size': 100
-                    }
+    #     print('Init aux nf model')
+    #     hyper_config = { 
+    #                     'x_size': x_size,
+    #                     'z_size': z_size,
+    #                     'act_func': F.tanh,# F.relu,
+    #                     'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+    #                     'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+    #                     'q_dist': aux_nf,#aux_nf,#flow1,#standard,#, #, #, #,#, #,# ,
+    #                     'n_flows': 2,
+    #                     'qv_arch': [[x_size,200],[200,200],[200,z_size*2]],
+    #                     'qz_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+    #                     'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+    #                     'flow_hidden_size': 100
+    #                 }
 
-        model = VAE(hyper_config)
-
-
+    #     model = VAE(hyper_config)
 
 
 
-    elif model_ == 'standard_large_encoder':
+    # elif model_ == 'hnf':
 
-        this_dir = directory+'/standard_large_encoder'
-        if not os.path.exists(this_dir):
-            os.makedirs(this_dir)
-            print ('Made directory:'+this_dir)
+    #     this_dir = directory+'/hnf'
+    #     if not os.path.exists(this_dir):
+    #         os.makedirs(this_dir)
+    #         print ('Made directory:'+this_dir)
+
+    #     experiment_log = this_dir+eval_file
+
+    #     with open(experiment_log, "a") as myfile:
+    #         myfile.write("hnf" +'\n')
+
+    #     print('Init hnf model')
+    #     hyper_config = { 
+    #                     'x_size': x_size,
+    #                     'z_size': z_size,
+    #                     'act_func': F.tanh,# F.relu,
+    #                     'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+    #                     'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+    #                     'q_dist': hnf,#aux_nf,#flow1,#standard,#, #, #, #,#, #,# ,
+    #                     'n_flows': 2,
+    #                     'qv_arch': [[x_size,200],[200,200],[200,z_size*2]],
+    #                     'qz_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+    #                     'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+    #                     'flow_hidden_size': 100
+    #                 }
+
+    #     model = VAE(hyper_config)
 
 
-        experiment_log = this_dir+eval_file
 
-        with open(experiment_log, "a") as myfile:
-            myfile.write("Standard LE" +'\n')
+
+
+    # elif model_ == 'standard_large_encoder':
+
+    #     this_dir = directory+'/standard_large_encoder'
+    #     if not os.path.exists(this_dir):
+    #         os.makedirs(this_dir)
+    #         print ('Made directory:'+this_dir)
+
+
+    #     experiment_log = this_dir+eval_file
+
+    #     with open(experiment_log, "a") as myfile:
+    #         myfile.write("Standard LE" +'\n')
         
 
 
-        print('Init standard LE model')
+    #     print('Init standard LE model')
             
-        hyper_config = { 
-                        'x_size': x_size,
-                        'z_size': z_size,
-                        'act_func': F.tanh,# F.relu,
-                        'encoder_arch': [[x_size,500],[500,500],[500,200],[200,z_size*2]],
-                        'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
-                        'q_dist': standard,#hnf,#aux_nf,#flow1,#,
-                    }
+    #     hyper_config = { 
+    #                     'x_size': x_size,
+    #                     'z_size': z_size,
+    #                     'act_func': F.tanh,# F.relu,
+    #                     'encoder_arch': [[x_size,500],[500,500],[500,200],[200,z_size*2]],
+    #                     'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+    #                     'q_dist': standard,#hnf,#aux_nf,#flow1,#,
+    #                 }
 
 
-        # model = VAE(hyper_config)
+    #     # model = VAE(hyper_config)
 
 
 
-    elif model_ == 'aux_large_encoder':
+    # elif model_ == 'aux_large_encoder':
 
-        this_dir = directory+'/aux_large_encoder'
-        if not os.path.exists(this_dir):
-            os.makedirs(this_dir)
-            print ('Made directory:'+this_dir)
+    #     this_dir = directory+'/aux_large_encoder'
+    #     if not os.path.exists(this_dir):
+    #         os.makedirs(this_dir)
+    #         print ('Made directory:'+this_dir)
 
 
-        experiment_log = this_dir+eval_file
+    #     experiment_log = this_dir+eval_file
 
-        with open(experiment_log, "a") as myfile:
-            myfile.write("aux nf LE" +'\n')
+    #     with open(experiment_log, "a") as myfile:
+    #         myfile.write("aux nf LE" +'\n')
         
 
 
-        print('Aux LE')
-        hyper_config = { 
-                        'x_size': x_size,
-                        'z_size': z_size,
-                        'act_func': F.tanh,# F.relu,
-                        'encoder_arch': [[x_size,500],[500,500],[500,200],[200,z_size*2]],
-                        'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
-                        'q_dist': aux_nf,#aux_nf,#flow1,#standard,#, #, #, #,#, #,# ,
-                        'n_flows': 2,
-                        'qv_arch': [[x_size,200],[200,200],[200,z_size*2]],
-                        'qz_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
-                        'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
-                        'flow_hidden_size': 100
-                    }
+    #     print('Aux LE')
+    #     hyper_config = { 
+    #                     'x_size': x_size,
+    #                     'z_size': z_size,
+    #                     'act_func': F.tanh,# F.relu,
+    #                     'encoder_arch': [[x_size,500],[500,500],[500,200],[200,z_size*2]],
+    #                     'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+    #                     'q_dist': aux_nf,#aux_nf,#flow1,#standard,#, #, #, #,#, #,# ,
+    #                     'n_flows': 2,
+    #                     'qv_arch': [[x_size,200],[200,200],[200,z_size*2]],
+    #                     'qz_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+    #                     'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+    #                     'flow_hidden_size': 100
+    #                 }
 
 
-        # model = VAE(hyper_config)
+    #     # model = VAE(hyper_config)
 
 
-    elif model_ == 'FFG':
+    if model_ == 'FFG':
 
         this_dir = directory+'/FFG'
         if not os.path.exists(this_dir):
@@ -469,6 +515,29 @@ for model_ in models:
                         'q_dist': FFG_LN#standard,#hnf,#aux_nf,#flow1,#,
                     }
 
+
+    elif model_ == 'FFG_LD':
+
+        this_dir = directory+'/FFG'
+        if not os.path.exists(this_dir):
+            os.makedirs(this_dir)
+            print ('Made directory:'+this_dir)
+
+        experiment_log = this_dir+eval_file
+        with open(experiment_log, "a") as myfile:
+            myfile.write("ffg LD" +'\n')
+        
+
+        print('Init FFG model')
+        
+        hyper_config = { 
+                        'x_size': x_size,
+                        'z_size': z_size,
+                        'act_func': F.elu,#F.tanh,# F.relu,
+                        'encoder_arch': [[x_size,200],[200,200],[200,200],[200,z_size*2]],
+                        'decoder_arch': [[z_size,500],[500,500],[500,500],[500,x_size]],
+                        'q_dist': FFG_LN#standard,#hnf,#aux_nf,#flow1,#,
+                    }
 
 
 

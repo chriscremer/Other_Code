@@ -338,7 +338,7 @@ if __name__ == "__main__":
         z = z.view(-1,z_size)
         z = z.data.cpu().numpy()
 
-        # print (z)
+        print (z)
 
         center_val_x = np.mean(z, axis=0)[0] #z[0][0]
         center_val_y = np.mean(z, axis=0)[1] #z[0][0]
@@ -622,12 +622,12 @@ if __name__ == "__main__":
 
         logposterior = lambda aa: model.logposterior_func2(x=x,z=aa)
         print ('optimiznig local', samp_i)
-        z = optimize_local_expressive_only_sample(logposterior, model, x, save_to=save_to, load_from=load_from)
+        z = optimize_local_expressive_only_sample_2(logposterior, model, x)
 
         z = z.view(-1,z_size)
         z = z.data.cpu().numpy()
 
-        # print (z)
+        print (z)
 
 
         # plot_kde(ax,samps=z,xlimits=xlimits,ylimits=ylimits,cmap='Reds')

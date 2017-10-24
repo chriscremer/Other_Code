@@ -73,7 +73,7 @@ print (test_x.shape)
 
 
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 
 # print ('Loading data')
@@ -107,7 +107,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 # directory = home+'/Documents/tmp/large_encoder'
 # directory = home+'/Documents/tmp/test_can_delete'
 
-directory = home+'/Documents/tmp/fashion_1'
+directory = home+'/Documents/tmp/fashion_2'
 
 
 
@@ -149,9 +149,9 @@ if model_name == 'FFG':
     hyper_config = { 
                     'x_size': x_size,
                     'z_size': z_size,
-                    'act_func': F.tanh,# F.relu,
-                    'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
-                    'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+                    'act_func': F.elu,#F.tanh,# F.relu,
+                    'encoder_arch': [[x_size,200],[200,200],[200,200],[200,z_size*2]],
+                    'decoder_arch': [[z_size,200],[200,200],[200,200],[200,x_size]],
                     'q_dist': FFG_LN#standard,#hnf,#aux_nf,#flow1,#,
                 }
 
@@ -169,9 +169,9 @@ elif model_name == 'Flex':
     hyper_config = { 
                     'x_size': x_size,
                     'z_size': z_size,
-                    'act_func': F.tanh,# F.relu,
-                    'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
-                    'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+                    'act_func': F.elu,#F.tanh,# F.relu,
+                    'encoder_arch': [[x_size,200],[200,200],[200,200],[200,z_size*2]],
+                    'decoder_arch': [[z_size,200],[200,200],[200,200],[200,x_size]],
                     'q_dist': ANF_LN,#aux_nf,#flow1,#standard,
                     'n_flows': 2,
                     'qv_arch': [[x_size,200],[200,200],[200,z_size*2]],
@@ -179,6 +179,101 @@ elif model_name == 'Flex':
                     'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
                     'flow_hidden_size': 100
                 }
+
+
+
+elif model_name == 'FFG_LE':
+
+    this_dir = directory+'/FFG'
+    if not os.path.exists(this_dir):
+        os.makedirs(this_dir)
+        print ('Made directory:'+this_dir)
+
+
+    print('Init FFG model')
+    
+    hyper_config = { 
+                    'x_size': x_size,
+                    'z_size': z_size,
+                    'act_func': F.elu,#F.tanh,# F.relu,
+                    'encoder_arch': [[x_size,500],[500,500],[500,500],[500,z_size*2]],
+                    'decoder_arch': [[z_size,200],[200,200],[200,200],[200,x_size]],
+                    'q_dist': FFG_LN#standard,#hnf,#aux_nf,#flow1,#,
+                }
+
+
+
+elif model_name == 'Flex_LE':
+
+    this_dir = directory+'/Flex'
+    if not os.path.exists(this_dir):
+        os.makedirs(this_dir)
+        print ('Made directory:'+this_dir)
+
+
+    print('Init Flex model')
+    hyper_config = { 
+                    'x_size': x_size,
+                    'z_size': z_size,
+                    'act_func': F.elu,#F.tanh,# F.relu,
+                    'encoder_arch': [[x_size,500],[500,500],[500,500],[500,z_size*2]],
+                    'decoder_arch': [[z_size,200],[200,200],[200,200],[200,x_size]],
+                    'q_dist': ANF_LN,#aux_nf,#flow1,#standard,
+                    'n_flows': 2,
+                    'qv_arch': [[x_size,200],[200,200],[200,z_size*2]],
+                    'qz_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+                    'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+                    'flow_hidden_size': 100
+                }
+
+
+
+
+elif model_name == 'FFG_LD':
+
+    this_dir = directory+'/FFG'
+    if not os.path.exists(this_dir):
+        os.makedirs(this_dir)
+        print ('Made directory:'+this_dir)
+
+
+    print('Init FFG model')
+    
+    hyper_config = { 
+                    'x_size': x_size,
+                    'z_size': z_size,
+                    'act_func': F.elu,#F.tanh,# F.relu,
+                    'encoder_arch': [[x_size,200],[200,200],[200,200],[200,z_size*2]],
+                    'decoder_arch': [[z_size,500],[500,500],[500,500],[500,x_size]],
+                    'q_dist': FFG_LN#standard,#hnf,#aux_nf,#flow1,#,
+                }
+
+
+
+elif model_name == 'Flex_LD':
+
+    this_dir = directory+'/Flex'
+    if not os.path.exists(this_dir):
+        os.makedirs(this_dir)
+        print ('Made directory:'+this_dir)
+
+
+    print('Init Flex model')
+    hyper_config = { 
+                    'x_size': x_size,
+                    'z_size': z_size,
+                    'act_func': F.elu,#F.tanh,# F.relu,
+                    'encoder_arch': [[x_size,200],[200,200],[200,200],[200,z_size*2]],
+                    'decoder_arch': [[z_size,500],[500,500],[500,500],[500,x_size]],
+                    'q_dist': ANF_LN,#aux_nf,#flow1,#standard,
+                    'n_flows': 2,
+                    'qv_arch': [[x_size,200],[200,200],[200,z_size*2]],
+                    'qz_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+                    'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+                    'flow_hidden_size': 100
+                }
+
+
 
 else:
     print ('What')
@@ -199,7 +294,7 @@ k = 1
 #save params 
 start_at = 100
 save_freq = 300
-display_epoch = 3
+display_epoch = 5
 
 
 # # Test params
@@ -351,7 +446,7 @@ def train_lr_schedule(model, train_x, test_x, k, batch_size,
 
     i_max = 7
 
-    warmup_over_epochs = 100.
+    warmup_over_epochs = 400.
 
     for i in range(0,i_max+1):
 

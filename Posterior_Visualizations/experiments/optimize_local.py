@@ -23,6 +23,8 @@ import time
 
 import pickle
 
+quick = 0
+
 
 
 
@@ -172,7 +174,10 @@ def optimize_local_gaussian_mean_logvar(logposterior, model, x):
     consecutive_worse = 0
     for epoch in range(1, 999999):
 
-        # break
+        # if quick:
+        if 1:
+
+            break
 
         #Sample
         eps = Variable(torch.FloatTensor(P, B, model.z_size).normal_().type(model.dtype)) #[P,B,Z]
@@ -492,12 +497,20 @@ def optimize_local_expressive(logposterior, model, x):
     #q(z|x,v)
     qz_weights = []
     for i in range(len(hyper_config['qz_arch'])):
-        qz_weights.append(nn.Linear(hyper_config['qz_arch'][i][0], hyper_config['qz_arch'][i][1]).cuda())
+        if torch.cuda.is_available():
+            qz_weights.append(nn.Linear(hyper_config['qz_arch'][i][0], hyper_config['qz_arch'][i][1]).cuda())
+        else:
+            qz_weights.append(nn.Linear(hyper_config['qz_arch'][i][0], hyper_config['qz_arch'][i][1]))
+
         all_params.append(qz_weights[i].weight)
     #r(v|x,z)
     rv_weights = []
     for i in range(len(hyper_config['rv_arch'])):
-        rv_weights.append(nn.Linear(hyper_config['rv_arch'][i][0], hyper_config['rv_arch'][i][1]).cuda())
+        if torch.cuda.is_available():
+            rv_weights.append(nn.Linear(hyper_config['rv_arch'][i][0], hyper_config['rv_arch'][i][1]).cuda())
+        else:
+            rv_weights.append(nn.Linear(hyper_config['rv_arch'][i][0], hyper_config['rv_arch'][i][1]))
+
         all_params.append(rv_weights[i].weight)
 
     h_s = hyper_config['flow_hidden_size']
@@ -506,10 +519,18 @@ def optimize_local_expressive(logposterior, model, x):
     for i in range(n_flows):
 
         #first is for v, second is for z
-        aaa = [
-                [nn.Linear(model.z_size, h_s).cuda(), nn.Linear(h_s, model.z_size).cuda(), nn.Linear(h_s, model.z_size).cuda()],
-                [nn.Linear(model.z_size, h_s).cuda(), nn.Linear(h_s, model.z_size).cuda(), nn.Linear(h_s, model.z_size).cuda()]
-                ]
+        if torch.cuda.is_available():
+            aaa = [
+                    [nn.Linear(model.z_size, h_s).cuda(), nn.Linear(h_s, model.z_size).cuda(), nn.Linear(h_s, model.z_size).cuda()],
+                    [nn.Linear(model.z_size, h_s).cuda(), nn.Linear(h_s, model.z_size).cuda(), nn.Linear(h_s, model.z_size).cuda()]
+                    ]
+        else:
+            aaa = [
+                    [nn.Linear(model.z_size, h_s), nn.Linear(h_s, model.z_size), nn.Linear(h_s, model.z_size)],
+                    [nn.Linear(model.z_size, h_s), nn.Linear(h_s, model.z_size), nn.Linear(h_s, model.z_size)]
+                    ]
+
+
         params.append(aaa)
 
         all_params.append(aaa[0][0].weight)
@@ -867,7 +888,8 @@ def optimize_local_expressive_only_sample(logposterior, model, x, save_to, load_
         consecutive_worse = 0
         for epoch in range(1, 999999):
 
-            # break
+            if quick:
+                break
 
 
             z, logq = sample(k)
@@ -1387,6 +1409,254 @@ def optimize_local_expressive_only_sample(logposterior, model, x, save_to, load_
 #         iwae = torch.mean(elbo_)
 
 #         return vae, iwae
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def optimize_local_expressive_only_sample_2(logposterior, model, x):
+
+    # no AUX
+
+
+    def norm_flow(params, z):
+
+        # [Z]
+        mask = Variable(torch.zeros(model.z_size)).type(model.dtype)
+        mask[:int(model.z_size/2)] = 1.
+        mask = mask.view(1,1,-1)
+
+        # [P,B,Z]
+        z1 = z*mask
+        # [PB,Z]
+        z1 = z1.view(-1, model.z_size)
+
+        h = F.tanh(params[0](z1))
+        mew_ = params[1](h)
+        sig_ = F.sigmoid(params[2](h))+1.#) #[PB,Z]
+
+        z = z.view(-1, model.z_size)
+        mask = mask.view(1, -1)
+
+        z2 = (z*sig_ +mew_)*(1-mask)
+        z = z1 + z2
+        # [PB]
+        logdet = torch.sum((1-mask)*torch.log(sig_), 1)
+        # [P,B]
+        logdet = logdet.view(-1,B)
+        #[P,B,Z]
+        z = z.view(-1,B,model.z_size)
+
+
+        #Other half
+
+        # [Z]
+        mask2 = Variable(torch.zeros(model.z_size)).type(model.dtype)
+        mask2[int(model.z_size/2):] = 1.
+        mask = mask2.view(1,1,-1)
+
+        # [P,B,Z]
+        z1 = z*mask
+        # [PB,Z]
+        z1 = z1.view(-1, model.z_size)
+
+        h = F.tanh(params[0](z1))
+        mew_ = params[1](h)
+        sig_ = F.sigmoid(params[2](h))+1.#) #[PB,Z]
+
+        z = z.view(-1, model.z_size)
+        mask = mask.view(1, -1)
+
+        z2 = (z*sig_ +mew_)*(1-mask)
+        z = z1 + z2
+        # [PB]
+        logdet2 = torch.sum((1-mask)*torch.log(sig_), 1)
+        # [P,B]
+        logdet2 = logdet2.view(-1,B)
+        #[P,B,Z]
+        z = z.view(-1,B,model.z_size)
+
+        logdet = logdet + logdet2
+        
+
+        return z, logdet
+
+
+
+
+
+    def sample(k):
+
+        P = k
+
+        #Sample
+        eps = Variable(torch.FloatTensor(k, B, model.z_size).normal_().type(model.dtype)) #[P,B,Z]
+        z = eps.mul(torch.exp(.5*logvar)) + mean  #[P,B,Z]
+        logqz = lognormal(z, mean, logvar) #[P,B]
+
+        logdetsum = 0.
+        for i in range(n_flows):
+
+            z, logdet = norm_flow(params[i],z)
+            logdetsum += logdet
+
+        logq = logqz - logdetsum
+        return z, logq
+
+
+
+    x_size = 784
+    z_size = 2
+
+    hyper_config = { 
+                    'x_size': x_size,
+                    'z_size': z_size,
+                    'act_func': F.tanh,# F.relu,
+                    'n_flows': 2,
+                    'flow_hidden_size': 30
+                }
+
+
+
+    # B = x.shape[0]
+    B = x.size()[0] #batch size
+
+    n_flows = 2 #hyper_config['n_flows']
+
+    z_size = model.z_size
+    x_size = model.x_size
+    act_func = model.act_func
+
+    all_params = []
+
+
+    mean = Variable(torch.zeros(B, model.z_size).type(model.dtype), requires_grad=True)
+    logvar = Variable(torch.zeros(B, model.z_size).type(model.dtype), requires_grad=True)
+
+    all_params.append(mean)
+    all_params.append(logvar)
+
+
+    h_s = hyper_config['flow_hidden_size']
+
+    params = []
+    for i in range(n_flows):
+        params.append([nn.Linear(z_size, h_s).cuda(), nn.Linear(h_s, z_size).cuda(), nn.Linear(h_s, z_size).cuda()])
+
+        all_params.append(params[i][0].weight)
+        all_params.append(params[i][1].weight)
+        all_params.append(params[i][2].weight)
+
+
+
+
+    optimizer = optim.Adam(all_params, lr=.01)
+
+
+    P = 50
+    k = P
+
+
+    last_100 = []
+    best_last_100_avg = -1
+    consecutive_worse = 0
+    for epoch in range(1, 999999):
+
+        if quick:
+            break
+
+
+        z, logq = sample(k)
+
+
+        logpx = logposterior(z)
+
+
+        optimizer.zero_grad()
+        loss = -(torch.mean(logpx-logq))
+        loss_np = loss.data.cpu().numpy()
+        # print ()
+
+
+        loss.backward()
+        optimizer.step()
+
+        last_100.append(loss_np)
+        if epoch % 100 ==0:
+
+            last_100_avg = np.mean(last_100)
+            if last_100_avg< best_last_100_avg or best_last_100_avg == -1:
+                consecutive_worse=0
+                best_last_100_avg = last_100_avg
+            else:
+                consecutive_worse +=1 
+                # print(consecutive_worse)
+                if consecutive_worse> 1:
+                    # print ('done')
+                    break
+
+            print (epoch, last_100_avg, consecutive_worse)
+            # print(z[0])
+            # print (torch.mean(logpx).data.cpu().numpy())
+            # print (torch.mean(logqz0).data.cpu().numpy(),torch.mean(logqv0).data.cpu().numpy(),torch.mean(logdetsum).data.cpu().numpy(),torch.mean(logrvT).data.cpu().numpy())
+
+
+            last_100 = []
+
+
+    #Sample
+    k=1000
+
+    z, logq = sample(k)
+
+
+    return z
 
 
 
