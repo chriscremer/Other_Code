@@ -100,7 +100,7 @@ def optimize_local_gaussian(logposterior, model, x):
                     # print ('done')
                     break
 
-            # print (epoch, last_100_avg, consecutive_worse,mean)
+            print (epoch, last_100_avg, consecutive_worse)#,mean)
             # print (torch.mean(logpx))
 
             last_100 = []
@@ -174,8 +174,8 @@ def optimize_local_gaussian_mean_logvar(logposterior, model, x):
     consecutive_worse = 0
     for epoch in range(1, 999999):
 
-        # if quick:
-        if 1:
+        if quick:
+        # if 1:
 
             break
 
@@ -590,7 +590,7 @@ def optimize_local_expressive(logposterior, model, x):
                     # print ('done')
                     break
 
-            # print (epoch, last_100_avg, consecutive_worse)
+            print (epoch, last_100_avg, consecutive_worse)
             # print (torch.mean(logpx).data.cpu().numpy())
             # print (torch.mean(logqz0).data.cpu().numpy(),torch.mean(logqv0).data.cpu().numpy(),torch.mean(logdetsum).data.cpu().numpy(),torch.mean(logrvT).data.cpu().numpy())
 
@@ -656,7 +656,7 @@ def optimize_local_expressive(logposterior, model, x):
 
 
 
-def optimize_local_expressive_only_sample(logposterior, model, x, save_to, load_from):
+def optimize_local_expressive_only_sample(logposterior, model, x):
 
 
  
@@ -1637,7 +1637,7 @@ def optimize_local_expressive_only_sample_2(logposterior, model, x):
             else:
                 consecutive_worse +=1 
                 # print(consecutive_worse)
-                if consecutive_worse> 1:
+                if consecutive_worse> 10:
                     # print ('done')
                     break
 

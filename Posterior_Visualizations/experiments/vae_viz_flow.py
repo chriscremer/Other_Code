@@ -384,7 +384,7 @@ if __name__ == "__main__":
         # func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data), torch.squeeze(logvar.data))
         # plot_isocontours(ax, func, cmap='Reds',xlimits=xlimits,ylimits=ylimits)
         func = lambda zs: model.logposterior_func(samp_torch,zs)
-        plot_isocontours2_exp_norm(ax, func, cmap='Blues', legend=legend,xlimits=xlimits,ylimits=ylimits)
+        plot_isocontours2_exp_norm(ax, func, cmap='Greens', legend=legend,xlimits=xlimits,ylimits=ylimits)
         # if samp_i==0:  ax.annotate('p(z|x,W1)', xytext=(.1, 1.1), xy=(0, 1), textcoords='axes fraction')
         # func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
         # plot_isocontours(ax, func, cmap='Blues', alpha=.3,xlimits=xlimits,ylimits=ylimits)
@@ -508,7 +508,7 @@ if __name__ == "__main__":
         ax = plt.subplot2grid((rows,cols), (row, samp_i+1), frameon=False)
 
         func = lambda zs: model.logposterior_func(samp_torch,zs)
-        plot_isocontours2_exp_norm(ax, func, cmap='Greys', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=.2)
+        plot_isocontours2_exp_norm(ax, func, cmap='Greens', legend=legend,xlimits=xlimits,ylimits=ylimits)#,alpha=.2)
         # plot_isocontours2_exp_norm(ax, func, cmap='Blues', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
 
         # plot_scatter(ax, samps=z ,xlimits=xlimits,ylimits=ylimits)
@@ -561,7 +561,7 @@ if __name__ == "__main__":
         row +=1
         ax = plt.subplot2grid((rows,cols), (row, samp_i+1), frameon=False)
         func = lambda zs: model.logposterior_func(samp_torch,zs)
-        plot_isocontours2_exp_norm(ax, func, cmap='Greys', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=.2)
+        plot_isocontours2_exp_norm(ax, func, cmap='Greens', legend=legend,xlimits=xlimits,ylimits=ylimits)#,alpha=.2)
         # plot_isocontours2_exp_norm(ax, func, cmap='Blues', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
 
 
@@ -607,7 +607,7 @@ if __name__ == "__main__":
         row +=1
         ax = plt.subplot2grid((rows,cols), (row, samp_i+1), frameon=False)
         func = lambda zs: model.logposterior_func(samp_torch,zs)
-        plot_isocontours2_exp_norm(ax, func, cmap='Greys', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=.2)
+        plot_isocontours2_exp_norm(ax, func, cmap='Greens', legend=legend,xlimits=xlimits,ylimits=ylimits)#,alpha=.2)
         # plot_isocontours2_exp_norm(ax, func, cmap='Blues', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
 
 
@@ -622,7 +622,9 @@ if __name__ == "__main__":
 
         logposterior = lambda aa: model.logposterior_func2(x=x,z=aa)
         print ('optimiznig local', samp_i)
-        z = optimize_local_expressive_only_sample_2(logposterior, model, x)
+        # z = optimize_local_expressive_only_sample_2(logposterior, model, x)
+        z = optimize_local_expressive_only_sample(logposterior, model, x)
+
 
         z = z.view(-1,z_size)
         z = z.data.cpu().numpy()

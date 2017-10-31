@@ -1,5 +1,21 @@
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import os
 import gzip
 import numpy as np
@@ -20,6 +36,9 @@ import numpy as np
 import pickle
 from os.path import expanduser
 home = expanduser("~")
+
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 
@@ -107,7 +126,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 # directory = home+'/Documents/tmp/large_encoder'
 # directory = home+'/Documents/tmp/test_can_delete'
 
-directory = home+'/Documents/tmp/fashion_2_nowarm'
+directory = home+'/Documents/tmp/fashion_2'
 
 
 
@@ -280,55 +299,132 @@ else:
     fadas
 
 
+
+
+
+
+epoch_to_load = 3280
+
 model = VAE(hyper_config)
-# model.load_params(home+'/Documents/tmp/first_try/'+args.model+'/params_'+args.model+'_2800.pt')
-
-
-
-#Train params
-# learning_rate = .001
-batch_size = 50
-k = 1
-# epochs = 3000
-
-#save params 
-start_at = 100
-save_freq = 300
-display_epoch = 5
-
-
-# # Test params
-# k_IW = 2000
-# batch_size_IW = 20
-# k_AIS = 10
-# batch_size_AIS = 100
-# n_intermediate_dists = 100
-
-print('\nTraining')
-# print('k='+str(k), 'lr='+str(learning_rate), 'batch_size='+str(batch_size))
-print('\nModel:', hyper_config,'\n')
-
-
-# with open(experiment_log, "a") as myfile:
-#     myfile.write(str(hyper_config)+'\n\n')
-# with open(experiment_log, "a") as myfile:
-#     myfile.write('k='+str(k)+' lr='+str(learning_rate)+' batch_size='+str(batch_size) +'\n\n')
-
-
-
-
-
-
-# path_to_load_variables=''
-# path_to_load_variables=home+'/Documents/tmp/pytorch_bvae.pt'
-# path_to_save_variables=home+'/Documents/tmp/pytorch_vae'+str(epochs)+'.pt'
-path_to_save_variables=this_dir+'/params_'+model_name+'_'
-
-# path_to_save_variables=''
-
+model.load_params(this_dir+'/params_'+model_name+'_'+str(epoch_to_load)+'.pt')
 
 if torch.cuda.is_available():
     model.cuda()
+
+
+
+
+data_index = 0
+batch_size = 5
+batch_1 = train_x[data_index:data_index+batch_size]
+# data_index += batch_size
+batch = Variable(torch.from_numpy(batch_1)).type(model.dtype)
+
+z = model.sample_q(batch, 1)
+
+x = model.decode(z)
+
+x = F.sigmoid(x)
+
+x = x.data.cpu().numpy()
+# batch = x.data.cpu().numpy()
+
+# print (x)
+
+x = x[0][1]
+batch = batch_1[1]
+
+x = np.concatenate([x,batch], 0)
+
+x = np.reshape(x, [28*2,28])
+print (x.shape)
+
+plt.imshow(x,cmap="gray")
+plt.savefig(directory+'/sample.png')
+print ('saved', directory+'/sample.png')
+
+fads
+
+
+
+
+
+
+# #Train params
+# # learning_rate = .001
+# batch_size = 50
+# k = 1
+# # epochs = 3000
+
+# #save params 
+# start_at = 100
+# save_freq = 300
+# display_epoch = 5
+
+
+# # # Test params
+# # k_IW = 2000
+# # batch_size_IW = 20
+# # k_AIS = 10
+# # batch_size_AIS = 100
+# # n_intermediate_dists = 100
+
+# print('\nTraining')
+# # print('k='+str(k), 'lr='+str(learning_rate), 'batch_size='+str(batch_size))
+# print('\nModel:', hyper_config,'\n')
+
+
+# # with open(experiment_log, "a") as myfile:
+# #     myfile.write(str(hyper_config)+'\n\n')
+# # with open(experiment_log, "a") as myfile:
+# #     myfile.write('k='+str(k)+' lr='+str(learning_rate)+' batch_size='+str(batch_size) +'\n\n')
+
+
+
+
+
+
+# # path_to_load_variables=''
+# # path_to_load_variables=home+'/Documents/tmp/pytorch_bvae.pt'
+# # path_to_save_variables=home+'/Documents/tmp/pytorch_vae'+str(epochs)+'.pt'
+# path_to_save_variables=this_dir+'/params_'+model_name+'_'
+
+# # path_to_save_variables=''
+
+
+# if torch.cuda.is_available():
+#     model.cuda()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -344,18 +440,22 @@ if torch.cuda.is_available():
 #                     start_at, save_freq, display_epoch, 
 #                     path_to_save_variables):
 
+#     train_y = torch.from_numpy(np.zeros(len(train_x)))
+#     train_x = torch.from_numpy(train_x).float().type(model.dtype)
+
+#     train_ = torch.utils.data.TensorDataset(train_x, train_y)
+#     train_loader = torch.utils.data.DataLoader(train_, batch_size=batch_size, shuffle=True)
+
 #     #IWAE paper training strategy
-
 #     time_ = time.time()
-
-#     n_data = len(train_x)
-#     arr = np.array(range(n_data))
+#     # n_data = len(train_x)
+#     # arr = np.array(range(n_data))
 
 #     total_epochs = 0
 
 #     i_max = 7
 
-#     warmup_over_epochs = 100.
+#     warmup_over_epochs = 400.
 
 #     for i in range(0,i_max+1):
 
@@ -368,21 +468,28 @@ if torch.cuda.is_available():
 
 #         for epoch in range(1, epochs + 1):
 
-#             #shuffle
-#             np.random.shuffle(arr)
-#             train_x = train_x[arr]
+#             # #shuffle
+#             # np.random.shuffle(arr)
+#             # train_x = train_x[arr]
 
-#             data_index= 0
-#             for i in range(int(n_data/batch_size)):
-#                 batch = train_x[data_index:data_index+batch_size]
-#                 data_index += batch_size
+#             # data_index= 0
+#             # for i in range(int(n_data/batch_size)):
+#             #     batch = train_x[data_index:data_index+batch_size]
+#             #     data_index += batch_size
 
-#                 batch = Variable(torch.from_numpy(batch)).type(model.dtype)
+#             #     batch = Variable(torch.from_numpy(batch)).type(model.dtype)
+
+#             for batch_idx, (data, target) in enumerate(train_loader):
+
+#                 batch = Variable(data)#.type(model.dtype)
+
 #                 optimizer.zero_grad()
 
-#                 warmup = total_epochs/warmup_over_epochs
-#                 if warmup > 1.:
-#                     warmup = 1.
+#                 # warmup = total_epochs/warmup_over_epochs
+#                 # if warmup > 1.:
+#                 #     warmup = 1.
+
+#                 warmup = 1.
 
 #                 elbo, logpxz, logqz = model.forward(batch, k=k, warmup=warmup)
 
@@ -427,108 +534,10 @@ if torch.cuda.is_available():
 
 
 
-def train_lr_schedule(model, train_x, test_x, k, batch_size,
-                    start_at, save_freq, display_epoch, 
-                    path_to_save_variables):
 
-    train_y = torch.from_numpy(np.zeros(len(train_x)))
-    train_x = torch.from_numpy(train_x).float().type(model.dtype)
-
-    train_ = torch.utils.data.TensorDataset(train_x, train_y)
-    train_loader = torch.utils.data.DataLoader(train_, batch_size=batch_size, shuffle=True)
-
-    #IWAE paper training strategy
-    time_ = time.time()
-    # n_data = len(train_x)
-    # arr = np.array(range(n_data))
-
-    total_epochs = 0
-
-    i_max = 7
-
-    warmup_over_epochs = 400.
-
-    for i in range(0,i_max+1):
-
-        lr = .001 * 10**(-i/float(i_max))
-        print (i, 'LR:', lr)
-
-        optimizer = optim.Adam(model.parameters(), lr=lr)
-
-        epochs = 3**(i)
-
-        for epoch in range(1, epochs + 1):
-
-            # #shuffle
-            # np.random.shuffle(arr)
-            # train_x = train_x[arr]
-
-            # data_index= 0
-            # for i in range(int(n_data/batch_size)):
-            #     batch = train_x[data_index:data_index+batch_size]
-            #     data_index += batch_size
-
-            #     batch = Variable(torch.from_numpy(batch)).type(model.dtype)
-
-            for batch_idx, (data, target) in enumerate(train_loader):
-
-                batch = Variable(data)#.type(model.dtype)
-
-                optimizer.zero_grad()
-
-                # warmup = total_epochs/warmup_over_epochs
-                # if warmup > 1.:
-                #     warmup = 1.
-
-                warmup = 1.
-
-                elbo, logpxz, logqz = model.forward(batch, k=k, warmup=warmup)
-
-                loss = -(elbo)
-                loss.backward()
-                optimizer.step()
-
-            total_epochs += 1
-
-
-            if total_epochs%display_epoch==0:
-                print ('Train Epoch: {}/{}'.format(epoch, epochs),
-                    'total_epochs {}'.format(total_epochs),
-                    'LL:{:.3f}'.format(-loss.data[0]),
-                    'logpxz:{:.3f}'.format(logpxz.data[0]),
-                    'logqz:{:.3f}'.format(logqz.data[0]),
-                    'warmup:{:.3f}'.format(warmup),
-                    'T:{:.2f}'.format(time.time()-time_),
-                    )
-                time_ = time.time()
-
-
-            if total_epochs >= start_at and (total_epochs-start_at)%save_freq==0:
-
-                # save params
-                save_file = path_to_save_variables+str(total_epochs)+'.pt'
-                torch.save(model.state_dict(), save_file)
-                print ('saved variables ' + save_file)
-
-
-
-
-    # save params
-    save_file = path_to_save_variables+str(total_epochs)+'.pt'
-    torch.save(model.state_dict(), save_file)
-    print ('saved variables ' + save_file)
-    print ('done training')
-
-
-
-
-
-
-
-
-train_lr_schedule(model=model, train_x=train_x, test_x=test_x, k=k, batch_size=batch_size,
-                    start_at=start_at, save_freq=save_freq, display_epoch=display_epoch, 
-                    path_to_save_variables=path_to_save_variables)
+# train_lr_schedule(model=model, train_x=train_x, test_x=test_x, k=k, batch_size=batch_size,
+#                     start_at=start_at, save_freq=save_freq, display_epoch=display_epoch, 
+#                     path_to_save_variables=path_to_save_variables)
 
 
 print ('Done.')

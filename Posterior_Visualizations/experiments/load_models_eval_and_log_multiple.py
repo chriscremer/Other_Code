@@ -13,6 +13,7 @@ from os.path import expanduser
 home = expanduser("~")
 import matplotlib.pyplot as plt
 
+import gzip
 
 import torch
 from torch.autograd import Variable
@@ -52,7 +53,11 @@ import argparse
 
 # directory = home+'/Documents/tmp/fashion_2'
 
-directory = home+'/Documents/tmp/batch20_correct'
+# directory = home+'/Documents/tmp/batch20_correct'
+
+
+directory = home+'/Documents/tmp/fashion_1'
+
 
 
 
@@ -92,6 +97,9 @@ checkpoints = [400,1300,2500]#,3100]
 
 # models = ['standard', 'aux_nf']
 models = ['FFG']
+
+# models = ['standard']
+
 
 
 
@@ -188,29 +196,88 @@ def test(model, data_x, batch_size, display, k):
 
 
 
-print ('Loading data')
-with open(home+'/Documents/MNIST_data/mnist.pkl','rb') as f:
-    mnist_data = pickle.load(f, encoding='latin1')
-train_x = mnist_data[0][0]
-valid_x = mnist_data[1][0]
-test_x = mnist_data[2][0]
-train_x = np.concatenate([train_x, valid_x], axis=0)
-print (train_x.shape)
 
-# #For debug purposes
-# train_x = train_x[:1000]
-# test_x = test_x[:500]
+#fashion
 
-print (train_x.shape)
-print (test_x.shape)
 
+def load_mnist(path, kind='train'):
+
+    images_path = os.path.join(path,
+                               '%s-images-idx3-ubyte.gz'
+                               % kind)
+
+    with gzip.open(images_path, 'rb') as imgpath:
+        images = np.frombuffer(imgpath.read(), dtype=np.uint8,
+                               offset=16).reshape(-1, 784)
+
+    return images#, labels
+
+
+path = home+'/Documents/fashion_MNIST'
+
+train_x = load_mnist(path=path)
+test_x = load_mnist(path=path, kind='t10k')
+
+train_x = train_x / 255.
+test_x = test_x / 255.
 train_x = train_x[:1000]
 test_x = test_x[:1000]
 
-
-
 print (train_x.shape)
 print (test_x.shape)
+
+
+
+
+
+
+
+
+
+
+
+
+# print ('Loading data')
+# with open(home+'/Documents/MNIST_data/mnist.pkl','rb') as f:
+#     mnist_data = pickle.load(f, encoding='latin1')
+# train_x = mnist_data[0][0]
+# valid_x = mnist_data[1][0]
+# test_x = mnist_data[2][0]
+# train_x = np.concatenate([train_x, valid_x], axis=0)
+# print (train_x.shape)
+
+# # #For debug purposes
+# # train_x = train_x[:1000]
+# # test_x = test_x[:500]
+
+# print (train_x.shape)
+# print (test_x.shape)
+
+# train_x = train_x[:1000]
+# test_x = test_x[:1000]
+
+
+
+# print (train_x.shape)
+# print (test_x.shape)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 x_size = 784
@@ -434,14 +501,27 @@ for model_ in models:
 
         print('Init FFG model')
         
+        # hyper_config = { 
+        #                 'x_size': x_size,
+        #                 'z_size': z_size,
+        #                 'act_func': F.elu,#F.tanh,# F.relu,
+        #                 'encoder_arch': [[x_size,200],[200,200],[200,200],[200,z_size*2]],
+        #                 'decoder_arch': [[z_size,200],[200,200],[200,200],[200,x_size]],
+        #                 'q_dist': FFG_LN#standard,#hnf,#aux_nf,#flow1,#,
+        #             }
+
+
+
         hyper_config = { 
                         'x_size': x_size,
                         'z_size': z_size,
-                        'act_func': F.elu,#F.tanh,# F.relu,
-                        'encoder_arch': [[x_size,200],[200,200],[200,200],[200,z_size*2]],
-                        'decoder_arch': [[z_size,200],[200,200],[200,200],[200,x_size]],
+                        'act_func': F.tanh,#F.elu,#,# F.relu,
+                        'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+                        'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
                         'q_dist': FFG_LN#standard,#hnf,#aux_nf,#flow1,#,
                     }
+
+
 
 
 

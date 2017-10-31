@@ -73,7 +73,7 @@ print (test_x.shape)
 
 
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 
 # print ('Loading data')
@@ -107,7 +107,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 # directory = home+'/Documents/tmp/large_encoder'
 # directory = home+'/Documents/tmp/test_can_delete'
 
-directory = home+'/Documents/tmp/fashion_2_nowarm'
+directory = home+'/Documents/tmp/fashion_2'
 
 
 
@@ -179,6 +179,7 @@ elif model_name == 'Flex':
                     'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
                     'flow_hidden_size': 100
                 }
+
 
 
 
@@ -280,8 +281,10 @@ else:
     fadas
 
 
+epoch_to_load = 2800
+
 model = VAE(hyper_config)
-# model.load_params(home+'/Documents/tmp/first_try/'+args.model+'/params_'+args.model+'_2800.pt')
+model.load_params(this_dir+'/params_'+model_name+'_'+str(epoch_to_load)+'.pt')
 
 
 
@@ -442,73 +445,77 @@ def train_lr_schedule(model, train_x, test_x, k, batch_size,
     # n_data = len(train_x)
     # arr = np.array(range(n_data))
 
-    total_epochs = 0
+    total_epochs = epoch_to_load
 
-    i_max = 7
+    # i_max = 7
+    lr = .0001
 
-    warmup_over_epochs = 400.
+    # warmup_over_epochs = 400.
 
-    for i in range(0,i_max+1):
+    # for i in range(0,i_max+1):
 
-        lr = .001 * 10**(-i/float(i_max))
-        print (i, 'LR:', lr)
+        # lr = .001 * 10**(-i/float(i_max))
+        # print (i, 'LR:', lr)
 
-        optimizer = optim.Adam(model.parameters(), lr=lr)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
-        epochs = 3**(i)
+        # epochs = 3**(i)
+    epochs = 3280 - epoch_to_load
 
-        for epoch in range(1, epochs + 1):
+    for epoch in range(1, epochs + 1):
 
-            # #shuffle
-            # np.random.shuffle(arr)
-            # train_x = train_x[arr]
+        # #shuffle
+        # np.random.shuffle(arr)
+        # train_x = train_x[arr]
 
-            # data_index= 0
-            # for i in range(int(n_data/batch_size)):
-            #     batch = train_x[data_index:data_index+batch_size]
-            #     data_index += batch_size
+        # data_index= 0
+        # for i in range(int(n_data/batch_size)):
+        #     batch = train_x[data_index:data_index+batch_size]
+        #     data_index += batch_size
 
-            #     batch = Variable(torch.from_numpy(batch)).type(model.dtype)
+        #     batch = Variable(torch.from_numpy(batch)).type(model.dtype)
 
-            for batch_idx, (data, target) in enumerate(train_loader):
+        for batch_idx, (data, target) in enumerate(train_loader):
 
-                batch = Variable(data)#.type(model.dtype)
+            batch = Variable(data)#.type(model.dtype)
 
-                optimizer.zero_grad()
+            optimizer.zero_grad()
 
-                # warmup = total_epochs/warmup_over_epochs
-                # if warmup > 1.:
-                #     warmup = 1.
+            # warmup = total_epochs/warmup_over_epochs
+            # if warmup > 1.:
+            #     warmup = 1.
 
-                warmup = 1.
+            warmup = 1.
 
-                elbo, logpxz, logqz = model.forward(batch, k=k, warmup=warmup)
+            elbo, logpxz, logqz = model.forward(batch, k=k, warmup=warmup)
 
-                loss = -(elbo)
-                loss.backward()
-                optimizer.step()
+            loss = -(elbo)
+            loss.backward()
+            optimizer.step()
 
-            total_epochs += 1
-
-
-            if total_epochs%display_epoch==0:
-                print ('Train Epoch: {}/{}'.format(epoch, epochs),
-                    'total_epochs {}'.format(total_epochs),
-                    'LL:{:.3f}'.format(-loss.data[0]),
-                    'logpxz:{:.3f}'.format(logpxz.data[0]),
-                    'logqz:{:.3f}'.format(logqz.data[0]),
-                    'warmup:{:.3f}'.format(warmup),
-                    'T:{:.2f}'.format(time.time()-time_),
-                    )
-                time_ = time.time()
+        total_epochs += 1
 
 
-            if total_epochs >= start_at and (total_epochs-start_at)%save_freq==0:
+        if total_epochs%display_epoch==0:
+            print ('Train Epoch: {}/{}'.format(epoch, epochs),
+                'total_epochs {}'.format(total_epochs),
+                'LL:{:.3f}'.format(-loss.data[0]),
+                'logpxz:{:.3f}'.format(logpxz.data[0]),
+                'logqz:{:.3f}'.format(logqz.data[0]),
+                'warmup:{:.3f}'.format(warmup),
+                'T:{:.2f}'.format(time.time()-time_),
+                )
+            time_ = time.time()
 
-                # save params
-                save_file = path_to_save_variables+str(total_epochs)+'.pt'
-                torch.save(model.state_dict(), save_file)
-                print ('saved variables ' + save_file)
+
+        # if total_epochs >= start_at and (total_epochs-start_at)%save_freq==0:
+        if total_epochs >= start_at and (total_epochs-start_at)%save_freq==0:
+
+
+            # save params
+            save_file = path_to_save_variables+str(total_epochs)+'.pt'
+            torch.save(model.state_dict(), save_file)
+            print ('saved variables ' + save_file)
 
 
 

@@ -53,8 +53,8 @@ from approx_posteriors_v6 import ANF_LN
 # directory = home+'/Documents/tmp/large_N'
 
 # directory = home+'/Documents/tmp/only_encoder'
-# directory = home+'/Documents/tmp/new_training_2'
-directory = home+'/Documents/tmp/fashion_1'
+directory = home+'/Documents/tmp/new_training_2'
+# directory = home+'/Documents/tmp/fashion_1'
 
 
 
@@ -75,7 +75,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # checkpoints = [3100]
 
 
-checkpoints = [1900]
+checkpoints = [1600]
 
 
 
@@ -87,7 +87,7 @@ checkpoints = [1900]
 # take as arg, which model you want to eval
 # 
 
-# models = ['standard']#, 'flow1', 'aux_nf', 'hnf']
+models = ['standard']#, 'flow1', 'aux_nf', 'hnf']
 # models = ['hnf']
 
 # models = ['standard', 'aux_nf']
@@ -102,7 +102,7 @@ checkpoints = [1900]
 
 
 # models = ['FFG']#, 'Flex']#, 'aux_nf', 'aux_large_encoder']
-models = ['Flex']#, 'Flex']#, 'aux_nf', 'aux_large_encoder']
+# models = ['Flex']#, 'Flex']#, 'aux_nf', 'aux_large_encoder']
 
 
 
@@ -534,7 +534,7 @@ for model_ in models:
 
         # start_time = time.time()
 
-        n_data = 10
+        n_data = 100
 
         vaes = []
         iwaes = []

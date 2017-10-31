@@ -1118,7 +1118,7 @@ import matplotlib.pyplot as plt
 # # print (min_)
 # # print (max_)
 # ylimits = [min_, max_]
-# xlimits = [1000, 3000]
+# xlimits = [1000, 2800]
 
 # # fasd
 
@@ -1134,13 +1134,19 @@ import matplotlib.pyplot as plt
 #             continue
 #         ax.set_title(model_names[m],family='serif')
 #         ax.plot(x,models[m][i], label=legends[i], c=colors[i], ls=line_styles[i])
-#         plt.legend(fontsize=5) 
+#         plt.legend(fontsize=6) 
 #         # ax.set(adjustable='box-forced', aspect='equal')
 #         plt.yticks(size=6)
-#         plt.xticks(size=6)
+#         plt.xticks(x, size=6)
 #         # ax.set_xlim(xlimits)
 #         ax.set_ylim(ylimits)
 #         ax.set_xlim(xlimits)
+
+#         ax.set_xlabel('Epochs',size=6)
+#         if m==0:
+#           ax.set_ylabel('Log-Likelihood',size=6)
+
+#         ax.grid(True, alpha=.1)
 
 
 # # m+=1
@@ -1174,6 +1180,16 @@ import matplotlib.pyplot as plt
 
 
 # fasdfd
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1530,165 +1546,174 @@ import matplotlib.pyplot as plt
 
 
 
-# # new training 2 directory = home+'/Documents/tmp/new_training_2'
-# # with ais
+# new training 2 directory = home+'/Documents/tmp/new_training_2'
+# with ais
 
 
-# # x = [1000,1900,2800]
-# # x = [100,1000,2200,3100]
-# x=[400,1300,2500,3100]
-
-
-
-# standard=[
-# [-96.035416259765626, -93.78305770874023, -93.143475189208985, -92.928251953124999],
-# [-96.819241638183598, -94.903748016357426, -94.490515594482417, -94.302337493896488],
-# [-92.38106735229492, -90.739558715820309, -90.177214050292974, -90.10257598876953],
-# [-92.797145690917972, -91.28835342407227, -90.876751251220696, -90.752462615966792],
-# [-92.055443, -90.537613, -90.056313, -89.918015],
-# [-92.366867, -91.011345, -90.56974, -90.456619]]
-
-# aux_nf=[
-# [-94.591438903808594, -92.645809783935547, -91.970308227539064, -91.772592315673833],
-# [-95.6997232055664, -94.235566864013677, -93.788299102783199, -93.764229125976556],
-# [-91.130671386718745, -89.730445556640632, -89.218020477294928, -89.093106384277348],
-# [-91.580096435546878, -90.327432556152345, -89.902420349121087, -89.80898559570312],
-# [-90.998779, -89.661888, -89.186424, -89.064453],
-# [-91.370384, -90.104279, -89.665833, -89.584351]
-# ]
-
-# # aux_nf = [
-# # [-83.103402557373045, -77.468452453613281, -75.410720062255862],
-# # [-155.14535125732422, -171.71119354248046, -179.66849517822266],
-# # [-80.063534088134759, -74.791913452148435, -73.034408874511712],
-# # [-135.5944808959961, -146.04012008666993, -150.7372442626953],
-# # [-79.960373, -74.743088, -73.02948],
-# # [-124.04991, -128.41185, -130.45657]]
+# x = [1000,1900,2800]
+# x = [100,1000,2200,3100]
+x=[400,1300,2500,3100]
 
 
 
-# # aux_large_encoder = [
-# # [-83.103402557373045, -77.468452453613281, -75.410720062255862],
-# # [-155.14535125732422, -171.71119354248046, -179.66849517822266],
-# # [-80.063534088134759, -74.791913452148435, -73.034408874511712],
-# # [-135.5944808959961, -146.04012008666993, -150.7372442626953],
-# # [-79.960373, -74.743088, -73.02948],
-# # [-124.04991, -128.41185, -130.45657]]
+standard=[
+[-96.035416259765626, -93.78305770874023, -93.143475189208985, -92.928251953124999],
+[-96.819241638183598, -94.903748016357426, -94.490515594482417, -94.302337493896488],
+[-92.38106735229492, -90.739558715820309, -90.177214050292974, -90.10257598876953],
+[-92.797145690917972, -91.28835342407227, -90.876751251220696, -90.752462615966792],
+[-92.055443, -90.537613, -90.056313, -89.918015],
+[-92.366867, -91.011345, -90.56974, -90.456619]]
+
+aux_nf=[
+[-94.591438903808594, -92.645809783935547, -91.970308227539064, -91.772592315673833],
+[-95.6997232055664, -94.235566864013677, -93.788299102783199, -93.764229125976556],
+[-91.130671386718745, -89.730445556640632, -89.218020477294928, -89.093106384277348],
+[-91.580096435546878, -90.327432556152345, -89.902420349121087, -89.80898559570312],
+[-90.998779, -89.661888, -89.186424, -89.064453],
+[-91.370384, -90.104279, -89.665833, -89.584351]
+]
+
+# aux_nf = [
+# [-83.103402557373045, -77.468452453613281, -75.410720062255862],
+# [-155.14535125732422, -171.71119354248046, -179.66849517822266],
+# [-80.063534088134759, -74.791913452148435, -73.034408874511712],
+# [-135.5944808959961, -146.04012008666993, -150.7372442626953],
+# [-79.960373, -74.743088, -73.02948],
+# [-124.04991, -128.41185, -130.45657]]
 
 
 
-
-
-
-# # models = [standard,flow1,aux_nf]#,hnf]
-# # models = [standard,standard_large_encoder]#, aux_nf aux_large_encoder]#,hnf]
-# models = [standard,aux_nf]#, aux_nf aux_large_encoder]#,hnf]
-
-
-# # model_names = ['standard','flow1','aux_nf','hnf']
-# # model_names = ['VAE','NF','Aux+NF']#,'HNF']
-# # model_names = ['FFG','Flow']#,'HNF']
-# # model_names = ['FFG','Flow']#,'HNF']
-# model_names = ['FFG','Flex']#  'aux_nf','aux_large_encoder']#,'HNF']
+# aux_large_encoder = [
+# [-83.103402557373045, -77.468452453613281, -75.410720062255862],
+# [-155.14535125732422, -171.71119354248046, -179.66849517822266],
+# [-80.063534088134759, -74.791913452148435, -73.034408874511712],
+# [-135.5944808959961, -146.04012008666993, -150.7372442626953],
+# [-79.960373, -74.743088, -73.02948],
+# [-124.04991, -128.41185, -130.45657]]
 
 
 
 
 
-# # legends = ['IW train', 'IW test', 'AIS train', 'AIS test']
-# # legends = ['VAE train', 'VAE test', 'IW train', 'IW test', 'AIS train', 'AIS test']
 
+# models = [standard,flow1,aux_nf]#,hnf]
+# models = [standard,standard_large_encoder]#, aux_nf aux_large_encoder]#,hnf]
+models = [standard,aux_nf]#, aux_nf aux_large_encoder]#,hnf]
+
+
+# model_names = ['standard','flow1','aux_nf','hnf']
+# model_names = ['VAE','NF','Aux+NF']#,'HNF']
+# model_names = ['FFG','Flow']#,'HNF']
+# model_names = ['FFG','Flow']#,'HNF']
+model_names = ['FFG','Flow']#  'aux_nf','aux_large_encoder']#,'HNF']
+
+
+
+
+
+# legends = ['IW train', 'IW test', 'AIS train', 'AIS test']
 # legends = ['VAE train', 'VAE test', 'IW train', 'IW test', 'AIS train', 'AIS test']
 
-
-# colors = ['blue', 'blue', 'green', 'green', 'red', 'red']
-
-# line_styles = [':', '-', ':', '-', ':', '-']
+legends = ['VAE train', 'VAE test', 'IW train', 'IW test', 'AIS train', 'AIS test']
 
 
+colors = ['blue', 'blue', 'green', 'green', 'red', 'red']
+
+line_styles = [':', '-', ':', '-', ':', '-']
 
 
-# rows = 1
-# cols = len(models)
 
-# legend=False
 
-# fig = plt.figure(figsize=(2+cols,2+rows), facecolor='white')
+rows = 1
+cols = len(models)
 
-# # Get y-axis limits
-# min_ = None
-# max_ = None
+legend=False
+
+fig = plt.figure(figsize=(2+cols,2+rows), facecolor='white')
+
+# Get y-axis limits
+min_ = None
+max_ = None
+for m in range(len(models)):
+    for i in range(len(legends)):
+        if i == 1:
+            continue
+        this_min = np.min(models[m][i])
+        this_max = np.max(models[m][i])
+        if min_ ==None or this_min < min_:
+            min_ = this_min
+        if max_ ==None or this_max > max_:
+            max_ = this_max
+
+min_ -= .1
+max_ += .1
+# print (min_)
+# print (max_)
+ylimits = [min_, max_]
+xlimits = [x[0], x[-1]]
+
+# fasd
+
+# ax.plot(x,hnf_ais, label='hnf_ais')
+# ax.set_yticks([])
+# ax.set_xticks([])
+# if samp_i==0:  ax.annotate('Sample', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
+
+for m in range(len(models)):
+    ax = plt.subplot2grid((rows,cols), (0,m), frameon=False)
+    for i in range(len(legends)):
+        if i == 1:
+            continue
+        ax.set_title(model_names[m],family='serif')
+        ax.plot(x,models[m][i], label=legends[i], c=colors[i], ls=line_styles[i])
+        plt.legend(fontsize=6) 
+        # ax.set(adjustable='box-forced', aspect='equal')
+        plt.yticks(size=6)
+        # plt.xticks(x,size=6)
+        plt.xticks([400,1300,2200,3100],size=6)
+
+        # ax.set_xlim(xlimits)
+        ax.set_ylim(ylimits)
+        ax.set_xlim(xlimits)
+
+        ax.set_xlabel('Epochs',size=6)
+        if m==0:
+          ax.set_ylabel('Log-Likelihood',size=6)
+
+
+        ax.grid(True, alpha=.1)
+
+
+# m+=1
+# ax = plt.subplot2grid((rows,cols), (0,m), frameon=False)
+# ax.set_title('AIS_test')
 # for m in range(len(models)):
-#     for i in range(len(legends)):
-#         if i == 1:
-#             continue
-#         this_min = np.min(models[m][i])
-#         this_max = np.max(models[m][i])
-#         if min_ ==None or this_min < min_:
-#             min_ = this_min
-#         if max_ ==None or this_max > max_:
-#             max_ = this_max
-
-# min_ -= .1
-# max_ += .1
-# # print (min_)
-# # print (max_)
-# ylimits = [min_, max_]
-# xlimits = [x[0], x[-1]]
-
-# # fasd
-
-# # ax.plot(x,hnf_ais, label='hnf_ais')
-# # ax.set_yticks([])
-# # ax.set_xticks([])
-# # if samp_i==0:  ax.annotate('Sample', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
-
-# for m in range(len(models)):
-#     ax = plt.subplot2grid((rows,cols), (0,m), frameon=False)
-#     for i in range(len(legends)):
-#         if i == 1:
-#             continue
-#         ax.set_title(model_names[m],family='serif')
-#         ax.plot(x,models[m][i], label=legends[i], c=colors[i], ls=line_styles[i])
-#         plt.legend(fontsize=5) 
-#         # ax.set(adjustable='box-forced', aspect='equal')
-#         plt.yticks(size=6)
-#         plt.xticks(x,size=6)
-#         # ax.set_xlim(xlimits)
-#         ax.set_ylim(ylimits)
-#         ax.set_xlim(xlimits)
-
-
-# # m+=1
-# # ax = plt.subplot2grid((rows,cols), (0,m), frameon=False)
-# # ax.set_title('AIS_test')
-# # for m in range(len(models)):
-# #     ax.plot(x,models[m][3], label=model_names[m])
-# #     plt.legend(fontsize=4) 
-# #     plt.yticks(size=6)
+#     ax.plot(x,models[m][3], label=model_names[m])
+#     plt.legend(fontsize=4) 
+#     plt.yticks(size=6)
 
 
 
 
 
-# # plt.gca().set_aspect('equal', adjustable='box')
-# name_file = home+'/Documents/tmp/plot.png'
-# plt.savefig(name_file)
-# print ('Saved fig', name_file)
+# plt.gca().set_aspect('equal', adjustable='box')
+name_file = home+'/Documents/tmp/plot.png'
+plt.savefig(name_file)
+print ('Saved fig', name_file)
 
-# name_file = home+'/Documents/tmp/plot.eps'
-# plt.savefig(name_file)
-# print ('Saved fig', name_file)
-
-
-# name_file = home+'/Documents/tmp/plot.pdf'
-# plt.savefig(name_file)
-# print ('Saved fig', name_file)
+name_file = home+'/Documents/tmp/plot.eps'
+plt.savefig(name_file)
+print ('Saved fig', name_file)
 
 
+name_file = home+'/Documents/tmp/plot.pdf'
+plt.savefig(name_file)
+print ('Saved fig', name_file)
 
 
 
+
+fafads
 
 
 
@@ -1866,6 +1891,7 @@ xlimits = [x[0], x[-1]]
 # ax.set_xticks([])
 # if samp_i==0:  ax.annotate('Sample', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
 
+
 for m in range(len(models)):
     ax = plt.subplot2grid((rows,cols), (0,m), frameon=False)
     for i in range(len(legends)):
@@ -1883,7 +1909,9 @@ for m in range(len(models)):
 
         ax.set_xlabel('Epochs',size=6)
 
-plt.grid(True, alpha=.2)
+        ax.grid(True, alpha=.1)
+
+        
 
 
 # m+=1

@@ -58,7 +58,7 @@ directory = home+'/Documents/tmp/fashion_2'
 
 
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 
 # directory = home+'/Documents/tmp/2D_models'
@@ -100,8 +100,8 @@ checkpoints = [3280]
 # models = ['standard_large_encoder', 'aux_large_encoder']#, 'aux_nf', 'aux_large_encoder']
 
 
-# models = ['FFG']#, 'Flex']#, 'aux_nf', 'aux_large_encoder']
 models = ['FFG']#, 'Flex']#, 'aux_nf', 'aux_large_encoder']
+# models = ['FFG_LD']#, 'Flex']#, 'aux_nf', 'aux_large_encoder']
 
 
 
@@ -110,7 +110,8 @@ models = ['FFG']#, 'Flex']#, 'aux_nf', 'aux_large_encoder']
 
 
 
-eval_file = '/local_eval.txt'
+
+eval_file = '/local_eval_ffg_ld_100.txt'
 
 
 
@@ -408,63 +409,63 @@ for model_ in models:
 
         # start_time = time.time()
 
-        n_data = 3
+        n_data = 100
 
-        vaes = []
-        iwaes = []
-        vaes_flex = []
-        iwaes_flex = []
-        for i in range(len(train_x[:n_data])):
+        # vaes = []
+        # iwaes = []
+        # vaes_flex = []
+        # iwaes_flex = []
+        # for i in range(len(train_x[:n_data])):
 
-            print (i)
+        #     print (i)
 
-            x = train_x[i]
-            x = Variable(torch.from_numpy(x)).type(model.dtype)
-            x = x.view(1,784)
+        #     x = train_x[i]
+        #     x = Variable(torch.from_numpy(x)).type(model.dtype)
+        #     x = x.view(1,784)
 
-            logposterior = lambda aa: model.logposterior_func2(x=x,z=aa)
-
-
-            # flex_model = aux_nf__(model, hyper_config)
-            # if torch.cuda.is_available():
-            #     flex_model.cuda()
-            # vae, iwae = flex_model.train_and_eval(logposterior=logposterior, model=model, x=x)
+        #     logposterior = lambda aa: model.logposterior_func2(x=x,z=aa)
 
 
-            vae, iwae = optimize_local_expressive(logposterior, model, x)
-            print (vae.data.cpu().numpy(),iwae.data.cpu().numpy(),'flex')
-            vaes_flex.append(vae.data.cpu().numpy())
-            iwaes_flex.append(iwae.data.cpu().numpy())
+        #     # flex_model = aux_nf__(model, hyper_config)
+        #     # if torch.cuda.is_available():
+        #     #     flex_model.cuda()
+        #     # vae, iwae = flex_model.train_and_eval(logposterior=logposterior, model=model, x=x)
 
-            vae, iwae = optimize_local_gaussian(logposterior, model, x)
-            print (vae.data.cpu().numpy(),iwae.data.cpu().numpy(),'reg')
-            vaes.append(vae.data.cpu().numpy())
-            iwaes.append(iwae.data.cpu().numpy())
 
-            with open(experiment_log, "a") as myfile:
-                myfile.write(str(i) 
-                            +  'vaes'+ str(np.mean(vaes))+'\n'
-                            +  'iwaes'+ str(np.mean(iwaes))+'\n'
-                            +  'vaes_flex'+ str(np.mean(vaes_flex))+'\n'
-                            +  'iwaes_flex'+ str(np.mean(iwaes_flex))+'\n\n')
+        #     vae, iwae = optimize_local_expressive(logposterior, model, x)
+        #     print (vae.data.cpu().numpy(),iwae.data.cpu().numpy(),'flex')
+        #     vaes_flex.append(vae.data.cpu().numpy())
+        #     iwaes_flex.append(iwae.data.cpu().numpy())
 
-        print ('opt vae',np.mean(vaes))
-        print ('opt iwae',np.mean(iwaes))
+        #     vae, iwae = optimize_local_gaussian(logposterior, model, x)
+        #     print (vae.data.cpu().numpy(),iwae.data.cpu().numpy(),'reg')
+        #     vaes.append(vae.data.cpu().numpy())
+        #     iwaes.append(iwae.data.cpu().numpy())
+
+        #     with open(experiment_log, "a") as myfile:
+        #         myfile.write(str(i) 
+        #                     +  'vaes'+ str(np.mean(vaes))+'\n'
+        #                     +  'iwaes'+ str(np.mean(iwaes))+'\n'
+        #                     +  'vaes_flex'+ str(np.mean(vaes_flex))+'\n'
+        #                     +  'iwaes_flex'+ str(np.mean(iwaes_flex))+'\n\n')
+
+        # print ('opt vae',np.mean(vaes))
+        # print ('opt iwae',np.mean(iwaes))
+        # print()
+
+        # print ('opt vae flex',np.mean(vaes_flex))
+        # print ('opt iwae flex',np.mean(iwaes_flex))
+        # print()
+
+
+        # VAE_train = test_vae(model=model, data_x=train_x[:n_data], batch_size=n_data, display=10, k=50)
+        # IW_train = test(model=model, data_x=train_x[:n_data], batch_size=n_data, display=10, k=50)
+        # print ('amortized VAE',VAE_train)
+        # print ('amortized IW',IW_train)
+
+
         print()
-
-        print ('opt vae flex',np.mean(vaes_flex))
-        print ('opt iwae flex',np.mean(iwaes_flex))
-        print()
-
-
-        VAE_train = test_vae(model=model, data_x=train_x[:n_data], batch_size=n_data, display=10, k=50)
-        IW_train = test(model=model, data_x=train_x[:n_data], batch_size=n_data, display=10, k=50)
-        print ('amortized VAE',VAE_train)
-        print ('amortized IW',IW_train)
-
-
-        print()
-        AIS_train = test_ais(model=model, data_x=train_x[:n_data], batch_size=n_data, display=2, k=50, n_intermediate_dists=500)
+        AIS_train = test_ais(model=model, data_x=train_x[:n_data], batch_size=n_data, display=2, k=100, n_intermediate_dists=2000)
         print ('AIS_train',AIS_train)
 
 
