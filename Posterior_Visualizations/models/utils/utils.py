@@ -7,6 +7,14 @@ from torch.autograd import Variable
 import numpy as np
 
 
+import torch
+from torch.autograd import Variable
+import torch.utils.data
+import torch.optim as optim
+import torch.nn as nn
+import torch.nn.functional as F
+
+
 
 # def lognormal(x, mean, logvar):
 #     '''
@@ -37,6 +45,19 @@ import numpy as np
 #     return -.5 * (logvar.sum(1) + ((x - mean).pow(2)/torch.exp(logvar)).sum(1))
 
 
+class LayerNorm(nn.Module):
+
+    def __init__(self, features, eps=1e-6):
+        super().__init__()
+        self.gamma = nn.Parameter(torch.ones(features))
+        self.beta = nn.Parameter(torch.zeros(features))
+        self.eps = eps
+
+    def forward(self, x):
+        mean = x.mean(-1, keepdim=True)
+        std = x.std(-1, keepdim=True)
+        return self.gamma * (x - mean) / (std + self.eps) + self.beta
+
     
 
 
@@ -54,7 +75,12 @@ def lognormal2(x, mean, logvar):
     assert x.size()[1] == mean.size()[0]
 
     D = x.size()[2]
-    term1 = D * torch.log(torch.cuda.FloatTensor([2.*math.pi])) #[1]
+
+    if torch.cuda.is_available():
+        term1 = D * torch.log(torch.cuda.FloatTensor([2.*math.pi])) #[1]
+    else:
+        term1 = D * torch.log(torch.FloatTensor([2.*math.pi])) #[1]
+
 
     return -.5 * (Variable(term1) + logvar.sum(1) + ((x - mean).pow(2)/torch.exp(logvar)).sum(2))
 
@@ -73,7 +99,12 @@ def lognormal333(x, mean, logvar):
     assert x.size()[1] == mean.size()[1]
 
     D = x.size()[2]
-    term1 = D * torch.log(torch.cuda.FloatTensor([2.*math.pi])) #[1]
+
+    if torch.cuda.is_available():
+        term1 = D * torch.log(torch.cuda.FloatTensor([2.*math.pi])) #[1]
+    else:
+        term1 = D * torch.log(torch.FloatTensor([2.*math.pi])) #[1]
+
 
     return -.5 * (Variable(term1) + logvar.sum(2) + ((x - mean).pow(2)/torch.exp(logvar)).sum(2))
 
@@ -86,6 +117,10 @@ def log_bernoulli(pred_no_sig, target):
     t is [B, X]
     output is [P, B]
     '''
+
+    assert len(pred_no_sig.size()) == 3
+    assert len(target.size()) == 2
+    assert pred_no_sig.size()[1] == target.size()[0]
 
     return -(torch.clamp(pred_no_sig, min=0)
                         - pred_no_sig * target

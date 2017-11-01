@@ -141,9 +141,9 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
         
 
         if torch.cuda.is_available():
-            batch = Variable(torch.from_numpy(batch), volatile=volatile_, requires_grad=requires_grad).cuda()
-            zeros = Variable(torch.zeros(model.B, model.z_size), volatile=volatile_, requires_grad=requires_grad).cuda() # [B,Z]
-            logw = Variable(torch.zeros(k, model.B), volatile=True, requires_grad=requires_grad).cuda()
+            batch = Variable(torch.from_numpy(batch).type(model.dtype), volatile=volatile_, requires_grad=requires_grad).cuda()
+            zeros = Variable(torch.zeros(model.B, model.z_size).type(model.dtype), volatile=volatile_, requires_grad=requires_grad).cuda() # [B,Z]
+            logw = Variable(torch.zeros(k, model.B).type(model.dtype), volatile=True, requires_grad=requires_grad).cuda()
             grad_outputs = torch.ones(k, model.B).cuda()
         else:
             batch = Variable(torch.from_numpy(batch))

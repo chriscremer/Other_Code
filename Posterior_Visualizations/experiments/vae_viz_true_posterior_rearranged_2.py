@@ -1,7 +1,7 @@
 
 
 
-
+# include optimal ffg
 
 
 
@@ -50,6 +50,9 @@ from plotting_functions import plot_scatter
 from plotting_functions import plot_kde
 
 from optimize_local import optimize_local_expressive_only_sample
+from optimize_local import optimize_local_gaussian_mean_logvar
+
+
 
 from utils import lognormal4 
 
@@ -251,12 +254,12 @@ if __name__ == "__main__":
 
 
 
-    rows = 3
+    rows = 4
     cols = len(ffg_samps) +1 #for annotation
 
     legend=False
 
-    fig = plt.figure(figsize=(6+cols,3+rows), facecolor='white')
+    fig = plt.figure(figsize=(3+cols,1+rows), facecolor='white')
 
     lim_val = .24
     xlimits=[-lim_val, lim_val]
@@ -264,20 +267,28 @@ if __name__ == "__main__":
 
     #annotate
     ax = plt.subplot2grid((rows,cols), (0,0), frameon=False)
-    ax.annotate('True', xytext=(.8, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Blue', size='large')
+    ax.annotate('True Posterior', xytext=(.1, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Blue', size='large')
     ax.set_yticks([])
     ax.set_xticks([])
     plt.gca().set_aspect('equal', adjustable='box')
 
 
     ax = plt.subplot2grid((rows,cols), (1,0), frameon=False)
-    ax.annotate('Amortized\nFFG', xytext=(.8, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Green', size='large')
+    ax.annotate('Amortized\nFFG', xytext=(.1, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Green', size='large')
     ax.set_yticks([])
     ax.set_xticks([])
     plt.gca().set_aspect('equal', adjustable='box')
 
+
     ax = plt.subplot2grid((rows,cols), (2,0), frameon=False)
-    ax.annotate('Optimal\nFlow', xytext=(.8, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Red', size='large')
+    ax.annotate('Optimal\nFFG', xytext=(.1, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Purple', size='large')
+    ax.set_yticks([])
+    ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
+
+
+    ax = plt.subplot2grid((rows,cols), (3,0), frameon=False)
+    ax.annotate('Optimal\nFlow', xytext=(.1, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Red', size='large')
     ax.set_yticks([])
     ax.set_xticks([])
     plt.gca().set_aspect('equal', adjustable='box')
@@ -473,21 +484,13 @@ if __name__ == "__main__":
         row +=1
         ax = plt.subplot2grid((rows,cols), (row, samp_i+1), frameon=False)
 
-        # print ('did')
-        # print (z)
-
         func = lambda zs: model.logposterior_func(samp_torch,zs)
         # plot_isocontours2_exp_norm(ax, func, cmap='Greys', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=.2)
         plot_isocontours2_exp_norm(ax, func, cmap='Blues', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
 
-
-
         # plot_scatter(ax, samps=z ,xlimits=xlimits,ylimits=ylimits)
         # plot_kde(ax,samps=z,xlimits=xlimits,ylimits=ylimits,cmap='Blues')
-
-
         # plot_kde(ax,samps=z,xlimits=xlimits,ylimits=ylimits,cmap='Greens')
-
 
         mean, logvar = model.q_dist.get_mean_logvar(samp_torch)
         func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data.cpu()), torch.squeeze(logvar.data.cpu()))
@@ -512,6 +515,56 @@ if __name__ == "__main__":
         # if samp_i==0:  ax.annotate('p(z|x,W1)', xytext=(.1, 1.1), xy=(0, 1), textcoords='axes fraction')
         # # func = lambda zs: lognormal4(torch.Tensor(zs), torch.zeros(2), torch.zeros(2))
         # # plot_isocontours(ax, func, cmap='Blues', alpha=.3)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        #plot local optima guassian
+
+        row +=1
+        ax = plt.subplot2grid((rows,cols), (row, samp_i+1), frameon=False)
+        func = lambda zs: model.logposterior_func(samp_torch,zs)
+        # plot_isocontours2_exp_norm(ax, func, cmap='Greys', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=.2)
+        plot_isocontours2_exp_norm(ax, func, cmap='Blues', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
+
+
+
+        # x = train_x[i]
+        x = samp
+        x = Variable(torch.from_numpy(x)).type(model.dtype)
+        x = x.view(1,784)
+
+        # save_to = this_dir+'/local_params'+str(samp_i)+'.pt'
+        # load_from = save_to
+
+        logposterior = lambda aa: model.logposterior_func2(x=x,z=aa)
+        print ('optimiznig local ffg', samp_i)
+        mean, logvar = optimize_local_gaussian_mean_logvar(logposterior, model, x)
+
+        func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data.cpu()), torch.squeeze(logvar.data.cpu()))
+        plot_isocontours(ax, func, cmap='Purples',xlimits=xlimits,ylimits=ylimits)
+
+        # z = z.view(-1,z_size)
+        # z = z.data.cpu().numpy()
+
+        # # print (z)
+
+
+        # plot_kde(ax,samps=z,xlimits=xlimits,ylimits=ylimits,cmap='Reds')
+
+
 
 
 
@@ -612,6 +665,7 @@ if __name__ == "__main__":
     print ('Saved fig', name_file)
 
  # assert not torch.is_tensor(other)
+
 
 # alpha=.2
 # rows = len(posteriors)

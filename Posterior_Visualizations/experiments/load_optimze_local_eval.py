@@ -31,6 +31,10 @@ from approx_posteriors_v5 import flow1
 from approx_posteriors_v5 import aux_nf
 from approx_posteriors_v5 import hnf
 
+from approx_posteriors_v5 import standard_layernorm
+
+
+
 import argparse
 
 from optimize_local import optimize_local_gaussian
@@ -38,10 +42,24 @@ from optimize_local import optimize_local_expressive
 # from optimize_local import aux_nf__
 
 
+from pytorch_vae_v6 import VAE as VAE6
+
+from approx_posteriors_v6 import FFG_LN
+from approx_posteriors_v6 import ANF_LN
+
 
 # directory = home+'/Documents/tmp/first_try'
 # directory = home+'/Documents/tmp/small_N'
-directory = home+'/Documents/tmp/large_N'
+# directory = home+'/Documents/tmp/large_N'
+
+# directory = home+'/Documents/tmp/only_encoder'
+directory = home+'/Documents/tmp/new_training_2'
+# directory = home+'/Documents/tmp/fashion_1'
+
+
+
+
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 
 # directory = home+'/Documents/tmp/2D_models'
@@ -52,7 +70,15 @@ directory = home+'/Documents/tmp/large_N'
 
 #since theres too moany checkpoints select which ones to eval:
 # checkpoints = [1000,1900,2800]
-checkpoints = [2800]
+# checkpoints = [2800]
+# checkpoints = [364]
+# checkpoints = [3100]
+
+
+checkpoints = [1600]
+
+
+
 
 # checkpoints = [1000,2000,3000]
 
@@ -61,10 +87,27 @@ checkpoints = [2800]
 # take as arg, which model you want to eval
 # 
 
-# models = ['standard']#, 'flow1', 'aux_nf', 'hnf']
+models = ['standard']#, 'flow1', 'aux_nf', 'hnf']
 # models = ['hnf']
 
-models = ['aux_nf', 'standard']
+# models = ['standard', 'aux_nf']
+# models = ['standard', 'standard_large_encoder']#, 'aux_nf', 'aux_large_encoder']
+
+# models = ['standard_large_encoder']#, 'aux_nf', 'aux_large_encoder']
+# models = ['standard', 'aux_nf']#, 'aux_nf', 'aux_large_encoder']
+
+# models = [ 'aux_nf']#, 'aux_nf', 'aux_large_encoder']
+
+# models = ['standard_large_encoder', 'aux_large_encoder']#, 'aux_nf', 'aux_large_encoder']
+
+
+# models = ['FFG']#, 'Flex']#, 'aux_nf', 'aux_large_encoder']
+# models = ['Flex']#, 'Flex']#, 'aux_nf', 'aux_large_encoder']
+
+
+
+
+
 
 
 
@@ -195,7 +238,7 @@ for model_ in models:
                         'act_func': F.tanh,# F.relu,
                         'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
                         'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
-                        'q_dist': standard,#hnf,#aux_nf,#flow1,#,
+                        'q_dist': standard_layernorm #standard,#hnf,#aux_nf,#flow1,#,
                     }
 
         model = VAE(hyper_config)
@@ -258,6 +301,126 @@ for model_ in models:
                     }
 
         model = VAE(hyper_config)
+
+
+
+
+    elif model_ == 'standard_large_encoder':
+
+        this_dir = directory+'/standard_large_encoder'
+        # if not os.path.exists(this_dir):
+        #     os.makedirs(this_dir)
+        #     print ('Made directory:'+this_dir)
+
+
+        # experiment_log = this_dir+'/log.txt'
+
+        # with open(experiment_log, "a") as myfile:
+        #     myfile.write("Standard" +'\n')
+        
+
+
+        print('Init standard LE model')
+        
+        hyper_config = { 
+                        'x_size': x_size,
+                        'z_size': z_size,
+                        'act_func': F.tanh,# F.relu,
+                        'encoder_arch': [[x_size,500],[500,500],[500,200],[200,z_size*2]],
+                        'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+                        'q_dist': standard_layernorm #standard,#hnf,#aux_nf,#flow1,#,
+                    }
+
+        model = VAE(hyper_config)
+
+
+
+
+
+
+
+
+
+    elif model_ == 'aux_large_encoder':
+
+        this_dir = directory+'/aux_large_encoder'
+        # if not os.path.exists(this_dir):
+        #     os.makedirs(this_dir)
+        #     print ('Made directory:'+this_dir)
+
+        # experiment_log = this_dir+'/log.txt'
+
+        # with open(experiment_log, "a") as myfile:
+        #     myfile.write("aux_nf" +'\n')
+
+        print('Init aux LE model')
+        hyper_config = { 
+                        'x_size': x_size,
+                        'z_size': z_size,
+                        'act_func': F.tanh,# F.relu,
+                        'encoder_arch': [[x_size,500],[500,500],[500,200],[200,z_size*2]],
+                        'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+                        'q_dist': aux_nf,#aux_nf,#flow1,#standard,#, #, #, #,#, #,# ,
+                        'n_flows': 2,
+                        'qv_arch': [[x_size,200],[200,200],[200,z_size*2]],
+                        'qz_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+                        'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+                        'flow_hidden_size': 100
+                    }
+
+        model = VAE(hyper_config)
+
+
+
+
+
+    elif model_ == 'FFG':
+
+        this_dir = directory+'/FFG'
+
+
+        print('Init FFG ')
+        hyper_config = { 
+                        'x_size': x_size,
+                        'z_size': z_size,
+                        'act_func': F.tanh,# F.relu,
+                        'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+                        'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+                        'q_dist': FFG_LN#standard,#hnf,#aux_nf,#flow1,#,
+                    }
+
+        model = VAE6(hyper_config)
+
+
+
+
+
+    elif model_ == 'Flex':
+
+        this_dir = directory+'/Flex'
+
+
+        print('Init Flex model')
+        hyper_config = { 
+                        'x_size': x_size,
+                        'z_size': z_size,
+                        'act_func': F.tanh,# F.relu,
+                        'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+                        'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+                        'q_dist': ANF_LN,#aux_nf,#flow1,#standard,
+                        'n_flows': 2,
+                        'qv_arch': [[x_size,200],[200,200],[200,z_size*2]],
+                        'qz_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+                        'rv_arch': [[x_size+z_size,200],[200,200],[200,z_size*2]],
+                        'flow_hidden_size': 100
+                    }
+
+        model = VAE6(hyper_config)
+
+
+
+
+
 
 
 
@@ -371,7 +534,7 @@ for model_ in models:
 
         # start_time = time.time()
 
-        n_data = 10
+        n_data = 100
 
         vaes = []
         iwaes = []
@@ -392,6 +555,8 @@ for model_ in models:
             # if torch.cuda.is_available():
             #     flex_model.cuda()
             # vae, iwae = flex_model.train_and_eval(logposterior=logposterior, model=model, x=x)
+
+
             vae, iwae = optimize_local_expressive(logposterior, model, x)
             print (vae.data.cpu().numpy(),iwae.data.cpu().numpy(),'flex')
             vaes_flex.append(vae.data.cpu().numpy())
@@ -401,11 +566,6 @@ for model_ in models:
             print (vae.data.cpu().numpy(),iwae.data.cpu().numpy(),'reg')
             vaes.append(vae.data.cpu().numpy())
             iwaes.append(iwae.data.cpu().numpy())
-
-
-
-
-
 
 
         print ('opt vae',np.mean(vaes))
@@ -422,9 +582,27 @@ for model_ in models:
         print ('amortized VAE',VAE_train)
         print ('amortized IW',IW_train)
 
+
         print()
         AIS_train = test_ais(model=model, data_x=train_x[:n_data], batch_size=n_data, display=2, k=50, n_intermediate_dists=500)
         print ('AIS_train',AIS_train)
+
+
+
+        print()
+        print()
+        print ('AIS_train',AIS_train)
+        # print()
+        print ('opt vae flex',np.mean(vaes_flex))
+        # print()
+        print ('opt vae',np.mean(vaes))
+        # print()
+        print ('amortized VAE',VAE_train)
+        print()
+
+
+
+
 
 
 

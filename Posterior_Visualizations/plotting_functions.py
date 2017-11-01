@@ -190,7 +190,9 @@ def plot_isocontours2_exp_norm(ax, func, xlimits=[-6, 6], ylimits=[-6, 6],
     Z = zs.reshape(X.shape)
     # Z = zs.view(X.shape)
     # Z=Z.numpy()
+    # cs = plt.contourf(X, Y, Z, cmap=cmap, alpha=alpha)
     cs = plt.contour(X, Y, Z, cmap=cmap, alpha=alpha)
+
 
     if legend:
         nm, lbl = cs.legend_elements()

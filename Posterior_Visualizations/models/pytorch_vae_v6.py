@@ -1,7 +1,8 @@
 
 
-#Refactored
-# Allow to pass in architecture
+
+
+# adding layer norm
 
 import numpy as np
 import pickle
@@ -22,7 +23,7 @@ import torch.nn.functional as F
 from utils import lognormal2 as lognormal
 from utils import log_bernoulli
 
-
+from utils import LayerNorm
 
 
 from ais import test_ais
@@ -68,14 +69,21 @@ class VAE(nn.Module):
 
         #Decoder
         self.decoder_weights = []
+        self.layer_norms = []
         for i in range(len(hyper_config['decoder_arch'])):
             self.decoder_weights.append(nn.Linear(hyper_config['decoder_arch'][i][0], hyper_config['decoder_arch'][i][1]))
+
+            if i != len(hyper_config['decoder_arch'])-1:
+                self.layer_norms.append(LayerNorm(hyper_config['decoder_arch'][i][1]))
 
         count =1
         for i in range(len(self.decoder_weights)):
             self.add_module(str(count), self.decoder_weights[i])
             count+=1
 
+            if i != len(hyper_config['decoder_arch'])-1:
+                self.add_module(str(count), self.layer_norms[i])
+                count+=1    
 
         # self.hyper_config = hyper_config
 
@@ -94,7 +102,8 @@ class VAE(nn.Module):
 
         out = z
         for i in range(len(self.decoder_weights)-1):
-            out = self.act_func(self.decoder_weights[i](out))
+            # out = self.act_func(self.decoder_weights[i](out))
+            out = self.act_func(self.layer_norms[i].forward(self.decoder_weights[i](out)))
         out = self.decoder_weights[-1](out)
 
         x = out.view(k, B, self.x_size)
@@ -132,8 +141,6 @@ class VAE(nn.Module):
 
         self.logposterior = lambda aa: lognormal(aa, self.zeros, self.zeros) + log_bernoulli(self.decode(aa), x)
 
-        # print (x)
-        # fsda
         z, logqz = self.q_dist.forward(k=k, x=x, logposterior=self.logposterior)
 
         return z
