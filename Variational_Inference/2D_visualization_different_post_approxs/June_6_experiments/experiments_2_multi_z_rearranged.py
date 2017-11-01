@@ -153,27 +153,56 @@ if __name__ == '__main__':
 
 
 
-
-
-
     train_ = 0
     
     alpha=.2
     rows = len(models) +1 #+1 for posteriors 
-    columns = len(posteriors)
+    columns = len(posteriors)  +1 # for annotation
 
     fig = plt.figure(figsize=(2+columns,4+rows), facecolor='white')
+
+
+
+
+    #annotate
+    ax = plt.subplot2grid((rows,columns), (0,0), frameon=False)
+    ax.annotate('True', xytext=(.5, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Black', size='large')
+    ax.set_yticks([])
+    ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
+
+
+    ax = plt.subplot2grid((rows,columns), (1,0), frameon=False)
+    ax.annotate('FFG', xytext=(.5, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Black', size='large')
+    ax.set_yticks([])
+    ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
+
+    ax = plt.subplot2grid((rows,columns), (2,0), frameon=False)
+    ax.annotate('Flow', xytext=(.5, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Black', size='large')
+    ax.set_yticks([])
+    ax.set_xticks([])
+    plt.gca().set_aspect('equal', adjustable='box')
+
+
+
+
+
 
     for p_i in range(len(posteriors)):
 
         print '\nPosterior', p_i, posterior_names[p_i]
 
         posterior = ttp.posterior_class(posteriors[p_i])
-        ax = plt.subplot2grid((rows,columns), (0,p_i), frameon=False)#, colspan=3)
+        ax = plt.subplot2grid((rows,columns), (0,p_i+1), frameon=False)#, colspan=3)
         plot_isocontours(ax, posterior.run_log_post, cmap='Blues')
         # if p_i == 0: ax.annotate('Posterior', xytext=(.3, 1.1), xy=(0, 1), textcoords='axes fraction')
 
+
+
         for q_i in range(len(models)):
+
+
 
             save_to = home+'/Documents/tmp/' + posterior_names[p_i]+ '_'+ model_names[q_i]+'.ckpt'
             # print os.path.isfile(save_to)
@@ -184,7 +213,7 @@ if __name__ == '__main__':
                 load_from = ''
 
             print model_names[q_i]
-            ax = plt.subplot2grid((rows,columns), (q_i+1,p_i), frameon=False)#, colspan=3)
+            ax = plt.subplot2grid((rows,columns), (q_i+1,p_i+1), frameon=False)#, colspan=3)
             model = models[q_i](posteriors[p_i])
             
             if train_:            
@@ -199,6 +228,11 @@ if __name__ == '__main__':
     # plt.show()
     plt.savefig(home+'/Documents/tmp/plots.png')
     print 'saved'
+    plt.savefig(home+'/Documents/tmp/plots.eps')
+    print 'saved'
+    plt.savefig(home+'/Documents/tmp/plots.pdf')
+    print 'saved'
+
 
 
 
