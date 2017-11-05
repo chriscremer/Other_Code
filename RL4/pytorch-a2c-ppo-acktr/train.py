@@ -23,6 +23,20 @@ from envs import make_env
 from agent_modular2 import a2c
 from agent_modular2 import ppo
 
+import argparse
+import json
+
+# from arguments import get_args
+parser = argparse.ArgumentParser()
+parser.add_argument('--m')
+args = parser.parse_args()
+# print (args.m)
+
+
+with open(args.m, 'r') as infile:
+    model_dict = json.load(infile)
+
+# print (model_dict)
 
 
 def train(model_dict):
@@ -184,6 +198,11 @@ def train(model_dict):
 
 
 
+train(model_dict)
+
+
+# if __name__ == "__main__":
+#     main()
 
 
 
