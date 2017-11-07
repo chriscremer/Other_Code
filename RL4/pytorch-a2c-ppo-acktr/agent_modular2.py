@@ -38,6 +38,7 @@ class a2c(object):
         self.value_loss_coef = hparams['value_loss_coef']
         self.entropy_coef = hparams['entropy_coef']
         self.cuda = hparams['cuda']
+        self.opt = hparams['opt']
 
 
 
@@ -62,8 +63,12 @@ class a2c(object):
             actor_critic.cuda()
             rollouts.cuda()
 
-
-        self.optimizer = optim.RMSprop(params=actor_critic.parameters(), lr=hparams['lr'], eps=hparams['eps'], alpha=hparams['alpha'])
+        if self.opt == 'rms':
+            self.optimizer = optim.RMSprop(params=actor_critic.parameters(), lr=hparams['lr'], eps=hparams['eps'], alpha=hparams['alpha'])
+        elif self.opt == 'adam':
+            self.optimizer = optim.Adam(params=actor_critic.parameters(), lr=hparams['lr'], eps=hparams['eps'])
+        else:
+            print ('no opt specified')
 
         self.actor_critic = actor_critic
         self.rollouts = rollouts

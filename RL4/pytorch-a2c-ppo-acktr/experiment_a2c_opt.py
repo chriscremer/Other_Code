@@ -1,6 +1,9 @@
 
 
-# one experiment: multiple envs, multple models, multiple iterations
+
+
+# a2c with rmsprop had sudden spike drops in performance
+# i want to see if adam fixes it
 
 
 import os
@@ -24,12 +27,13 @@ def make_dir(path):
 
 
 
+
 # Experiment 
 ##################
-exp_name = 'first_full_run'
-envs = ['BreakoutNoFrameskip-v4','SeaquestNoFrameskip-v4','PongNoFrameskip-v4'] #'BeamRiderNoFrameskip-v4',
-models = [models_file.model1, models_file.model2]
-iters = 1
+exp_name = 'a2c_opt_smaller_lr'
+envs = ['BreakoutNoFrameskip-v4']#,'SeaquestNoFrameskip-v4','PongNoFrameskip-v4'] #'BeamRiderNoFrameskip-v4',
+models = [models_file.a2c_rms, models_file.a2c_adam]
+iters = 2
 num_frames = 6e6
 #####################
 

@@ -19,8 +19,20 @@ from os.path import expanduser
 home = expanduser("~")
 
 
-exp_name =  'first_full_run/'
-exp_path = home + '/Documents/tmp/' + exp_name
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def smooth_reward_curve(x, y):
@@ -249,52 +261,50 @@ def plot_multiple_iterations2(dir_all, ax, color, m_i):
             tys.append(ty)
             # break
 
-    # print (txs)
-    length = max([len(t) for t in txs])
-    longest = None
-    for j in range(len(txs)):
-        if len(txs[j]) == length:
-            longest = txs[j]
-    # For line with less data point, the last value will be repeated and appended
-    # Until it get the same size with longest one
-    for j in range(len(txs)):
-        if len(txs[j]) < length:
-            repeaty = np.ones(length - len(txs[j])) * tys[j][-1]
-            addindex = len(txs[j]) - length
-            addx = longest[addindex:]
-            tys[j] = np.append(tys[j], repeaty)
-            txs[j] = np.append(txs[j], addx)
+    if txs[0] != None:
 
-    x = np.mean(np.array(txs), axis=0)
-    y_mean = np.mean(np.array(tys), axis=0)
-    y_std = np.std(np.array(tys), axis=0)
+        # print (txs)
+        length = max([len(t) for t in txs])
+        longest = None
+        for j in range(len(txs)):
+            if len(txs[j]) == length:
+                longest = txs[j]
+        # For line with less data point, the last value will be repeated and appended
+        # Until it get the same size with longest one
+        for j in range(len(txs)):
+            if len(txs[j]) < length:
+                repeaty = np.ones(length - len(txs[j])) * tys[j][-1]
+                addindex = len(txs[j]) - length
+                addx = longest[addindex:]
+                tys[j] = np.append(tys[j], repeaty)
+                txs[j] = np.append(txs[j], addx)
 
-    # if m_i =='a2c':
-    #     print (y_mean.shape)
-    #     fad
+        x = np.mean(np.array(txs), axis=0)
+        y_mean = np.mean(np.array(tys), axis=0)
+        y_std = np.std(np.array(tys), axis=0)
 
-    # color = color_defaults[0] 
+        # if m_i =='a2c':
+        #     print (y_mean.shape)
+        #     fad
 
-    # fig = plt.figure()
+        # color = color_defaults[0] 
 
-    y_upper = y_mean + y_std
-    y_lower = y_mean - y_std
-    plt.fill_between(x, list(y_lower), list(y_upper), interpolate=True, facecolor=color, linewidth=0.0, alpha=0.3)
-    plt.plot(x, list(y_mean), label=m_i, color=color, rasterized=True)  
-    plt.legend(loc=4)
+        # fig = plt.figure()
 
-    # plt.plot(tx, ty, label="{}".format('a2c'))
-    # plt.xticks([1e6, 2e6, 4e6, 6e6, 8e6, 10e6],
-    #            ["1M", "2M", "4M", "6M", "8M", "10M"])
-    # plt.xlim(0, 10e6)
+        y_upper = y_mean + y_std
+        y_lower = y_mean - y_std
+        plt.fill_between(x, list(y_lower), list(y_upper), interpolate=True, facecolor=color, linewidth=0.0, alpha=0.3)
+        plt.plot(x, list(y_mean), label=m_i, color=color, rasterized=True)  
+        plt.legend(loc=4)
 
-
-    # plt.savefig(dir_all+'plot.png')
-    # print('made fig',dir_all+'plot.png')
+        # plt.plot(tx, ty, label="{}".format('a2c'))
+        # plt.xticks([1e6, 2e6, 4e6, 6e6, 8e6, 10e6],
+        #            ["1M", "2M", "4M", "6M", "8M", "10M"])
+        # plt.xlim(0, 10e6)
 
 
-
-
+        # plt.savefig(dir_all+'plot.png')
+        # print('made fig',dir_all+'plot.png')
 
 
 
@@ -311,61 +321,166 @@ def plot_multiple_iterations2(dir_all, ax, color, m_i):
 
 
 
-# Get number of envs to define subplots
-n_envs = 0
-for dir_i in os.listdir(exp_path):
-    if os.path.isdir(exp_path+dir_i):
-        print (exp_path+dir_i)
-        n_envs +=1
 
-cols = min(n_envs,3)
-rows = max(n_envs // 3, 1)
-print (rows, cols)
+def make_plots(model_dict):
+    #this gets called during training
 
-fig = plt.figure(figsize=(8+cols,3+rows), facecolor='white')
-
-cur_col = 0
-cur_row = 0
-for env_i in os.listdir(exp_path):
-    if os.path.isdir(exp_path+env_i):
-
-        # print (cur_row, cur_col)
-        ax = plt.subplot2grid((rows,cols), (cur_row,cur_col), frameon=False)#, aspect=0.3)# adjustable='box', )
-
-        plt.xticks([1e6, 2e6, 4e6, 6e6],["1M", "2M", "4M", "6M"])
-        plt.xlim(0, 6e6)
-        plt.xlabel('Number of Timesteps',family='serif')
-        plt.ylabel('Rewards',family='serif')
-        plt.title(env_i.split('NoF')[0],family='serif')
-
-        ax.yaxis.grid(alpha=.1)
-        # ax.set(aspect=1)
-        # plt.gca().set_aspect('equal', adjustable='box')
-        # ax.set_aspect(.5, adjustable='box')
-
-        m_count =0
-        for m_i in os.listdir(exp_path+env_i):
-            m_dir = exp_path+env_i+'/'+m_i+'/'
-            if os.path.isdir(m_dir):
-
-                print (cur_row, cur_col, m_dir)
-                color = color_defaults[m_count] 
-                plot_multiple_iterations2(m_dir, ax, color, m_i)
-                m_count+=1
-
-        
-
-        cur_col+=1
-        if cur_col >= cols:
-            cur_col = 0
-            cur_row+=1
+    exp_path = model_dict['exp_path']
+    num_frames = model_dict['num_frames']
 
 
-plt.savefig(exp_path+'plot.png')
-print('made fig', exp_path+'plot.png')
+    # Get number of envs to define subplots
+    n_envs = 0
+    for dir_i in os.listdir(exp_path):
+        if os.path.isdir(exp_path+dir_i):
+            # print (exp_path+dir_i)
+            n_envs +=1
 
-plt.savefig(exp_path+'plot.pdf')
-print('made fig', exp_path+'plot.pdf')
+    cols = min(n_envs,3)
+    rows = max(n_envs // 3, 1)
+    # print (rows, cols)
+
+    fig = plt.figure(figsize=(8+cols,3+rows), facecolor='white')
+
+    cur_col = 0
+    cur_row = 0
+    for env_i in os.listdir(exp_path):
+        if os.path.isdir(exp_path+env_i):
+
+            # print (cur_row, cur_col)
+            ax = plt.subplot2grid((rows,cols), (cur_row,cur_col), frameon=False)#, aspect=0.3)# adjustable='box', )
+
+            
+            plt.xlim(0, 6e6)
+            if cur_row == rows-1:
+                if num_frames == 6e6:
+                    plt.xticks([1e6, 2e6, 4e6, 6e6],["1M", "2M", "4M", "6M"])
+                elif num_frames == 10e6:
+                    plt.xticks([1e6, 2e6, 4e6, 6e6, 10e6],["1M", "2M", "4M", "6M", "10M"])
+                plt.xlabel('Number of Timesteps',family='serif')
+            else:
+                plt.xticks([])
+            if cur_col == 0:
+                plt.ylabel('Rewards',family='serif')
+            plt.title(env_i.split('NoF')[0],family='serif')
+
+            ax.yaxis.grid(alpha=.1)
+            # ax.set(aspect=1)
+            # plt.gca().set_aspect('equal', adjustable='box')
+            # ax.set_aspect(.5, adjustable='box')
+
+            m_count =0
+            for m_i in os.listdir(exp_path+env_i):
+                m_dir = exp_path+env_i+'/'+m_i+'/'
+                if os.path.isdir(m_dir):
+
+                    # print (cur_row, cur_col, m_dir)
+                    color = color_defaults[m_count] 
+                    plot_multiple_iterations2(m_dir, ax, color, m_i)
+                    m_count+=1
+
+            cur_col+=1
+            if cur_col >= cols:
+                cur_col = 0
+                cur_row+=1
+
+
+    fig_path = exp_path + 'exp_plot' 
+    plt.savefig(fig_path+'.png')
+    # print('made fig', fig_path+'.png')
+
+    plt.savefig(fig_path+'.pdf')
+    # print('made fig', fig_path+'.pdf')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+if __name__ == "__main__":
+
+
+    exp_name =  'run_envs_6M' #'a2c_opt_smaller_lr' #, 'a2c_opt'# 'first_full_run/'
+    exp_path = home + '/Documents/tmp/' + exp_name +'/'
+
+
+
+    # Get number of envs to define subplots
+    n_envs = 0
+    for dir_i in os.listdir(exp_path):
+        if os.path.isdir(exp_path+dir_i):
+            print (exp_path+dir_i)
+            n_envs +=1
+
+    cols = min(n_envs,3)
+    rows = max(n_envs // 3, 1)
+    print (rows, cols)
+
+    fig = plt.figure(figsize=(8+cols,3+rows), facecolor='white')
+
+    cur_col = 0
+    cur_row = 0
+    for env_i in os.listdir(exp_path):
+        if os.path.isdir(exp_path+env_i):
+
+            # print (cur_row, cur_col)
+            ax = plt.subplot2grid((rows,cols), (cur_row,cur_col), frameon=False)#, aspect=0.3)# adjustable='box', )
+
+            
+            plt.xlim(0, 6e6)
+            if cur_row == rows-1:
+                plt.xticks([1e6, 2e6, 4e6, 6e6],["1M", "2M", "4M", "6M"])
+                plt.xlabel('Number of Timesteps',family='serif')
+            else:
+                plt.xticks([])
+            if cur_col == 0:
+                plt.ylabel('Rewards',family='serif')
+            plt.title(env_i.split('NoF')[0],family='serif')
+
+            ax.yaxis.grid(alpha=.1)
+            # ax.set(aspect=1)
+            # plt.gca().set_aspect('equal', adjustable='box')
+            # ax.set_aspect(.5, adjustable='box')
+
+            m_count =0
+            for m_i in os.listdir(exp_path+env_i):
+                m_dir = exp_path+env_i+'/'+m_i+'/'
+                if os.path.isdir(m_dir):
+
+                    print (cur_row, cur_col, m_dir)
+                    color = color_defaults[m_count] 
+                    plot_multiple_iterations2(m_dir, ax, color, m_i)
+                    m_count+=1
+
+            
+
+            cur_col+=1
+            if cur_col >= cols:
+                cur_col = 0
+                cur_row+=1
+
+
+    fig_path = exp_path + exp_name 
+    plt.savefig(fig_path+'.png')
+    print('made fig', fig_path+'.png')
+
+    plt.savefig(fig_path+'.pdf')
+    print('made fig', fig_path+'.pdf')
 
 
 
@@ -416,7 +531,7 @@ print('made fig', exp_path+'plot.pdf')
 #FOr each model
 
 
-# if __name__ == "__main__":
+
 
 
 

@@ -23,6 +23,8 @@ from envs import make_env
 from agent_modular2 import a2c
 from agent_modular2 import ppo
 
+from make_plots import make_plots
+
 import argparse
 import json
 
@@ -67,6 +69,7 @@ def train(model_dict):
 
     num_frames = model_dict['num_frames']
     cuda = model_dict['cuda']
+    which_gpu = model_dict['which_gpu']
     num_steps = model_dict['num_steps']
     num_processes = model_dict['num_processes']
     seed = model_dict['seed']
@@ -81,6 +84,8 @@ def train(model_dict):
     # print("WARNING: All rewards are clipped so you need to use a monitor (see envs.py) or visdom plot to get true rewards")
     # print("#######")
 
+    os.environ['OMP_NUM_THREADS'] = '1'
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(which_gpu)
 
     num_updates = int(num_frames) // num_steps // num_processes
 
@@ -90,9 +95,6 @@ def train(model_dict):
     else:
         torch.manual_seed(seed)
 
-
-
-    os.environ['OMP_NUM_THREADS'] = '1'
 
     # Create environments
     envs = SubprocVecEnv([make_env(env, seed, i, save_dir) for i in range(num_processes)])
@@ -185,7 +187,12 @@ def train(model_dict):
             end = time.time()
 
             if j % (log_interval*30) == 0:
-                print("Upts, n_timesteps, min/med/mean/max, FPS, Time")
+
+                #update plots
+                make_plots(model_dict)
+                print("Upts, n_timesteps, min/med/mean/max, FPS, Time, Plot updated")
+
+
 
             print("{}, {}, {:.1f}/{:.1f}/{:.1f}/{:.1f}, {}, {:.1f}".
                     format(j, total_num_steps,
@@ -196,13 +203,13 @@ def train(model_dict):
                            int(total_num_steps / (end - start)),
                            end - start))
 
+    make_plots(model_dict)
 
 
-train(model_dict)
 
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    train(model_dict)
 
 
 

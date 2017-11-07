@@ -1,6 +1,5 @@
 
 
-# one experiment: multiple envs, multple models, multiple iterations
 
 
 import os
@@ -10,7 +9,7 @@ home = expanduser("~")
 import json
 import subprocess
 
-import models as models_file
+import models as mf
 # from train import train
 
 def make_dir(path):
@@ -19,6 +18,17 @@ def make_dir(path):
         print ('Made dir', path) 
 
 
+def print_stuff():
+    print ()
+    print ('Exp Name:', exp_name)
+    print (envs)
+    print ([m['name'] for m in models_list])
+    print ('Noframskip', noFrameSkip)
+    print ('Iters', iters)
+    print ('Num_frames', num_frames)
+    print ('which_gpu', which_gpu)
+    print ()
+    print ()
 
 
 
@@ -26,24 +36,41 @@ def make_dir(path):
 
 # Experiment 
 ##################
-exp_name = 'first_full_run'
-envs = ['BreakoutNoFrameskip-v4','SeaquestNoFrameskip-v4','PongNoFrameskip-v4'] #'BeamRiderNoFrameskip-v4',
-models = [models_file.model1, models_file.model2]
+exp_name = 'run_envs_6M_5'
+envs = ['Breakout','Seaquest','Pong', 'BeamRider', 'Alien', 
+            'Amidar','Assualt', 'Freeway','Enduro','Kangaroo',
+            'MontezumaRenvenge','Venture','Zaxxon','PrivateEye', 'Gopher']
+models_list = [mf.ppo_v1] #[mf.a2c_adam]#, 
+which_gpu = 1
+noFrameSkip = True
 iters = 1
 num_frames = 6e6
 #####################
 
 
 
-exp_path = home + '/Documents/tmp/' + exp_name
+
+
+
+
+
+print_stuff()
+
+
+if noFrameSkip:
+    envs = [x+'NoFrameskip-v4' for x in envs]
+
+
+exp_path = home + '/Documents/tmp/' + exp_name+'/'
 make_dir(exp_path)
 
 for env in envs:
 
-    env_path = exp_path +'/'+env
+    env_path = exp_path +env
     make_dir(env_path)
+    print_stuff()
 
-    for model_dict in models:
+    for model_dict in models_list:
 
         model_path = env_path +'/'+ model_dict['name']
         make_dir(model_path)
@@ -53,10 +80,13 @@ for env in envs:
             iter_path = model_path +'/'+ str(iter_i)
             make_dir(iter_path)
 
+            model_dict['exp_path'] = exp_path
             model_dict['seed']=iter_i
             model_dict['save_to']=iter_path
             model_dict['num_frames']=num_frames
             model_dict['env'] = env
+            model_dict['cuda'] = True
+            model_dict['which_gpu'] = which_gpu
 
             print (env, model_dict['name'], iter_i)
 
