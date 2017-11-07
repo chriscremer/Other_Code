@@ -9,7 +9,6 @@ num_processes=20
 lr = 7e-4
 eps=1e-5
 alpha=0.99
-save_interval=2e6
 gamma=.99 #discount factor for rewards
 tau=.95  #gae parameter
 
@@ -22,7 +21,6 @@ a2c_rms = {
             'num_steps': 5,
             'num_stack': num_stack,
             'log_interval':20,
-            'save_interval':save_interval,
             #Optimizer
             'opt': 'rms',
             'lr':lr,
@@ -44,7 +42,6 @@ a2c_adam = {
             'num_steps': 5,
             'num_stack': num_stack,
             'log_interval':20,
-            'save_interval':save_interval,
             #Optimizer
             'opt': 'adam',
             'lr':lr,
@@ -68,7 +65,6 @@ ppo_v1 = {
             'num_stack': num_stack,
             'log_interval':2,
             'batch_size':100,
-            'save_interval':save_interval,
             'ppo_epoch': 4,
             'clip_param': .2,
             #Optimizer

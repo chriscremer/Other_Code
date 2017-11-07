@@ -18,7 +18,10 @@ from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 
 from arguments import get_args
 from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
+
 from envs import make_env
+from envs import make_env_monitor
+
 
 from agent_modular2 import a2c
 from agent_modular2 import ppo
@@ -27,6 +30,7 @@ from make_plots import make_plots
 
 import argparse
 import json
+import subprocess
 
 # from arguments import get_args
 parser = argparse.ArgumentParser()
@@ -66,6 +70,41 @@ def train(model_dict):
             current_state *= masks
         return reward, masks, final_rewards, episode_rewards, current_state
 
+    def do_vid():
+
+        done=False
+        state = envs_video.reset()
+        # state = torch.from_numpy(state).float().type(dtype)
+        current_state = torch.zeros(1, *obs_shape)
+        current_state = update_current_state(current_state, state, shape_dim0).type(dtype)
+        # print ('Recording')
+        # count=0
+        while not done:
+            # print (count)
+            # count +=1
+            # Act
+            state_var = Variable(current_state, volatile=True) 
+            # print (state_var.size())
+            action, value = agent.act(state_var)
+            cpu_actions = action.data.squeeze(1).cpu().numpy()
+
+            # Observe reward and next state
+            state, reward, done, info = envs_video.step(cpu_actions) # state:[nProcesss, ndims, height, width]
+            # state = torch.from_numpy(state).float().type(dtype)
+            # current_state = torch.zeros(1, *obs_shape)
+            current_state = update_current_state(current_state, state, shape_dim0).type(dtype)
+        
+        vid_path = save_dir+'/videos/'
+        for aaa in os.listdir(vid_path):
+
+            # if 'openaigym' in aaa and '.mp4' in aaa:
+            #     #os.rename(vid_path+aaa, vid_path+'vid_t'+str(total_num_steps)+'.mp4')
+            #     subprocess.call("(cd "+vid_path+" && mv "+ vid_path+aaa +" "+ vid_path+'vid_t'+str(total_num_steps)+".mp4)", shell=True) 
+
+            if '.json' in aaa:
+                os.remove(vid_path+aaa)
+
+
 
     num_frames = model_dict['num_frames']
     cuda = model_dict['cuda']
@@ -73,7 +112,7 @@ def train(model_dict):
     num_steps = model_dict['num_steps']
     num_processes = model_dict['num_processes']
     seed = model_dict['seed']
-    env = model_dict['env']
+    env_name = model_dict['env']
     save_dir = model_dict['save_to']
     num_stack = model_dict['num_stack']
     algo = model_dict['algo']
@@ -97,7 +136,13 @@ def train(model_dict):
 
 
     # Create environments
-    envs = SubprocVecEnv([make_env(env, seed, i, save_dir) for i in range(num_processes)])
+    print (num_processes, 'processes')
+    envs = SubprocVecEnv([make_env(env_name, seed, i, save_dir) for i in range(num_processes)])
+
+    print ('env for video')
+    # envs_video = gym.make(env_name)
+    # envs_video = gym.wrappers.Monitor(envs_video, save_dir+'/videos/', video_callable=lambda x: True, force=True)
+    envs_video = make_env_monitor(env_name, save_dir)#+'/videos/')
 
 
     obs_shape = envs.observation_space.shape
@@ -141,7 +186,9 @@ def train(model_dict):
         for step in range(num_steps):
 
             # Act
-            action, value = agent.act(Variable(agent.rollouts.states[step], volatile=True))
+            state_var = Variable(agent.rollouts.states[step], volatile=True) 
+            # print (state_var.size())
+            action, value = agent.act(state_var)
             cpu_actions = action.data.squeeze(1).cpu().numpy()
 
             # Observe reward and next state
@@ -168,7 +215,7 @@ def train(model_dict):
 
         #Save model
         if total_num_steps % save_interval == 0 and save_dir != "":
-            save_path = os.path.join(save_dir, algo)
+            save_path = os.path.join(save_dir, 'model_params')
             try:
                 os.makedirs(save_path)
             except OSError:
@@ -178,9 +225,13 @@ def train(model_dict):
             if cuda:
                 save_model = copy.deepcopy(agent.actor_critic).cpu()
             # torch.save(save_model, os.path.join(save_path, args.env_name + ".pt"))
-            save_to=os.path.join(save_path, algo + ".pt")
+            save_to=os.path.join(save_path, "model_params" + str(total_num_steps)+".pt")
             torch.save(save_model, save_to)
             print ('saved', save_to)
+
+            #make video
+            do_vid()
+
 
         #Print updates
         if j % log_interval == 0:
@@ -189,10 +240,11 @@ def train(model_dict):
             if j % (log_interval*30) == 0:
 
                 #update plots
-                make_plots(model_dict)
-                print("Upts, n_timesteps, min/med/mean/max, FPS, Time, Plot updated")
-
-
+                try:
+                    make_plots(model_dict)
+                    print("Upts, n_timesteps, min/med/mean/max, FPS, Time, Plot updated")
+                except:
+                    print("Upts, n_timesteps, min/med/mean/max, FPS, Time")
 
             print("{}, {}, {:.1f}/{:.1f}/{:.1f}/{:.1f}, {}, {:.1f}".
                     format(j, total_num_steps,
@@ -203,8 +255,11 @@ def train(model_dict):
                            int(total_num_steps / (end - start)),
                            end - start))
 
-    make_plots(model_dict)
-
+    
+    try:
+        make_plots(model_dict)
+    except:
+        pass #raise
 
 
 

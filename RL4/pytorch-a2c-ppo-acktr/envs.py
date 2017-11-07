@@ -59,6 +59,37 @@ def make_env(env_id, seed, rank, log_dir):
     return _thunk
 
 
+def make_env_monitor(env_name, save_dir):
+    env = gym.make(env_name) #this prints
+    # print('here')
+
+    is_atari = hasattr(gym.envs, 'atari') and isinstance(env.unwrapped, gym.envs.atari.atari_env.AtariEnv)
+
+    #so this overwrites the other env? so ill change it
+    if is_atari:
+        # env = make_atari(env_id)
+        #took this from make_atari
+        assert 'NoFrameskip' in env.spec.id
+        env = NoopResetEnv(env, noop_max=30)
+        env = MaxAndSkipEnv(env, skip=4)
+
+
+    # print('here1')
+
+    # env.seed(seed + rank)
+    # env = bench.Monitor(env, os.path.join(log_dir, str(rank)))
+
+    # print('here11')
+
+    if is_atari:
+        env = wrap_deepmind(env)
+        env = WrapPyTorch(env)
+    # print('here2')
+
+    env = gym.wrappers.Monitor(env, save_dir+'/videos/', video_callable=lambda x: True, force=True)
+
+
+    return env
 
 
 

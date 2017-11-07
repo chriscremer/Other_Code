@@ -26,6 +26,7 @@ def print_stuff():
     print ('Noframskip', noFrameSkip)
     print ('Iters', iters)
     print ('Num_frames', num_frames)
+    print ('save_interval', save_interval)
     print ('which_gpu', which_gpu)
     print ()
     print ()
@@ -36,15 +37,16 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'run_envs_6M_5'
-envs = ['Breakout','Seaquest','Pong', 'BeamRider', 'Alien', 
-            'Amidar','Assualt', 'Freeway','Enduro','Kangaroo',
+exp_name = 'run_envs_6M_7'
+envs = ['Breakout','Seaquest','Pong','Enduro','Kangaroo', 'BeamRider', 'Alien', 
+            'Amidar','Assualt', 'Freeway',
             'MontezumaRenvenge','Venture','Zaxxon','PrivateEye', 'Gopher']
-models_list = [mf.ppo_v1] #[mf.a2c_adam]#, 
+models_list = [mf.ppo_v1]  #[mf.a2c_adam]#  ##  ##, 
 which_gpu = 1
 noFrameSkip = True
 iters = 1
 num_frames = 6e6
+save_interval=1e6 #save model params and videos
 #####################
 
 
@@ -77,7 +79,7 @@ for env in envs:
 
         for iter_i in range(iters):
 
-            iter_path = model_path +'/'+ str(iter_i)
+            iter_path = model_path +'/'+ 'seed'+str(iter_i)
             make_dir(iter_path)
 
             model_dict['exp_path'] = exp_path
@@ -87,11 +89,13 @@ for env in envs:
             model_dict['env'] = env
             model_dict['cuda'] = True
             model_dict['which_gpu'] = which_gpu
+            model_dict['save_interval'] = save_interval
+
 
             print (env, model_dict['name'], iter_i)
 
             #write to json
-            json_path = iter_path+'/model.json'
+            json_path = iter_path+'/model_dict.json'
             with open(json_path, 'w') as outfile:
                 json.dump(model_dict, outfile)
 
@@ -102,6 +106,63 @@ for env in envs:
 
 print ('Done.')
 
+
+
+
+
+
+#ENVIRONMENT LIST
+
+# Alien
+# Amidar
+# Assault
+# Asterix
+# Asteroids
+# Atlantis
+# BankHeist
+# BattleZone
+# BeamRider
+# Bowling
+# Boxing
+# Breakout
+# Centipede
+# ChopperCommand
+# CrazyClimber
+# DemonAttack
+# DoubleDunk
+# Enduro
+# FishingDerby
+# Freeway
+# Frostbite
+# Gopher
+# Gravitar
+# IceHockey
+# Jamesbond
+# Kangaroo
+# Skipping
+# Krull
+# KungFuMaster
+# MontezumaRevenge
+# MsPacman
+# NameThisGame
+# Pitfall
+# Pong
+# PrivateEye
+# Qbert
+# Riverraid
+# RoadRunner
+# Robotank
+# Seaquest
+# SpaceInvaders
+# StarGunner
+# Tennis
+# TimePilot
+# Tutankham
+# UpNDown
+# Venture
+# VideoPinball
+# WizardOfWor
+# Zaxxon
 
 
 
