@@ -1,6 +1,12 @@
 
 
 
+#changing order of state update when episode is done
+
+#didnt do anything here. because Im not sure when env resets. 
+
+# use train.py
+
 
 import copy
 import glob
@@ -21,9 +27,6 @@ from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 
 from envs import make_env
 from envs import make_env_monitor
-from envs import make_both_env_types
-
-
 
 
 from agent_modular2 import a2c
@@ -66,6 +69,7 @@ def train(model_dict):
         # current_state: [P,C*S,H,W]
         reward = torch.from_numpy(np.expand_dims(np.stack(reward), 1)).float() #[P,1]
         episode_rewards += reward #keeps track of current episode cumulative reward
+
         masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done]) #[P,1]
         final_rewards *= masks #erase the ones that are done
         final_rewards += (1 - masks) * episode_rewards  #set it to the cumulative episode reward
@@ -78,6 +82,9 @@ def train(model_dict):
         return reward, masks, final_rewards, episode_rewards, current_state
 
     def do_vid():
+
+
+
         n_vids=3
         for i in range(n_vids):
             done=False
@@ -150,17 +157,10 @@ def train(model_dict):
     print (num_processes, 'processes')
     envs = SubprocVecEnv([make_env(env_name, seed, i, save_dir) for i in range(num_processes)])
 
-    # print (envs)
-    # fadsf
-
     print ('env for video')
     # envs_video = gym.make(env_name)
     # envs_video = gym.wrappers.Monitor(envs_video, save_dir+'/videos/', video_callable=lambda x: True, force=True)
     envs_video = make_env_monitor(env_name, save_dir)#+'/videos/')
-
-    print ('envs for seeing modified and un-modified rewards and states')
-    env1, env2 = make_both_env_types(env_name)
-    fdasfa #next print and view stuff
 
 
     obs_shape = envs.observation_space.shape  # (channels, height, width)
@@ -210,9 +210,15 @@ def train(model_dict):
             # Step, S:[P,C,H,W], R:[P], D:[P]
             state, reward, done, info = envs.step(cpu_actions) 
 
-            # Record rewards
-            reward, masks, final_rewards, episode_rewards, current_state = update_rewards(reward, done, final_rewards, episode_rewards, current_state)
-            
+            # I need to figure out when the env is being reset
+            # I might be wrong about the placecement of the update because maybe the reset is happening 
+            #maybe when its done, the state is acually the first of the next episode, 
+                # if so then its all right.
+            #BUT if it is true then that means, it never sees the last frame. since when the done comes, its
+                # already giving you the next frame, so you never see the done frame
+            #so increasing frame_skip, could cause problems because last frame coudl be far from current frame
+
+
             # Update state, I think this should go before record rewards, because its adding the last state
                 # of the previous episode to the done current_states, ie I just set them to 0
                 #unless the last state is really the first of the next episode, but I doubt it.
@@ -222,6 +228,14 @@ def train(model_dict):
                 #but just need to change some numpy to pytorch 
             # Issue could be the mask, it needs to be updated before this .
             agent.insert_data(step, current_state, action.data, value.data, reward, masks)
+
+
+
+
+            # Record rewards
+            reward, masks, final_rewards, episode_rewards, current_state = update_rewards(reward, done, final_rewards, episode_rewards, current_state)
+            
+
 
             # print (step, 'value_preds', agent.rollouts.value_preds.cpu().numpy().reshape(6,2))
             # self.rewards = self.rewards.cuda()

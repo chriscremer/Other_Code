@@ -337,7 +337,8 @@ def make_plots(model_dict):
             n_envs +=1
 
     cols = min(n_envs,3)
-    rows = max(n_envs // 3, 1)
+    # rows = max(n_envs // 3, 1)
+    rows = int(np.ceil(n_envs /3))
     # print (rows, cols)
 
     fig = plt.figure(figsize=(8+cols,3+rows), facecolor='white')
@@ -385,7 +386,7 @@ def make_plots(model_dict):
                 cur_row+=1
 
 
-    fig_path = exp_path + 'exp_plot' 
+    fig_path = exp_path + model_dict['exp_name'] #+ 'exp_plot' 
     plt.savefig(fig_path+'.png')
     # print('made fig', fig_path+'.png')
 
@@ -395,7 +396,7 @@ def make_plots(model_dict):
 
 
 
-
+    plt.close(fig)
 
 
 
@@ -415,7 +416,7 @@ def make_plots(model_dict):
 if __name__ == "__main__":
 
 
-    exp_name =  'run_envs_6M' #'a2c_opt_smaller_lr' #, 'a2c_opt'# 'first_full_run/'
+    exp_name =  'run_envs_6M_7' #'a2c_opt_smaller_lr' #, 'a2c_opt'# 'first_full_run/'
     exp_path = home + '/Documents/tmp/' + exp_name +'/'
 
 
@@ -428,7 +429,8 @@ if __name__ == "__main__":
             n_envs +=1
 
     cols = min(n_envs,3)
-    rows = max(n_envs // 3, 1)
+    # rows = max(n_envs // 3, 1)
+    rows = int(np.ceil(n_envs /3))
     print (rows, cols)
 
     fig = plt.figure(figsize=(8+cols,3+rows), facecolor='white')

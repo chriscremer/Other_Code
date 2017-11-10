@@ -106,11 +106,16 @@ class a2c(object):
         
         next_value = self.actor_critic(Variable(self.rollouts.states[-1], volatile=True))[0].data
         # use last state to make prediction of next value
+        #isnt [0] the action prediction?? not value??, no its [1]
+        # print('update value', next_value)
+        # # fsadfa
+        # print (self.actor_critic(Variable(self.rollouts.states[-1], volatile=True)))
+        # print()
+        #not the same as act.
 
 
-
-        if hasattr(self.actor_critic, 'obs_filter'):
-            self.actor_critic.obs_filter.update(self.rollouts.states[:-1].view(-1, *obs_shape))
+        # if hasattr(self.actor_critic, 'obs_filter'):
+        #     self.actor_critic.obs_filter.update(self.rollouts.states[:-1].view(-1, *obs_shape))
         #not sure what this is
 
 
@@ -126,6 +131,13 @@ class a2c(object):
                                                     Variable(self.rollouts.actions.view(-1, self.action_shape)))
         # I think this aciton log prob could have been computed and stored earlier 
         # and didnt we already store the value prediction???
+        # ya could totally store this info sooner
+        #might not work for ppo
+        # if I move it then it reduces amount of computation, because it doesnt need to go through agent again
+        #but it increases memeory because I need to store it
+        #if the model was large, this could be a significant cost
+        #and storing the log probs and entropy isnt a huge amount
+
 
         values = values.view(self.num_steps, self.num_processes, 1)
         action_log_probs = action_log_probs.view(self.num_steps, self.num_processes, 1)
@@ -136,12 +148,15 @@ class a2c(object):
         action_loss = -(Variable(advantages.data) * action_log_probs).mean()
 
         self.optimizer.zero_grad()
-        (value_loss * self.value_loss_coef + action_loss - dist_entropy * self.entropy_coef).backward()
-
+        cost = action_loss + value_loss*self.value_loss_coef - dist_entropy*self.entropy_coef
+        cost.backward()
         self.optimizer.step()
 
 
-        self.rollouts.states[0].copy_(self.rollouts.states[-1])
+        #shoudl this be here??
+        # yes, its used to make the prediction for the next batch of steps
+        # I might remove it frmo here, and use teh insert_first function
+        # self.rollouts.states[0].copy_(self.rollouts.states[-1])
         # the first state is now the last state of the previous 
 
 
@@ -251,9 +266,9 @@ class ppo(object):
 
 
 
-        if hasattr(self.actor_critic, 'obs_filter'):
-            self.actor_critic.obs_filter.update(self.rollouts.states[:-1].view(-1, *self.obs_shape))
-        #not sure what this is
+        # if hasattr(self.actor_critic, 'obs_filter'):
+        #     self.actor_critic.obs_filter.update(self.rollouts.states[:-1].view(-1, *self.obs_shape))
+        # #not sure what this is
 
 
 
@@ -267,8 +282,11 @@ class ppo(object):
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-5)
 
         self.old_model.load_state_dict(self.actor_critic.state_dict())
-        if hasattr(self.actor_critic, 'obs_filter'):
-            self.old_model.obs_filter = self.actor_critic.obs_filter
+
+
+        # if hasattr(self.actor_critic, 'obs_filter'):
+        #     self.old_model.obs_filter = self.actor_critic.obs_filter
+
 
         for _ in range(self.ppo_epoch):
             sampler = BatchSampler(SubsetRandomSampler(range(self.num_processes * self.num_steps)), self.batch_size * self.num_processes, drop_last=False)

@@ -37,17 +37,19 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'run_envs_6M_7'
-envs = ['Breakout','Seaquest','Pong','Enduro','Kangaroo', 'BeamRider', 'Alien', 
-            'Amidar','Assualt', 'Freeway',
-            'MontezumaRenvenge','Venture','Zaxxon','PrivateEye', 'Gopher']
-models_list = [mf.ppo_v1]  #[mf.a2c_adam]#  ##  ##, 
-which_gpu = 1
+exp_name = 'learn_algos'
+envs = ['Breakout']#,'Seaquest','Pong','Enduro','Kangaroo', 'BeamRider', 'Alien', 
+            # 'Amidar','Assault', 'Freeway',
+            # 'MontezumaRevenge','Venture','Zaxxon','PrivateEye', 'Gopher']
+models_list = [mf.a2c_adam]  #[mf.ppo_v1]  ##  ##  ##, 
+which_gpu = 0
 noFrameSkip = True
 iters = 1
 num_frames = 6e6
 save_interval=1e6 #save model params and videos
+num_processes=2
 #####################
+
 
 
 
@@ -70,7 +72,6 @@ for env in envs:
 
     env_path = exp_path +env
     make_dir(env_path)
-    print_stuff()
 
     for model_dict in models_list:
 
@@ -90,7 +91,7 @@ for env in envs:
             model_dict['cuda'] = True
             model_dict['which_gpu'] = which_gpu
             model_dict['save_interval'] = save_interval
-
+            model_dict['num_processes'] = num_processes
 
             print (env, model_dict['name'], iter_i)
 
@@ -103,6 +104,7 @@ for env in envs:
             subprocess.call("(cd "+home+"/Other_Code/RL4/pytorch-a2c-ppo-acktr/ && python train.py --m {})".format(json_path), shell=True) 
             print('')
 
+    print_stuff()
 
 print ('Done.')
 

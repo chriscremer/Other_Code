@@ -5,7 +5,7 @@
 value_loss_coef=0.5
 entropy_coef=0.01
 num_stack=4
-num_processes=20
+# num_processes=20
 lr = 7e-4
 eps=1e-5
 alpha=0.99
@@ -17,7 +17,7 @@ tau=.95  #gae parameter
 a2c_rms = {
             'name': 'a2c_rms',
             'algo': 'a2c',
-            'num_processes': num_processes,
+            # 'num_processes': num_processes,
             'num_steps': 5,
             'num_stack': num_stack,
             'log_interval':20,
@@ -38,7 +38,7 @@ a2c_rms = {
 a2c_adam = {
             'name': 'a2c',
             'algo': 'a2c',
-            'num_processes': num_processes,
+            # 'num_processes': num_processes,
             'num_steps': 5,
             'num_stack': num_stack,
             'log_interval':20,
@@ -60,7 +60,7 @@ a2c_adam = {
 ppo_v1 = {
             'name': 'ppo',
             'algo': 'ppo',
-            'num_processes': num_processes,
+            # 'num_processes': num_processes,
             'num_steps': 200,
             'num_stack': num_stack,
             'log_interval':2,
