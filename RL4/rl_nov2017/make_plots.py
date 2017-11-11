@@ -253,8 +253,8 @@ def plot_multiple_iterations2(dir_all, ax, color, m_i):
     # print (os.listdir(dir_all))
     txs, tys=[],[]
     for dir_i in os.listdir(dir_all):
-        
-        if os.path.isdir(dir_all+dir_i):
+        moitor_dir = os.path.join(dir_all+dir_i, 'monitor_rewards')
+        if os.path.isdir(moitor_dir):
             # print (dir_all+dir_i)
             tx, ty = load_data(dir_all+dir_i, smooth=1, bin_size=100)
             txs.append(tx)
@@ -374,12 +374,11 @@ def make_plots(model_dict):
             for m_i in os.listdir(exp_path+env_i):
                 m_dir = exp_path+env_i+'/'+m_i+'/'
                 if os.path.isdir(m_dir):
-                    moitor_dir = os.path.join(m_dir, 'monitor_rewards')
-                    if os.path.isdir(moitor_dir):
-                        # print (cur_row, cur_col, m_dir)
-                        color = color_defaults[m_count] 
-                        plot_multiple_iterations2(m_dir, ax, color, m_i)
-                        m_count+=1
+                    
+                    # print (cur_row, cur_col, m_dir)
+                    color = color_defaults[m_count] 
+                    plot_multiple_iterations2(m_dir, ax, color, m_i)
+                    m_count+=1
 
             cur_col+=1
             if cur_col >= cols:

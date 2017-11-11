@@ -38,8 +38,8 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'confirm_a2c_works_kangaroo'
-envs = ['Kangaroo'] #['Enduro']# ['Breakout'] #['Freeway'] #['Pong']##,'Seaquest',,,, 'BeamRider', 'Alien', 
+exp_name = 'confirm_a2c_works_enduro2'
+envs = ['Enduro'] #['Kangaroo'] ## ['Breakout'] #['Freeway'] #['Pong']##,'Seaquest',,,, 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
             # 'MontezumaRevenge','Venture','Zaxxon','PrivateEye', 'Gopher']
 models_list = [mf.a2c_long]  #[mf.ppo_v1]# ##  #  ##  ##  ##, 

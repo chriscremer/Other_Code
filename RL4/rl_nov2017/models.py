@@ -107,12 +107,12 @@ a2c_long = {
             'algo': 'a2c_minibatch',
             'num_steps': 200,
             'batch_size': 100,
-            'a2c_epochs':4,
+            'a2c_epochs':20,
             'num_stack': num_stack,
             'log_interval':2,
             #Optimizer
             'opt': 'adam',
-            'lr':lr,
+            'lr':1e-4,
             'eps':eps, 
             'alpha':alpha,
             #Objective
