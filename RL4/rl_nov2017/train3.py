@@ -1,16 +1,13 @@
 
 
+
+
+
 import sys
-# print (sys.path)
 for i in range(len(sys.path)):
     if 'ccremer/Documents' in sys.path[i]:
-        # print (sys.path[i])
-        # print (i)
         sys.path.remove(sys.path[i])#[i]
         break
-# print (sys.path)
-
-
 
 import copy
 import glob
@@ -30,12 +27,7 @@ from arguments import get_args
 
 sys.path.insert(0, './baselines/')
 sys.path.insert(0, './baselines/baselines/common/vec_env')
-# from baselines.baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 from subproc_vec_env import SubprocVecEnv
-# import baselines.baselines.common.vec_env.subproc_vec_env
-# print (baselines.common.vec_env.subproc_vec_env.__file__)
-# print (SubprocVecEnv)
-# fasdfd
 
 from envs import make_env
 from envs import make_env_monitor
@@ -57,17 +49,13 @@ import argparse
 import json
 import subprocess
 
-# from arguments import get_args
 parser = argparse.ArgumentParser()
 parser.add_argument('--m')
 args = parser.parse_args()
-# print (args.m)
 
-
+#Load model dict 
 with open(args.m, 'r') as infile:
     model_dict = json.load(infile)
-
-# print (model_dict)
 
 
 def train(model_dict):
@@ -150,32 +138,6 @@ def train(model_dict):
         plt.savefig(frame_path+'frame' +str(count)+'.png')
         print ('saved',frame_path+'frame' +str(count)+'.png')
         plt.close(fig)
-        # fasdfa
-
-
-
-    # def do_view_envs():
-    #     n_steps = 3
-    #     state = env_modified.reset()
-    #     current_state = torch.zeros(1, *obs_shape)
-    #     current_state = update_current_state(current_state, state, shape_dim0).type(dtype)
-    #     current_state = Variable(current_state, volatile=True) 
-    #     for i in range(n_steps):
-
-    #         # print (state_var.size())
-    #         action, value = agent.act(current_state)
-    #         cpu_actions = action.data.squeeze(1).cpu().numpy()
-    #         # Observe reward and next state
-    #         state, reward, done, info = env_modified.step(cpu_actions) # state:[nProcesss, ndims, height, width]
-    #         state = env_modified.render(mode='rgb_array')
-    #         print(state.shape)
-
-    #         fdsafa
-
-    #         # state = torch.from_numpy(state).float().type(dtype)
-    #         # current_state = torch.zeros(1, *obs_shape)
-    #         current_state = update_current_state(current_state, state, shape_dim0).type(dtype)
-
 
 
 
@@ -192,10 +154,6 @@ def train(model_dict):
     save_interval = model_dict['save_interval']
     log_interval = model_dict['log_interval']
 
-    # print("#######")
-    # print("WARNING: All rewards are clipped so you need to use a monitor (see envs.py) or visdom plot to get true rewards")
-    # print("#######")
-
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['CUDA_VISIBLE_DEVICES'] = str(which_gpu)
 
@@ -204,8 +162,10 @@ def train(model_dict):
     
     if cuda:
         torch.cuda.manual_seed(seed)
+        dtype = torch.cuda.FloatTensor
     else:
         torch.manual_seed(seed)
+        dtype = torch.FloatTensor
 
 
     # Create environments
@@ -214,27 +174,17 @@ def train(model_dict):
 
 
     vid_ = 1
+    see_frames = 0
 
     if vid_:
         print ('env for video')
-        # envs_video = gym.make(env_name)
-        # envs_video = gym.wrappers.Monitor(envs_video, save_dir+'/videos/', video_callable=lambda x: True, force=True)
-        envs_video = make_env_monitor(env_name, save_dir)#+'/videos/')
-
-    # print ('envs for seeing modified and un-modified rewards and states')
-    # env_real, env_modified = make_both_env_types(env_name)
-
+        envs_video = make_env_monitor(env_name, save_dir)
 
     obs_shape = envs.observation_space.shape  # (channels, height, width)
     obs_shape = (obs_shape[0] * num_stack, *obs_shape[1:])  # (channels*stack, height, width)
     shape_dim0 = envs.observation_space.shape[0]  #channels
 
     model_dict['obs_shape']=obs_shape
-
-    if cuda:
-        dtype = torch.cuda.FloatTensor
-    else:
-        dtype = torch.FloatTensor
 
 
     # Create agent
@@ -262,9 +212,6 @@ def train(model_dict):
     final_rewards = torch.zeros([num_processes, 1])
 
 
-    # do_view_envs()
-    # fadasd
-
     #Begin training
     count =0
     start = time.time()
@@ -278,41 +225,30 @@ def train(model_dict):
             # Step, S:[P,C,H,W], R:[P], D:[P]
             state, reward, done, info = envs.step(cpu_actions) 
 
-
-
-            # save_frame(state, count)
-            # count+=1
-            # if done[0]:
-            #     ffsdfa
-
-            # state = envs.render()
-            # print(state.shape)
-            # fdsafa
+            if see_frames:
+                #Grayscale
+                save_frame(state, count)
+                count+=1
+                if done[0]:
+                    ffsdfa
+                #RGB
+                state = envs.render()
+                print(state.shape)
+                fdsafa
 
             # Record rewards
             reward, masks, final_rewards, episode_rewards, current_state = update_rewards(reward, done, final_rewards, episode_rewards, current_state)
             
-            # Update state, I think this should go before record rewards, because its adding the last state
-                # of the previous episode to the done current_states, ie I just set them to 0
-                #unless the last state is really the first of the next episode, but I doubt it.
+            # Update state
             current_state = update_current_state(current_state, state, shape_dim0)
 
-            # Agent record step, just saves all those values, I think this should go before record rewards too
-                #but just need to change some numpy to pytorch 
-            # Issue could be the mask, it needs to be updated before this .
+            # Agent record step
             agent.insert_data(step, current_state, action.data, value.data, reward, masks)
 
-            # print (step, 'value_preds', agent.rollouts.value_preds.cpu().numpy().reshape(6,2))
-            # self.rewards = self.rewards.cuda()
-            # self.value_preds = self.value_preds.cuda()
-            # self.returns = self.returns.cuda()
 
         #Optimize agent
         agent.update()
         agent.insert_first_state(agent.rollouts.states[-1])
-
-
-
 
 
 
@@ -368,6 +304,8 @@ def train(model_dict):
     except:
         print ()
         # pass #raise
+
+
 
 
 

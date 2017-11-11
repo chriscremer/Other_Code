@@ -38,12 +38,12 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'confirm_ppo_works_breakout_small_lr'
-envs = ['Breakout'] #['Freeway'] #['Pong']##,'Seaquest',,'Enduro','Kangaroo', 'BeamRider', 'Alien', 
+exp_name = 'confirm_a2c_works_enduro'
+envs = ['Enduro']# ['Breakout'] #['Freeway'] #['Pong']##,'Seaquest',,,'Kangaroo', 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
             # 'MontezumaRevenge','Venture','Zaxxon','PrivateEye', 'Gopher']
-models_list = [mf.ppo_v1]# [mf.a2c_long] ##  #  ##  ##  ##, 
-which_gpu = 0
+models_list = [mf.a2c_long]  #[mf.ppo_v1]# ##  #  ##  ##  ##, 
+which_gpu = 1
 noFrameSkip = True
 iters = 1
 num_frames = 6e6
