@@ -5,7 +5,7 @@
 
 import sys
 for i in range(len(sys.path)):
-    if 'ccremer/Documents' in sys.path[i]:
+    if 'er/Documents' in sys.path[i]:
         sys.path.remove(sys.path[i])#[i]
         break
 
@@ -23,10 +23,9 @@ import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 
-from arguments import get_args
 
-sys.path.insert(0, './baselines/')
-sys.path.insert(0, './baselines/baselines/common/vec_env')
+sys.path.insert(0, '../baselines/')
+sys.path.insert(0, '../baselines/baselines/common/vec_env')
 from subproc_vec_env import SubprocVecEnv
 
 from envs import make_env
@@ -170,7 +169,11 @@ def train(model_dict):
 
     # Create environments
     print (num_processes, 'processes')
-    envs = SubprocVecEnv([make_env(env_name, seed, i, save_dir) for i in range(num_processes)])
+    monitor_rewards_dir = os.path.join(save_dir, 'monitor_rewards')
+    if not os.path.exists(monitor_rewards_dir):
+        os.makedirs(monitor_rewards_dir)
+        print ('Made dir', monitor_rewards_dir) 
+    envs = SubprocVecEnv([make_env(env_name, seed, i, monitor_rewards_dir) for i in range(num_processes)])
 
 
     vid_ = 1

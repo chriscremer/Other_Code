@@ -38,12 +38,12 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'confirm_a2c_works_enduro'
-envs = ['Enduro']# ['Breakout'] #['Freeway'] #['Pong']##,'Seaquest',,,'Kangaroo', 'BeamRider', 'Alien', 
+exp_name = 'confirm_a2c_works_kangaroo'
+envs = ['Kangaroo'] #['Enduro']# ['Breakout'] #['Freeway'] #['Pong']##,'Seaquest',,,, 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
             # 'MontezumaRevenge','Venture','Zaxxon','PrivateEye', 'Gopher']
 models_list = [mf.a2c_long]  #[mf.ppo_v1]# ##  #  ##  ##  ##, 
-which_gpu = 1
+which_gpu = 0
 noFrameSkip = True
 iters = 1
 num_frames = 6e6
@@ -59,15 +59,20 @@ num_processes=20
 
 
 
-print_stuff()
 
+
+
+
+
+
+code_location = home+"/Other_Code/RL4/rl_nov2017/"
+exp_path = home + '/Documents/tmp/' + exp_name+'/'
+
+make_dir(exp_path)
 
 if noFrameSkip:
     envs = [x+'NoFrameskip-v4' for x in envs]
-
-
-exp_path = home + '/Documents/tmp/' + exp_name+'/'
-make_dir(exp_path)
+print_stuff()
 
 for env in envs:
 
@@ -103,7 +108,7 @@ for env in envs:
                 json.dump(model_dict, outfile,sort_keys=True, indent=4)
 
             #train model
-            subprocess.call("(cd "+home+"/Other_Code/RL4/pytorch-a2c-ppo-acktr/ && python train3.py --m {})".format(json_path), shell=True) 
+            subprocess.call("(cd "+code_location+" && python train3.py --m {})".format(json_path), shell=True) 
             print('')
 
     print_stuff()

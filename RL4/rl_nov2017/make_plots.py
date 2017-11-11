@@ -374,11 +374,12 @@ def make_plots(model_dict):
             for m_i in os.listdir(exp_path+env_i):
                 m_dir = exp_path+env_i+'/'+m_i+'/'
                 if os.path.isdir(m_dir):
-
-                    # print (cur_row, cur_col, m_dir)
-                    color = color_defaults[m_count] 
-                    plot_multiple_iterations2(m_dir, ax, color, m_i)
-                    m_count+=1
+                    moitor_dir = os.path.join(m_dir, 'monitor_rewards')
+                    if os.path.isdir(moitor_dir):
+                        # print (cur_row, cur_col, m_dir)
+                        color = color_defaults[m_count] 
+                        plot_multiple_iterations2(m_dir, ax, color, m_i)
+                        m_count+=1
 
             cur_col+=1
             if cur_col >= cols:
