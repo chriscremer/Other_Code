@@ -253,13 +253,22 @@ def plot_multiple_iterations2(dir_all, ax, color, m_i):
     # print (os.listdir(dir_all))
     txs, tys=[],[]
     for dir_i in os.listdir(dir_all):
-        moitor_dir = os.path.join(dir_all+dir_i, 'monitor_rewards')
-        if os.path.isdir(moitor_dir):
-            # print (dir_all+dir_i)
-            tx, ty = load_data(dir_all+dir_i, smooth=1, bin_size=100)
-            txs.append(tx)
-            tys.append(ty)
-            # break
+
+        if os.path.isdir(dir_all+dir_i):
+                
+            monitor_dir = os.path.join(dir_all+dir_i, 'monitor_rewards')
+            # print (monitor_dir)
+
+            if os.path.isdir(monitor_dir):
+                # print ('YESS')
+                # print (dir_all+dir_i)
+                tx, ty = load_data(monitor_dir, smooth=1, bin_size=100)
+                txs.append(tx)
+                tys.append(ty)
+                # break
+            # else:
+            #     print ('NO')
+            # fdsafa
 
     if txs[0] != None:
 

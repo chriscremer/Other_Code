@@ -17,6 +17,7 @@ tau=.95  #gae parameter
 a2c_rms = {
             'name': 'a2c_rms',
             'algo': 'a2c',
+            # 'agent': a2c,
             # 'num_processes': num_processes,
             'num_steps': 5,
             'num_stack': num_stack,
@@ -38,6 +39,7 @@ a2c_rms = {
 a2c_adam = {
             'name': 'a2c',
             'algo': 'a2c',
+            # 'agent': a2c,
             # 'num_processes': num_processes,
             'num_steps': 5,
             'num_stack': num_stack,
@@ -62,13 +64,14 @@ ppo_v1 = {
             'algo': 'ppo',
             'num_stack': num_stack,
             'log_interval':2,
+            # 'agent': ppo,
             # 'num_processes': num_processes,
             'num_steps': 200,
-            'batch_size':100,
-            'ppo_epoch': 20,#4,  #number of grad steps 
+            'batch_size':50,
+            'ppo_epoch': 4, #number of grad steps 
             'clip_param': .2,
             #Optimizer
-            'lr':1e-4,
+            'lr':1e-3,
             'eps':eps, 
             #Objective
             'value_loss_coef':value_loss_coef, 
@@ -83,6 +86,7 @@ ppo_v1 = {
 ppo_v2 = {
             'name': 'ppo',
             'algo': 'ppo',
+            # 'agent': ppo,
             'num_stack': num_stack,
             'log_interval':20,
             # 'num_processes': num_processes,
@@ -105,6 +109,7 @@ ppo_v2 = {
 a2c_long = {
             'name': 'a2c',
             'algo': 'a2c_minibatch',
+            # 'agent': a2c_minibatch,
             'num_steps': 200,
             'batch_size': 100,
             'a2c_epochs':20,
@@ -125,6 +130,30 @@ a2c_long = {
 
 
 
+
+ppo_linear = {
+            'name': 'ppo',
+            'algo': 'ppo',
+            'num_stack': num_stack,
+            'log_interval':2,
+            # 'agent': ppo,
+            # 'num_processes': num_processes,
+            'num_steps': 400,
+            'batch_size':200,
+            'ppo_epoch': 20, #number of grad steps 
+            'clip_param': .2,
+            #Optimizer
+            'lr':1e-2,
+            'eps':eps, 
+            'lr_schedule':'linear',
+            'final_lr':1e-5,
+            #Objective
+            'value_loss_coef':value_loss_coef, 
+            'entropy_coef':entropy_coef,
+            'gamma':gamma,
+            'use_gae':False,
+            'tau':tau
+}
 
 
 

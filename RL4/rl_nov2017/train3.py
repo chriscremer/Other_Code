@@ -32,14 +32,16 @@ from envs import make_env
 from envs import make_env_monitor
 from envs import make_both_env_types
 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
 
 from agent_modular2 import a2c
 from agent_modular2 import ppo
 from agent_modular2 import a2c_minibatch
+
+
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 
 from make_plots import make_plots
@@ -66,6 +68,18 @@ def train(model_dict):
         #first stack*channel-channel frames = last stack*channel-channel , so slide them forward
         current_state[:, :-channels] = current_state[:, channels:] 
         current_state[:, -channels:] = state #last frame is now the new one
+
+        # if see_frames:
+        #     #Grayscale
+        #     save_frame(state, count)
+        #     count+=1
+        #     if done[0]:
+        #         ffsdfa
+        #     #RGB
+        #     state = envs.render()
+        #     print(state.shape)
+        #     fdsafa
+
         return current_state
 
 
@@ -156,7 +170,7 @@ def train(model_dict):
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['CUDA_VISIBLE_DEVICES'] = str(which_gpu)
 
-    num_updates = int(num_frames) // num_steps // num_processes
+    
 
     
     if cuda:
@@ -193,10 +207,14 @@ def train(model_dict):
     # Create agent
     if algo == 'a2c':
         agent = a2c(envs, model_dict)
+        print ('init a2c agent')
     elif algo == 'ppo':
         agent = ppo(envs, model_dict)
+        print ('init ppo agent')
     elif algo == 'a2c_minibatch':
         agent = a2c_minibatch(envs, model_dict)
+        print ('init a2c_minibatch agent')
+    # agent = model_dict['agent'](envs, model_dict)
 
     # #Load model
     # if args.load_path != '':
@@ -214,9 +232,10 @@ def train(model_dict):
     episode_rewards = torch.zeros([num_processes, 1]) #keeps track of current episode cumulative reward
     final_rewards = torch.zeros([num_processes, 1])
 
+    num_updates = int(num_frames) // num_steps // num_processes
 
     #Begin training
-    count =0
+    # count =0
     start = time.time()
     for j in range(num_updates):
         for step in range(num_steps):
@@ -228,17 +247,6 @@ def train(model_dict):
             # Step, S:[P,C,H,W], R:[P], D:[P]
             state, reward, done, info = envs.step(cpu_actions) 
 
-            if see_frames:
-                #Grayscale
-                save_frame(state, count)
-                count+=1
-                if done[0]:
-                    ffsdfa
-                #RGB
-                state = envs.render()
-                print(state.shape)
-                fdsafa
-
             # Record rewards
             reward, masks, final_rewards, episode_rewards, current_state = update_rewards(reward, done, final_rewards, episode_rewards, current_state)
             
@@ -249,8 +257,9 @@ def train(model_dict):
             agent.insert_data(step, current_state, action.data, value.data, reward, masks)
 
 
+
         #Optimize agent
-        agent.update()
+        agent.update(j,num_updates)
         agent.insert_first_state(agent.rollouts.states[-1])
 
 
@@ -270,7 +279,9 @@ def train(model_dict):
             if cuda:
                 save_model = copy.deepcopy(agent.actor_critic).cpu()
             # torch.save(save_model, os.path.join(save_path, args.env_name + ".pt"))
+            # steps_sci_nota = '{e}'.format(total_num_steps)
             save_to=os.path.join(save_path, "model_params" + str(total_num_steps)+".pt")
+            # save_to=os.path.join(save_path, "model_params" + steps_sci_nota+".pt")
             torch.save(save_model, save_to)
             print ('saved', save_to)
 
@@ -290,6 +301,7 @@ def train(model_dict):
                     make_plots(model_dict)
                     print("Upts, n_timesteps, min/med/mean/max, FPS, Time, Plot updated")
                 except:
+                    raise
                     print("Upts, n_timesteps, min/med/mean/max, FPS, Time")
 
             print("{}, {}, {:.1f}/{:.1f}/{:.1f}/{:.1f}, {}, {:.1f}".
@@ -299,8 +311,7 @@ def train(model_dict):
                            final_rewards.mean(),
                            final_rewards.max(),
                            int(total_num_steps / (end - start)),
-                           end - start))
-
+                           end - start), agent.current_lr)
     
     try:
         make_plots(model_dict)

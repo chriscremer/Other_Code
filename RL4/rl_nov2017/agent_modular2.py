@@ -10,6 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torch.optim.lr_scheduler as lr_scheduler
 from torch.autograd import Variable
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 
@@ -150,16 +151,11 @@ class a2c(object):
         self.optimizer.zero_grad()
         cost = action_loss + value_loss*self.value_loss_coef - dist_entropy*self.entropy_coef
         cost.backward()
+
+        nn.utils.clip_grad_norm(params=self.actor_critic.parameters(), .5)
+
+
         self.optimizer.step()
-
-
-        #shoudl this be here??
-        # yes, its used to make the prediction for the next batch of steps
-        # I might remove it frmo here, and use teh insert_first function
-        # self.rollouts.states[0].copy_(self.rollouts.states[-1])
-        # the first state is now the last state of the previous 
-
-
 
 
 
@@ -220,9 +216,17 @@ class ppo(object):
             actor_critic.cuda()
             rollouts.cuda()
 
+        self.eps = hparams['eps']
 
         # self.optimizer = optim.RMSprop(params=actor_critic.parameters(), lr=hparams['lr'], eps=hparams['eps'], alpha=hparams['alpha'])
         self.optimizer = optim.Adam(params=actor_critic.parameters(), lr=hparams['lr'], eps=hparams['eps'])
+
+        # if hparams['lr_schedule'] == 'linear':
+        self.init_lr = hparams['lr']
+        self.final_lr = hparams['final_lr']
+        #     lr_func = lambda epoch: max( init_lr*(1.-(epoch/500.)), final_lr)
+        #     self.optimizer2 = lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lr_func)
+        # self.current_lr = hparams['lr']
 
 
         self.actor_critic = actor_critic
@@ -260,7 +264,7 @@ class ppo(object):
 
 
 
-    def update(self):
+    def update(self, step=-1, max_steps=-1):
         
         next_value = self.actor_critic(Variable(self.rollouts.states[-1], volatile=True))[0].data
         # use last state to make prediction of next value
@@ -325,10 +329,21 @@ class ppo(object):
 
                 value_loss = (Variable(return_batch) - values).pow(2).mean()
 
+
+                self.current_lr = max(self.init_lr*(1.-(step/1000.)), self.final_lr)
+                self.optimizer = optim.Adam(params=self.actor_critic.parameters(), lr=self.current_lr, eps=self.eps)
+
+
                 self.optimizer.zero_grad()
                 cost = action_loss + value_loss*self.value_loss_coef - dist_entropy*self.entropy_coef
                 cost.backward()
                 self.optimizer.step()
+
+                
+
+
+
+
 
 
 
@@ -405,30 +420,16 @@ class a2c_minibatch(object):
 
 
     def act(self, current_state):
-
-        # Sample actions
         value, action = self.actor_critic.act(current_state)
-        # make prediction using state that you put into rollouts
-
-
         return action, value
 
 
     def insert_first_state(self, current_state):
-
         self.rollouts.states[0].copy_(current_state)
-        #set the first state to current state
-
-
 
 
     def insert_data(self, step, current_state, action, value, reward, masks):
-
         self.rollouts.insert(step, current_state, action, value, reward, masks)
-        # insert all that info into current step
-        # not exactly why
-
-
 
 
     def update(self):
@@ -458,9 +459,6 @@ class a2c_minibatch(object):
                 cost = action_loss + value_loss*self.value_loss_coef - dist_entropy*self.entropy_coef
                 cost.backward()
                 self.optimizer.step()
-
-
-
 
 
 
