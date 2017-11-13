@@ -39,11 +39,10 @@ a2c_rms = {
 a2c_adam = {
             'name': 'a2c',
             'algo': 'a2c',
-            # 'agent': a2c,
-            # 'num_processes': num_processes,
-            'num_steps': 5,
+            'dropout': False,
+            'num_steps': 4,
             'num_stack': num_stack,
-            'log_interval':20,
+            'log_interval':10,
             #Optimizer
             'opt': 'adam',
             'lr':lr,
@@ -55,8 +54,30 @@ a2c_adam = {
             'gamma':gamma,
             'use_gae':False,
             'tau':tau
+
 }
 
+
+a2c_dropout = {
+            'name': 'a2c_dropout',
+            'algo': 'a2c',
+            'dropout': True,
+            'num_steps': 4,
+            'num_stack': num_stack,
+            'log_interval':10,
+            #Optimizer
+            'opt': 'adam',
+            'lr':lr,
+            'eps':eps, 
+            'alpha':alpha,
+            #Objective
+            'value_loss_coef':value_loss_coef, 
+            'entropy_coef':entropy_coef,
+            'gamma':gamma,
+            'use_gae':False,
+            'tau':tau
+
+}
 
 
 ppo_v1 = {

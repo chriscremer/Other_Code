@@ -36,20 +36,23 @@ def print_stuff():
 
 
 
+
 # Experiment 
 ##################
-exp_name = 'confirm_ppo_works_enduro_lrschedule_longerhorizon_2'
-envs = ['Enduro'] #['Kangaroo'] ## ['Breakout'] #['Freeway'] #['Pong']##,'Seaquest',,,, 'BeamRider', 'Alien', 
+exp_name = 'a2c_reg_and_dropout_pong2'
+envs = ['Pong']  #['Breakout']   #['Enduro'] #['Kangaroo'] ## #['Freeway'] ###,'Seaquest',,,, 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
             # 'MontezumaRevenge','Venture','Zaxxon','PrivateEye', 'Gopher']
-models_list = [mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long]  ## ##  #  ##  ##  ##, 
-which_gpu = 1
+models_list =  [mf.a2c_adam]  #[mf.a2c_dropout] # #  # # ## mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long]  ## ##  #  ##  ##  ##, 
+which_gpu = 0
 noFrameSkip = True
 iters = 1
 num_frames = 6e6
 save_interval=1e6 #save model params and videos
 num_processes=20
+seed_offset = 0
 #####################
+
 
 
 
@@ -84,7 +87,7 @@ for env in envs:
         model_path = env_path +'/'+ model_dict['name']
         make_dir(model_path)
 
-        for iter_i in range(iters):
+        for iter_i in range(seed_offset,seed_offset+iters):
 
             iter_path = model_path +'/'+ 'seed'+str(iter_i)
             make_dir(iter_path)

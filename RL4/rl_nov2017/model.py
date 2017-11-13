@@ -13,6 +13,8 @@ def weights_init(m):
             m.bias.data.fill_(0)
 
 
+
+
 class FFPolicy(nn.Module):
     def __init__(self):
         super(FFPolicy, self).__init__()
@@ -29,6 +31,9 @@ class FFPolicy(nn.Module):
         value, x = self(inputs)
         action_log_probs, dist_entropy = self.dist.evaluate_actions(x, actions)
         return value, action_log_probs, dist_entropy
+
+
+
 
 
 class CNNPolicy(FFPolicy):
@@ -66,6 +71,24 @@ class CNNPolicy(FFPolicy):
         if self.dist.__class__.__name__ == "DiagGaussian":
             self.dist.fc_mean.weight.data.mul_(0.01)
 
+    # def forward(self, inputs):
+    #     x = self.conv1(inputs / 255.0)
+    #     x = F.relu(x)
+
+    #     x = self.conv2(x)
+    #     x = F.relu(x)
+
+    #     x = self.conv3(x)
+    #     x = F.relu(x)
+
+    #     x = x.view(-1, 32 * 7 * 7)
+    #     x = self.linear1(x)
+    #     x = F.relu(x)
+
+    #     return self.critic_linear(x), x
+
+
+
     def forward(self, inputs):
         x = self.conv1(inputs / 255.0)
         x = F.relu(x)
@@ -78,9 +101,60 @@ class CNNPolicy(FFPolicy):
 
         x = x.view(-1, 32 * 7 * 7)
         x = self.linear1(x)
+        for_action = x
+
+
+        x = F.relu(x)
+        for_value= self.critic_linear(x)
+
+        return for_value, for_action
+
+
+
+
+class CNNPolicy_dropout(CNNPolicy):
+
+    def forward(self, inputs):
+        x = self.conv1(inputs / 255.0)
         x = F.relu(x)
 
-        return self.critic_linear(x), x
+        x = self.conv2(x)
+        x = F.relu(x)
+
+        x = self.conv3(x)
+        x = F.relu(x)
+
+        x = x.view(-1, 32 * 7 * 7)
+        x = self.linear1(x)
+        for_action = x
+        
+        x = F.dropout(x, p=.5, training=True)  #training false has no stochasticity 
+        x = F.relu(x)
+        for_value= self.critic_linear(x)
+
+        return for_value, for_action
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def weights_init_mlp(m):
@@ -90,6 +164,11 @@ def weights_init_mlp(m):
         m.weight.data *= 1 / torch.sqrt(m.weight.data.pow(2).sum(1, keepdim=True))
         if m.bias is not None:
             m.bias.data.fill_(0)
+
+
+
+
+
 
 
 class MLPPolicy(FFPolicy):
@@ -191,6 +270,169 @@ class ObsNorm(nn.Module):
         if self.clip:
             x = x.clamp(-self.clip, self.clip)
         return x
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class CNNPolicy2(FFPolicy):
+    def __init__(self, num_inputs, action_space):
+        super(CNNPolicy2, self).__init__()
+        self.conv1 = nn.Conv2d(num_inputs, 32, 8, stride=4)
+        self.conv2 = nn.Conv2d(32, 64, 4, stride=2)
+        self.conv3 = nn.Conv2d(64, 32, 3, stride=1)
+
+        self.linear1 = nn.Linear(32 * 7 * 7, 512)
+
+        self.critic_linear1 = nn.Linear(512, 200)
+        self.critic_linear2 = nn.Linear(200, 1)
+
+        self.actor_linear1 = nn.Linear(512, 200)
+        # self.actor_linear2 = nn.Linear(200, 200)
+
+        if action_space.__class__.__name__ == "Discrete":
+            num_outputs = action_space.n
+            self.dist = Categorical(200, num_outputs)
+        elif action_space.__class__.__name__ == "Box":
+            num_outputs = action_space.shape[0]
+            self.dist = DiagGaussian(200, num_outputs)
+        else:
+            raise NotImplementedError
+
+        self.train()
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        self.apply(weights_init)
+
+        relu_gain = nn.init.calculate_gain('relu')
+        self.conv1.weight.data.mul_(relu_gain)
+        self.conv2.weight.data.mul_(relu_gain)
+        self.conv3.weight.data.mul_(relu_gain)
+        self.linear1.weight.data.mul_(relu_gain)
+
+        if self.dist.__class__.__name__ == "DiagGaussian":
+            self.dist.fc_mean.weight.data.mul_(0.01)
+
+    # def forward(self, inputs):
+    #     x = self.conv1(inputs / 255.0)
+    #     x = F.relu(x)
+
+    #     x = self.conv2(x)
+    #     x = F.relu(x)
+
+    #     x = self.conv3(x)
+    #     x = F.relu(x)
+
+    #     x = x.view(-1, 32 * 7 * 7)
+    #     x = self.linear1(x)
+    #     x = F.relu(x)
+
+    #     return self.critic_linear(x), x
+
+
+
+    def forward(self, inputs):
+        x = self.conv1(inputs / 255.0)
+        x = F.relu(x)
+
+        x = self.conv2(x)
+        x = F.relu(x)
+
+        x = self.conv3(x)
+        x = F.relu(x)
+
+        x = x.view(-1, 32 * 7 * 7)
+        x = self.linear1(x) #[B,512]
+        x = F.relu(x)
+
+        x_a = self.actor_linear1(x)
+        x_a = F.relu(x_a)
+
+        x_v = self.critic_linear1(x)
+        x_v = F.relu(x_v)
+        x_v = self.critic_linear2(x_v)
+
+        return x_v, x_a
+
+
+
+
+
+
+
+class CNNPolicy_dropout2(CNNPolicy2):
+
+    def forward(self, inputs):
+
+
+        x = self.conv1(inputs / 255.0)
+        x = F.relu(x)
+
+        x = self.conv2(x)
+        x = F.relu(x)
+
+        x = self.conv3(x)
+        x = F.relu(x)
+
+        x = x.view(-1, 32 * 7 * 7)
+        x = self.linear1(x) #[B,512]
+        x = F.relu(x)
+
+        x_a = self.actor_linear1(x)
+        x_a = F.relu(x_a)
+
+        x_v = self.critic_linear1(F.dropout(x, p=.5, training=True)) 
+        x_v = F.relu(x_v)
+        x_v = self.critic_linear2(x_v)
+
+        return x_v, x_a
+
+
+
+
+
+
+
+
+
 
 
 

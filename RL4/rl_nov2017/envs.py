@@ -40,7 +40,9 @@ def make_env(env_id, seed, rank, log_dir):
             env = MaxAndSkipEnv(env, skip=4)
 
         env.seed(seed + rank)
-        env = bench.Monitor(env, os.path.join(log_dir, str(rank)))
+
+        if log_dir != '':
+            env = bench.Monitor(env, os.path.join(log_dir, str(rank)))
 
         if is_atari:
             env = wrap_deepmind(env)

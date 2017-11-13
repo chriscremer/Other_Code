@@ -16,8 +16,9 @@ from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 
 import copy
 from kfac import KFACOptimizer
-from model import CNNPolicy, MLPPolicy
+from model import CNNPolicy, MLPPolicy, CNNPolicy_dropout, CNNPolicy2, CNNPolicy_dropout2
 from storage import RolloutStorage
+
 
 
 
@@ -43,10 +44,14 @@ class a2c(object):
 
 
 
-
-
-        if len(envs.observation_space.shape) == 3:
-            actor_critic = CNNPolicy(self.obs_shape[0], envs.action_space)
+        if hparams['dropout'] == True:
+            print ('CNNPolicy_dropout')
+            actor_critic = CNNPolicy_dropout2(self.obs_shape[0], envs.action_space)
+            # actor_critic = CNNPolicy_dropout(self.obs_shape[0], envs.action_space)
+        elif len(envs.observation_space.shape) == 3:
+            print ('CNNPolicy')
+            actor_critic = CNNPolicy2(self.obs_shape[0], envs.action_space)
+            # actor_critic = CNNPolicy(self.obs_shape[0], envs.action_space)
         else:
             actor_critic = MLPPolicy(self.obs_shape[0], envs.action_space)
 
@@ -152,7 +157,7 @@ class a2c(object):
         cost = action_loss + value_loss*self.value_loss_coef - dist_entropy*self.entropy_coef
         cost.backward()
 
-        nn.utils.clip_grad_norm(params=self.actor_critic.parameters(), .5)
+        nn.utils.clip_grad_norm(self.actor_critic.parameters(), .5)
 
 
         self.optimizer.step()
