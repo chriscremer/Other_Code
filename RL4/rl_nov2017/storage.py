@@ -1,5 +1,5 @@
 import torch
-
+import numpy as np
 
 class RolloutStorage(object):
     def __init__(self, num_steps, num_processes, obs_shape, action_space):
@@ -47,6 +47,8 @@ class RolloutStorage(object):
                 # I think that was a bug. Needed to add one. because the last state should not get plus predicted value
                 # run experiment to see if any difference
 
+            #     print (step, np.squeeze(self.returns.cpu().numpy()))
+            # fsda
                 #its possible that maybe he accounts for this when inserting the masks. need to check
                 # no it seems like theres no change to masks, so my change might help
 

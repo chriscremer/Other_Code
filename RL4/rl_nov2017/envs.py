@@ -17,10 +17,6 @@ from gym import spaces
 
 
 
-# def make_vec_envs(env_id, seed, rank, log_dir):
-
-#     return envs1, envs2
-
 
 
 def make_env(env_id, seed, rank, log_dir):
@@ -28,6 +24,10 @@ def make_env(env_id, seed, rank, log_dir):
 
         env = gym.make(env_id) #this prints
         # print('here')
+
+        # print (env.unwrapped)
+        # print (env.unwrapped.get_action_meanings())
+        # fdsadsfa
 
         is_atari = hasattr(gym.envs, 'atari') and isinstance(env.unwrapped, gym.envs.atari.atari_env.AtariEnv)
 
@@ -47,6 +47,8 @@ def make_env(env_id, seed, rank, log_dir):
         if is_atari:
             env = wrap_deepmind(env)
             env = WrapPyTorch(env)
+
+
 
         return env
 

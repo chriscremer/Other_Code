@@ -393,6 +393,32 @@ class CNNPolicy2(FFPolicy):
         return x_v, x_a
 
 
+    def action_dist(self, inputs):
+        x = self.conv1(inputs / 255.0)
+        x = F.relu(x)
+
+        x = self.conv2(x)
+        x = F.relu(x)
+
+        x = self.conv3(x)
+        x = F.relu(x)
+
+        x = x.view(-1, 32 * 7 * 7)
+        x = self.linear1(x) #[B,512]
+        x = F.relu(x)
+
+        x_a = self.actor_linear1(x)
+        x_a = F.relu(x_a)
+
+        # x_v = self.critic_linear1(x)
+        # x_v = F.relu(x_v)
+        # x_v = self.critic_linear2(x_v)
+
+        # print (x_a)
+
+
+        return self.dist.action_probs(x_a)
+
 
 
 

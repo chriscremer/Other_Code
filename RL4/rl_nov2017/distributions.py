@@ -13,6 +13,7 @@ class Categorical(nn.Module):
         self.linear = nn.Linear(num_inputs, num_outputs)
 
     def forward(self, x):
+
         x = self.linear(x)
         return x
 
@@ -36,6 +37,15 @@ class Categorical(nn.Module):
 
         dist_entropy = -(log_probs * probs).sum(-1).mean()
         return action_log_probs, dist_entropy
+
+    def action_probs(self, x):
+        x = self(x)
+
+        log_probs = F.log_softmax(x)
+        probs = F.softmax(x)
+
+        return probs
+
 
 
 class DiagGaussian(nn.Module):
