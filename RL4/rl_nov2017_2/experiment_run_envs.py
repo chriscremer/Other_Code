@@ -38,19 +38,20 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'confirm_a2c_breakout1'
+exp_name = 'testing4'
 envs = ['Breakout']  #['Pong']  #  #['Enduro'] #['Kangaroo'] ## #['Freeway'] ###,'Seaquest',,,, 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
             # 'MontezumaRevenge','Venture','Zaxxon','PrivateEye', 'Gopher']
-models_list =  [ms.a2c_adam]  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
+models_list =  [ms.a2c_adam] #[ms.a2c_list]  #  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
 which_gpu = 0
 noFrameSkip = True
 iters = 1
 num_frames = 6e6
-save_interval=5e5 #save model params and videos
+save_interval=5e5 #save model params and videos and gifs
 num_processes=20
 seed_offset = 0
 #####################
+
 
 
 
@@ -110,7 +111,7 @@ for env in envs:
                 json.dump(model_dict, outfile,sort_keys=True, indent=4)
 
             #train model
-            subprocess.call("(cd "+code_location+" && python train3.py --m {})".format(json_path), shell=True) 
+            subprocess.call("(cd "+code_location+" && python train4.py --m {})".format(json_path), shell=True) 
             print('')
 
     print_stuff()

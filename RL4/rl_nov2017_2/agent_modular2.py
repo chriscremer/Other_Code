@@ -17,7 +17,7 @@ from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 import copy
 from kfac import KFACOptimizer
 from model import CNNPolicy, MLPPolicy, CNNPolicy_dropout, CNNPolicy2, CNNPolicy_dropout2
-from storage import RolloutStorage
+from storage import RolloutStorage, RolloutStorage_list
 
 
 
@@ -45,11 +45,11 @@ class a2c(object):
 
 
         if hparams['dropout'] == True:
-            print ('CNNPolicy_dropout')
+            print ('CNNPolicy_dropout2')
             actor_critic = CNNPolicy_dropout2(self.obs_shape[0], envs.action_space)
             # actor_critic = CNNPolicy_dropout(self.obs_shape[0], envs.action_space)
         elif len(envs.observation_space.shape) == 3:
-            print ('CNNPolicy')
+            print ('CNNPolicy2')
             actor_critic = CNNPolicy2(self.obs_shape[0], envs.action_space)
             # actor_critic = CNNPolicy(self.obs_shape[0], envs.action_space)
         else:
@@ -80,70 +80,37 @@ class a2c(object):
         self.rollouts = rollouts
 
 
+        self.rollouts_list = RolloutStorage_list()
+
+
 
     def act(self, current_state):
 
-        # Sample actions
         value, action = self.actor_critic.act(current_state)
-        # make prediction using state that you put into rollouts
-
-
         return action, value
 
 
     def insert_first_state(self, current_state):
 
         self.rollouts.states[0].copy_(current_state)
-        #set the first state to current state
-
-
 
 
     def insert_data(self, step, current_state, action, value, reward, masks):
 
         self.rollouts.insert(step, current_state, action, value, reward, masks)
-        # insert all that info into current step
-        # not exactly why
-
-
 
 
     def update(self):
         
         next_value = self.actor_critic(Variable(self.rollouts.states[-1], volatile=True))[0].data
-        # use last state to make prediction of next value
-        #isnt [0] the action prediction?? not value??, no its [1]
-        # print('update value', next_value)
-        # # fsadfa
-        # print (self.actor_critic(Variable(self.rollouts.states[-1], volatile=True)))
-        # print()
-        #not the same as act.
-
-
-        # if hasattr(self.actor_critic, 'obs_filter'):
-        #     self.actor_critic.obs_filter.update(self.rollouts.states[:-1].view(-1, *obs_shape))
-        #not sure what this is
-
-
-
 
         self.rollouts.compute_returns(next_value, self.use_gae, self.gamma, self.tau)
-        # this computes R =  r + r+ ...+ V(t)  for each step
 
 
 
         values, action_log_probs, dist_entropy = self.actor_critic.evaluate_actions(
                                                     Variable(self.rollouts.states[:-1].view(-1, *self.obs_shape)), 
                                                     Variable(self.rollouts.actions.view(-1, self.action_shape)))
-        # I think this aciton log prob could have been computed and stored earlier 
-        # and didnt we already store the value prediction???
-        # ya could totally store this info sooner
-        #might not work for ppo
-        # if I move it then it reduces amount of computation, because it doesnt need to go through agent again
-        #but it increases memeory because I need to store it
-        #if the model was large, this could be a significant cost
-        #and storing the log probs and entropy isnt a huge amount
-
 
         values = values.view(self.num_steps, self.num_processes, 1)
         action_log_probs = action_log_probs.view(self.num_steps, self.num_processes, 1)
@@ -468,6 +435,132 @@ class a2c_minibatch(object):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class a2c_list_rollout(object):
+
+    def __init__(self, envs, hparams):
+
+        # self.use_gae = hparams['use_gae']
+        self.gamma = hparams['gamma']
+        # self.tau = hparams['tau']
+
+        self.obs_shape = hparams['obs_shape']
+        self.num_steps = hparams['num_steps']
+        self.num_processes = hparams['num_processes']
+        self.value_loss_coef = hparams['value_loss_coef']
+        self.entropy_coef = hparams['entropy_coef']
+        self.cuda = hparams['cuda']
+        self.opt = hparams['opt']
+
+
+
+        if hparams['dropout'] == True:
+            print ('CNNPolicy_dropout2')
+            actor_critic = CNNPolicy_dropout2(self.obs_shape[0], envs.action_space)
+            # actor_critic = CNNPolicy_dropout(self.obs_shape[0], envs.action_space)
+        elif len(envs.observation_space.shape) == 3:
+            print ('CNNPolicy2')
+            actor_critic = CNNPolicy2(self.obs_shape[0], envs.action_space)
+            # actor_critic = CNNPolicy(self.obs_shape[0], envs.action_space)
+        else:
+            actor_critic = MLPPolicy(self.obs_shape[0], envs.action_space)
+
+        if envs.action_space.__class__.__name__ == "Discrete":
+            action_shape = 1
+        else:
+            action_shape = envs.action_space.shape[0]
+        self.action_shape = action_shape
+
+        rollouts = RolloutStorage_list() #self.num_steps, self.num_processes, self.obs_shape, envs.action_space)
+        #it has a self.state that is [steps, processes, obs]
+        #steps is used to compute expected reward
+
+        if self.cuda:
+            actor_critic.cuda()
+            # rollouts.cuda()
+
+        if self.opt == 'rms':
+            self.optimizer = optim.RMSprop(params=actor_critic.parameters(), lr=hparams['lr'], eps=hparams['eps'], alpha=hparams['alpha'])
+        elif self.opt == 'adam':
+            self.optimizer = optim.Adam(params=actor_critic.parameters(), lr=hparams['lr'], eps=hparams['eps'])
+        else:
+            print ('no opt specified')
+
+        self.actor_critic = actor_critic
+        self.rollouts = rollouts
+
+
+
+    def act(self, current_state):
+
+        value, action = self.actor_critic.act(current_state)
+        return action, value
+
+
+    def insert_first_state(self, current_state):
+
+        # self.rollouts.states[0].copy_(current_state)
+        self.rollouts.states = [current_state]
+        # self.rollouts.states = []
+
+
+
+
+    def insert_data(self, step, current_state, action, value, reward, masks):
+
+        self.rollouts.insert(step, current_state, action, value, reward, masks)
+
+
+    def update(self):
+        
+        next_value = self.actor_critic(Variable(self.rollouts.states[-1], volatile=True))[0].data
+
+        # self.rollouts.compute_returns(next_value, self.use_gae, self.gamma, self.tau)
+        self.rollouts.compute_returns(next_value, self.gamma)
+
+
+
+        values, action_log_probs, dist_entropy = self.actor_critic.evaluate_actions(
+                                                    Variable(self.rollouts.states[:-1].view(-1, *self.obs_shape)), 
+                                                    Variable(self.rollouts.actions.view(-1, self.action_shape)))
+
+        values = values.view(self.num_steps, self.num_processes, 1)
+        action_log_probs = action_log_probs.view(self.num_steps, self.num_processes, 1)
+
+        advantages = Variable(self.rollouts.returns[:-1]) - values
+        value_loss = advantages.pow(2).mean()
+
+        action_loss = -(Variable(advantages.data) * action_log_probs).mean()
+
+        self.optimizer.zero_grad()
+        cost = action_loss + value_loss*self.value_loss_coef - dist_entropy*self.entropy_coef
+        cost.backward()
+
+        nn.utils.clip_grad_norm(self.actor_critic.parameters(), .5)
+
+
+        self.optimizer.step()
 
 
 

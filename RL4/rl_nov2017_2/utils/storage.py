@@ -42,18 +42,90 @@ class RolloutStorage(object):
         else:
             self.returns[-1] = next_value
             for step in reversed(range(self.rewards.size(0))):
-                # self.returns[step] = self.returns[step + 1] * gamma * self.masks[step] + self.rewards[step]
                 self.returns[step] = self.returns[step + 1] * gamma * self.masks[step+1] + self.rewards[step]  
-                # I think that was a bug. Needed to add one. because the last state should not get plus predicted value
-                # run experiment to see if any difference
-
-            #     print (step, np.squeeze(self.returns.cpu().numpy()))
-            # fsda
-                #its possible that maybe he accounts for this when inserting the masks. need to check
-                # no it seems like theres no change to masks, so my change might help
 
 
 
-            # print (self.masks[:,0])
-            # print (self.returns[:,0])
-            # fasas
+
+# #convert to lists, so that I compute returns at any point.
+# # I guess I dont need lists, just need to speify where to compute return? 
+# # Im going to do it anyway, also need to pay attention to whats on gpu or cpu
+
+# #the issue is that there are multiplt proceesses
+# # ideally i would update once it reaches the end of teh episode or reaches a max number of steps
+# # but cant do that sicne there are multiple processes
+# but maybe could use for just the gif making
+
+class RolloutStorage_list(object):
+    def __init__(self):
+
+        self.states = []
+        self.actions = []
+        self.rewards = []
+        self.value_preds = []
+        self.masks = []
+
+
+    def insert(self, step, current_state, action, value_pred, reward, mask):
+
+        self.states.append(current_state)
+        self.actions.append(action)
+        self.rewards.append(reward)
+        self.value_preds.append(value_pred)
+        self.masks.append(mask)
+
+
+
+    def reset(self):
+
+        self.states = []
+        self.actions = []
+        self.rewards = []
+        self.value_preds = []
+        self.masks = []
+        self.returns = []
+
+
+    def compute_returns(self, next_value, gamma):
+
+        num_processes = next_value.size()[0]
+        self.masks.append(torch.ones(num_processes, 1).cuda())
+        self.returns = []
+        next_value = 0.
+        self.returns = [next_value] + self.returns  
+
+
+        # print (next_value)
+        # print (self.returns[0])
+        # print (self.masks[0])
+        # print (self.rewards[0] )
+
+        #rewards: [S,P,1]
+        
+        # print (self.rewards)
+        # print (self.returns)
+
+        for step in reversed(range(len(self.rewards))):
+            # self.returns = [self.rewards[step].cuda() + gamma*self.returns[0]*self.masks[step]] + self.returns
+            # self.returns = [self.rewards[0][step].cuda() + gamma*self.returns[0]] + self.returns
+
+            # self.returns = [self.rewards[step][0].numpy() + gamma*self.returns[0]] + self.returns
+            self.returns = [self.rewards[step] + gamma*self.returns[0]] + self.returns
+
+
+
+
+        # print (self.returns)
+        # dsfadafd
+            
+
+
+
+
+
+
+
+
+
+
+

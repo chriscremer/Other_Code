@@ -78,6 +78,36 @@ def make_env_monitor(env_name, save_dir):
 
 
 
+def make_env_basic(env_name):
+    env = gym.make(env_name) #this prints
+
+    is_atari = hasattr(gym.envs, 'atari') and isinstance(env.unwrapped, gym.envs.atari.atari_env.AtariEnv)
+
+    if is_atari:
+        assert 'NoFrameskip' in env.spec.id
+        env = NoopResetEnv(env, noop_max=30)
+        env = MaxAndSkipEnv(env, skip=4)
+
+    if is_atari:
+        env = wrap_deepmind(env)
+        env = WrapPyTorch(env)
+
+    # env = gym.wrappers.Monitor(env, save_dir+'/videos/', video_callable=lambda x: True, force=True)
+    return env
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def make_both_env_types(env_name):
     env = gym.make(env_name) #this prints
 

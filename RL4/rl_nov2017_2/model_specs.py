@@ -180,3 +180,31 @@ ppo_linear = {
 
 
 
+
+
+
+
+
+
+a2c_list = {
+            'name': 'a2c',
+            'algo': 'a2c_list_rollout',
+            'num_steps': 200,
+            'batch_size': 100,
+            'a2c_epochs':20,
+            'num_stack': num_stack,
+            'log_interval':2,
+            'dropout': False,
+            #Optimizer
+            'opt': 'adam',
+            'lr':1e-4,
+            'eps':eps, 
+            'alpha':alpha,
+            #Objective
+            'value_loss_coef':value_loss_coef, 
+            'entropy_coef':entropy_coef,
+            'gamma':gamma,
+            'use_gae':False,
+            'tau':tau
+}
+

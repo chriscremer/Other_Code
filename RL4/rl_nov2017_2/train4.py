@@ -29,9 +29,7 @@ sys.path.insert(0, '../baselines/baselines/common/vec_env')
 from subproc_vec_env import SubprocVecEnv
 
 sys.path.insert(0, './utils/')
-from envs import make_env
-from envs import make_env_monitor
-from envs import make_both_env_types
+from envs import make_env, make_env_monitor, make_env_basic
 
 
 from agent_modular2 import a2c
@@ -39,7 +37,7 @@ from agent_modular2 import ppo
 from agent_modular2 import a2c_minibatch
 from agent_modular2 import a2c_list_rollout
 
-from train_utils import do_vid, do_gifs
+from train_utils import do_vid, do_gifs, do_params
 
 sys.path.insert(0, './visualizations/')
 from make_plots import make_plots
@@ -126,9 +124,9 @@ def train(model_dict):
         print ('env for video')
         envs_video = make_env_monitor(env_name, save_dir)
 
-    # if gif_:
-    #     print ('env for gif')
-    #     envs_video = make_env_monitor(env_name, save_dir)
+    if gif_:
+        print ('env for gif')
+        envs_gif = make_env_basic(env_name)
 
     obs_shape = envs.observation_space.shape  # (channels, height, width)
     obs_shape = (obs_shape[0] * num_stack, *obs_shape[1:])  # (channels*stack, height, width)
@@ -159,6 +157,17 @@ def train(model_dict):
     #     # agent.actor_critic = torch.load(os.path.join(args.load_path))
     #     agent.actor_critic = torch.load(args.load_path).cuda()
     #     print ('loaded ', args.load_path)
+
+
+
+
+
+
+
+
+
+
+
 
     # Init state
     state = envs.reset()  # (processes, channels, height, width)
@@ -204,32 +213,18 @@ def train(model_dict):
 
 
         total_num_steps = (j + 1) * num_processes * num_steps
-
-        #Save model
+        
         if total_num_steps % save_interval == 0 and save_dir != "":
-            if save_params:
-                save_path = os.path.join(save_dir, 'model_params')
-                try:
-                    os.makedirs(save_path)
-                except OSError:
-                    pass
-                # A really ugly way to save a model to CPU
-                save_model = agent.actor_critic
-                if cuda:
-                    save_model = copy.deepcopy(agent.actor_critic).cpu()
-                # torch.save(save_model, os.path.join(save_path, args.env_name + ".pt"))
-                # steps_sci_nota = '{e}'.format(total_num_steps)
-                save_to=os.path.join(save_path, "model_params" + str(total_num_steps)+".pt")
-                # save_to=os.path.join(save_path, "model_params" + steps_sci_nota+".pt")
-                torch.save(save_model, save_to)
-                print ('saved', save_to)
 
+            #Save model
+            if save_params:
+                do_params(save_dir, agent, total_num_steps)
             #make video
             if vid_:
                 do_vid(envs_video, update_current_state, shape_dim0, dtype, agent, model_dict, total_num_steps)
             #make gif
             if gif_:
-                do_gifs(envs, agent, model_dict, update_current_state, update_rewards, total_num_steps)
+                do_gifs(envs_gif, agent, model_dict, update_current_state, update_rewards, total_num_steps)
 
 
         #Print updates
