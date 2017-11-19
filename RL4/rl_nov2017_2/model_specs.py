@@ -40,7 +40,7 @@ a2c_adam = {
             'name': 'a2c',
             'algo': 'a2c',
             'dropout': False,
-            'num_steps': 4,
+            'num_steps': 5,
             'num_stack': num_stack,
             'log_interval':10,
             #Optimizer
@@ -48,6 +48,7 @@ a2c_adam = {
             'lr':lr,
             'eps':eps, 
             'alpha':alpha,
+            'grad_clip':.5,
             #Objective
             'value_loss_coef':value_loss_coef, 
             'entropy_coef':entropy_coef,
@@ -56,6 +57,28 @@ a2c_adam = {
             'tau':tau
 
 }
+
+
+a2c_sgd = {
+            'name': 'a2c',
+            'algo': 'a2c',
+            'dropout': False,
+            'num_steps': 5,
+            'num_stack': num_stack,
+            'log_interval':10,
+            #Optimizer
+            'opt': 'sgd',
+            'lr':lr,
+            'mom':.1,
+            #Objective
+            'value_loss_coef':value_loss_coef, 
+            'entropy_coef':entropy_coef,
+            'gamma':gamma,
+            'use_gae':False,
+            'tau':tau
+
+}
+
 
 
 a2c_dropout = {
@@ -175,6 +198,7 @@ ppo_linear = {
             'use_gae':False,
             'tau':tau
 }
+
 
 
 

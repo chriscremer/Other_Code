@@ -38,22 +38,19 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'testing4'
-envs = ['Breakout']  #['Pong']  #  #['Enduro'] #['Kangaroo'] ## #['Freeway'] ###,'Seaquest',,,, 'BeamRider', 'Alien', 
+exp_name = 'testing_more_grad_clip'
+envs =  ['Breakout'] #['Pong'] #  #  #  #['Enduro'] #['Kangaroo'] ## #['Freeway'] ###,'Seaquest',,,, 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
             # 'MontezumaRevenge','Venture','Zaxxon','PrivateEye', 'Gopher']
-models_list =  [ms.a2c_adam] #[ms.a2c_list]  #  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
+models_list = [ms.a2c_adam] #[ms.a2c_sgd]#  #[ms.a2c_list]  #  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
 which_gpu = 0
 noFrameSkip = True
 iters = 1
 num_frames = 6e6
-save_interval=5e5 #save model params and videos and gifs
-num_processes=20
+save_interval=1e6 #save model params and videos and gifs
+num_processes=32
 seed_offset = 0
 #####################
-
-
-
 
 
 

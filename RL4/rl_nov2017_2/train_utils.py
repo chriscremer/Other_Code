@@ -21,6 +21,7 @@ import os
 
 import imageio
 
+import copy
 
 
 
@@ -33,7 +34,8 @@ def makedir(dir_, print_=True):
 
 
 
-def do_params(save_dir, agent, total_num_steps):
+def do_params(save_dir, agent, total_num_steps, model_dict):
+    cuda = model_dict['cuda']
 
     save_path = os.path.join(save_dir, 'model_params')
     try:
@@ -656,7 +658,7 @@ def do_gifs(envs, agent, model_dict, update_current_state, update_rewards, total
     gif_epoch_path = save_dir+'/gifs/gif'+str(total_num_steps)+'/'
     makedir(gif_epoch_path, print_=False)
 
-    n_gifs = 2
+    n_gifs = 1
 
 
     episode_rewards = torch.zeros([num_processes, 1]) #keeps track of current episode cumulative reward
@@ -688,7 +690,7 @@ def do_gifs(envs, agent, model_dict, update_current_state, update_rewards, total
 
         step = 0
         done_ = False
-        while not done_ and step < 300:
+        while not done_ and step < 400:
 
             state1 = np.squeeze(state[0])
             state_frames.append(state1)
@@ -739,8 +741,8 @@ def do_gifs(envs, agent, model_dict, update_current_state, update_rewards, total
         # print ('state_frames', len(state_frames))
 
 
-        if sum(agent.rollouts_list.rewards) == 0.:
-            continue
+        # if sum(agent.rollouts_list.rewards) == 0.:
+        #     continue
 
 
         #make figs
@@ -779,7 +781,7 @@ def do_gifs(envs, agent, model_dict, update_current_state, update_rewards, total
 
             values = value_frames[step]#[0]#.cpu().numpy()
             weights = np.ones_like(values)/float(len(values))
-            ax.hist(values, 50, range=[0.0, 4.], weights=weights)
+            ax.hist(values, 50, range=[0., 8.], weights=weights)
             
             ax.set_ylim([0.,1.])
             ax.set_title('Value',family='serif')

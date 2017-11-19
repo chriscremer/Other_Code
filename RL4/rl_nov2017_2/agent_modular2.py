@@ -41,6 +41,7 @@ class a2c(object):
         self.entropy_coef = hparams['entropy_coef']
         self.cuda = hparams['cuda']
         self.opt = hparams['opt']
+        self.grad_clip = hparams['grad_clip']
 
 
 
@@ -73,6 +74,8 @@ class a2c(object):
             self.optimizer = optim.RMSprop(params=actor_critic.parameters(), lr=hparams['lr'], eps=hparams['eps'], alpha=hparams['alpha'])
         elif self.opt == 'adam':
             self.optimizer = optim.Adam(params=actor_critic.parameters(), lr=hparams['lr'], eps=hparams['eps'])
+        elif self.opt == 'sgd':
+            self.optimizer = optim.SGD(params=actor_critic.parameters(), lr=hparams['lr'], momentum=hparams['mom'])
         else:
             print ('no opt specified')
 
@@ -124,7 +127,9 @@ class a2c(object):
         cost = action_loss + value_loss*self.value_loss_coef - dist_entropy*self.entropy_coef
         cost.backward()
 
-        nn.utils.clip_grad_norm(self.actor_critic.parameters(), .5)
+        nn.utils.clip_grad_norm(self.actor_critic.parameters(), self.grad_clip)
+        # nn.utils.clip_grad_norm(self.actor_critic.parameters(), .1)
+
 
 
         self.optimizer.step()

@@ -218,7 +218,7 @@ def train(model_dict):
 
             #Save model
             if save_params:
-                do_params(save_dir, agent, total_num_steps)
+                do_params(save_dir, agent, total_num_steps, model_dict)
             #make video
             if vid_:
                 do_vid(envs_video, update_current_state, shape_dim0, dtype, agent, model_dict, total_num_steps)
@@ -262,8 +262,8 @@ def train(model_dict):
 
 if __name__ == "__main__":
 
-    save_params = 0
-    vid_ = 0
+    save_params = 1
+    vid_ = 1
     gif_ = 1
 
     parser = argparse.ArgumentParser()
