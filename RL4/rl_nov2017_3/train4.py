@@ -200,7 +200,8 @@ def train(model_dict):
         for step in range(num_steps):
 
             # Act, [P,1], [P]
-            value, action = agent.act(Variable(agent.rollouts.states[step], volatile=True))
+            # value, action = agent.act(Variable(agent.rollouts.states[step], volatile=True))
+            value, action, action_log_probs, dist_entropy = agent.act(Variable(agent.rollouts.states[step], volatile=True))
             cpu_actions = action.data.squeeze(1).cpu().numpy() #[P]
             # cpu_actions = action.data.cpu().numpy() #[P]
             # print (actions.size())
@@ -220,6 +221,7 @@ def train(model_dict):
         #Optimize agent
         agent.update()  #agent.update(j,num_updates)
         agent.insert_first_state(agent.rollouts.states[-1])
+
 
 
 

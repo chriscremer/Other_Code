@@ -47,6 +47,32 @@ class Categorical(nn.Module):
 
         return probs
 
+    def sample2(self, x, deterministic):
+        x = self(x)
+        
+        probs = F.softmax(x)
+        if deterministic is False:
+            action = probs.multinomial()
+        else:
+            action = probs.max(1)[1].unsqueeze(1)
+
+
+        log_probs = F.log_softmax(x)
+        dist_entropy = -(log_probs * probs).sum(-1).mean()
+        action_log_probs = log_probs.gather(1, actions)
+
+
+
+        return action, action_log_probs, dist_entropy
+
+
+
+
+
+
+
+
+
 
 
 class DiagGaussian(nn.Module):

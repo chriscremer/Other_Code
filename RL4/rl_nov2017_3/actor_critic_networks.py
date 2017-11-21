@@ -101,14 +101,17 @@ class CNNPolicy(nn.Module):
 
 
     def act(self, inputs, deterministic=False):
-        value, x = self(inputs)
-        action = self.dist.sample(x, deterministic=deterministic)
-        return value, action
+        value, x_action = self(inputs)
+        # action = self.dist.sample(x_action, deterministic=deterministic)
+        # action_log_probs, dist_entropy = self.dist.evaluate_actions(x_action, actions)
+        action, action_log_probs, dist_entropy = self.dist.sample2(x_action, deterministic=deterministic)
 
-    def evaluate_actions(self, inputs, actions):
-        value, x = self(inputs)
-        action_log_probs, dist_entropy = self.dist.evaluate_actions(x, actions)
-        return value, action_log_probs, dist_entropy
+        return value, action, action_log_probs, dist_entropy
+
+    # def evaluate_actions(self, inputs, actions):
+    #     value, x = self(inputs)
+    #     action_log_probs, dist_entropy = self.dist.evaluate_actions(x, actions)
+    #     return value, action_log_probs, dist_entropy
 
 
 

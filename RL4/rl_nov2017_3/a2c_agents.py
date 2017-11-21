@@ -101,8 +101,10 @@ class a2c(object):
 
     def act(self, current_state):
 
-        value, action = self.actor_critic.act(current_state)
-        return value, action
+        # value, action = self.actor_critic.act(current_state)
+        value, action, action_log_probs, dist_entropy = self.actor_critic.act(current_state)
+
+        return value, action, action_log_probs, dist_entropy
 
 
     def insert_first_state(self, current_state):
@@ -114,16 +116,12 @@ class a2c(object):
 
         self.rollouts.insert(step, current_state, action, value, reward, masks)
 
-        # if resample_dropout:
-
-        #     self.mask = torch.bernoulli(input)
 
 
     def update(self):
         
 
         next_value = self.actor_critic(Variable(self.rollouts.states[-1], volatile=True))[0].data
-        print('here2')
 
         self.rollouts.compute_returns(next_value, self.use_gae, self.gamma, self.tau)
 
@@ -131,7 +129,6 @@ class a2c(object):
         values, action_log_probs, dist_entropy = self.actor_critic.evaluate_actions(
                                                     Variable(self.rollouts.states[:-1].view(-1, *self.obs_shape)), 
                                                     Variable(self.rollouts.actions.view(-1, self.action_shape)))
-        print('here3')
 
         values = values.view(self.num_steps, self.num_processes, 1)
         action_log_probs = action_log_probs.view(self.num_steps, self.num_processes, 1)
