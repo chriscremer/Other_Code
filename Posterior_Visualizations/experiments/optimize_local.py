@@ -105,6 +105,8 @@ def optimize_local_gaussian(logposterior, model, x):
 
             last_100 = []
 
+        # break
+
 
         # if epoch%display_epoch==0:
         #     print ('Train Epoch: {}/{}'.format(epoch, epochs),
