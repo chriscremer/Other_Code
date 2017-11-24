@@ -371,6 +371,8 @@ def do_ls(envs, agent, model_dict, total_num_steps, update_current_state, update
 
     reward_sums = []
 
+    next_frame_errors = []
+
     # get data
     for j in range(avg_over):
 
@@ -432,6 +434,9 @@ def do_ls(envs, agent, model_dict, total_num_steps, update_current_state, update
 
             dist_entropies.append(dist_entropy.data.cpu().numpy())
 
+            next_frame_errors.append(agent.state_pred_error.data.cpu().numpy()[0])
+            
+
 
 
         next_value = agent.actor_critic(Variable(agent.rollouts_list.states[-1], volatile=True))[0].data
@@ -450,11 +455,13 @@ def do_ls(envs, agent, model_dict, total_num_steps, update_current_state, update
     #     var_reward_sum = np.var(reward_sums/np.var(reward_sums)) #[10] -> 1
     var_reward_sum = np.var(reward_sums)  #/np.var(reward_sums)) #[10] -> 1
 
+    avg_next_state_pred_error = np.mean(next_frame_errors)
+
 
 
     with open(ls_file,'a') as f:
         writer = csv.writer(f)
-        writer.writerow([total_num_steps, avg_ent, var_reward_sum])
+        writer.writerow([total_num_steps, avg_ent, var_reward_sum, avg_next_state_pred_error])
 
     return
 
@@ -506,6 +513,7 @@ def update_ls_plot(model_dict):
     timesteps = []
     ents = []
     var_reward_sums = []
+    next_state_errors = []
     with open(ls_file, 'r') as csvfile:
         reader = csv.reader(csvfile)
         for row in reader:
@@ -513,9 +521,10 @@ def update_ls_plot(model_dict):
             timesteps.append(float(row[0]))
             ents.append(float(row[1]))
             var_reward_sums.append(float(row[2]))
+            next_state_errors.append(float(row[3]))
 
 
-    if len(timesteps) < 5:
+    if len(timesteps) < 10:
         return
 
     # plot data
@@ -569,6 +578,7 @@ def update_ls_plot(model_dict):
 
     # plt.plot(timesteps, ents)
 
+    var_reward_sums = next_state_errors
 
     # my smoothing
     var_reward_sums_smooth = []
@@ -579,7 +589,9 @@ def update_ls_plot(model_dict):
 
 
     # plt.plot(timesteps, var_reward_sums)
-    plt.plot(timesteps, var_reward_sums_smooth)
+    # plt.plot(timesteps, var_reward_sums_smooth)
+    plt.plot(timesteps[6:], var_reward_sums_smooth[6:])
+
 
 
     # cur_col+=1

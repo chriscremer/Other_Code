@@ -67,25 +67,25 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'speed_test'
-envs = ['Breakout'] #['Enduro'] #['Seaquest'] # , ,  #['Kangaroo'] ## #['Freeway'] ###,,,,, 'BeamRider', 'Alien', 
+exp_name = 'testing_state_prediction_montezuma_getR'
+envs = ['MontezumaRevenge'] #['Enduro']   #['Pong'] #['Breakout'] ##['Seaquest'] # , ,  #['Kangaroo'] ## #['Freeway'] ###,,,,, 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
-            # 'MontezumaRevenge','Venture','Zaxxon','PrivateEye', 'Gopher']
+            # ,'Venture','Zaxxon','PrivateEye', 'Gopher']
 models_list =  [ms.a2c_adam] #[ms.a2c_traj_action_mask] #  # #,   #[]  # # # # #[ms.a2c_with_var]  # #[ms.a2c_sgd]#  #[ms.a2c_list]  #  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
 which_gpu = 0
 
-num_frames = 10e6
+num_frames = 6e6
 iters = 1
 seed_offset = 0
 noFrameSkip = True
-num_processes=32
+num_processes= 32
 
-save_interval=5e3 #save model params and videos and gifs
+save_interval=5e5 #save model params and videos and gifs
 save_params = 0
 vid_ = 0
 gif_ = 0
 ls_ = 0
-code_location = home+"/Other_Code/RL4/rl_nov2017_5/"
+code_location = home+"/Other_Code/RL4/rl_nov2017_6/"
 #####################
 
 

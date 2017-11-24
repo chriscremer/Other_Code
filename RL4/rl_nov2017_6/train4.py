@@ -202,6 +202,8 @@ def train(model_dict):
     num_updates = int(num_frames) // num_steps // num_processes
     save_interval_num_updates = int(save_interval /num_processes/num_steps)
 
+    prev_action = Variable(torch.zeros([num_processes, 1]).type(torch.LongTensor)).cuda()
+
     #Begin training
     # count =0
     start = time.time()
@@ -209,11 +211,27 @@ def train(model_dict):
     for j in range(num_updates):
         for step in range(num_steps):
 
+
+
             # Act, [P,1], [P], [P,1], [P]
             # value, action = agent.act(Variable(agent.rollouts.states[step], volatile=True))
-            value, action, action_log_probs, dist_entropy = agent.act(Variable(agent.rollouts.states[step]))#, volatile=True))
+            state_pytorch = Variable(agent.rollouts.states[step])
+
+
+            value, action, action_log_probs, dist_entropy = agent.act(state_pytorch)#, volatile=True))
+
+
+            next_state_prediction = agent.actor_critic.predict_next_state2(state_pytorch, prev_action)
+            # next_state_prediction = 0
+
             # print (action_log_probs.size())
             # print (dist_entropy.size())
+
+            prev_action = action
+
+            
+            # print (next_state_prediction.size()) # [P,1,84,84]
+            # fasd
 
             cpu_actions = action.data.squeeze(1).cpu().numpy() #[P]
             # cpu_actions = action.data.cpu().numpy() #[P]
@@ -228,15 +246,23 @@ def train(model_dict):
 
             # Agent record step
             # agent.insert_data(step, current_state, action.data, value.data, reward, masks, action_log_probs.data, dist_entropy.data)
-            agent.insert_data(step, current_state, action.data, value, reward, masks, action_log_probs, dist_entropy) #, done)
+            agent.insert_data(step, current_state, action.data, value, reward, masks, action_log_probs, dist_entropy, next_state_prediction) #, done)
+
+            agent.rollouts.insert_state_pred(next_state_prediction)
 
 
+        if 'Montez' in env_name and np.sum(agent.rollouts.rewards.cpu().numpy()) > 0:
 
+            print (np.sum(agent.rollouts.rewards.cpu().numpy()))
+            print (j)
 
+            fadsa
 
         #Optimize agent
         agent.update()  #agent.update(j,num_updates)
         agent.insert_first_state(agent.rollouts.states[-1])
+
+        # print (agent.state_pred_error.data.cpu().numpy())
 
 
         # print ('save_interval_num_updates', save_interval_num_updates)
@@ -262,7 +288,7 @@ def train(model_dict):
         if j % log_interval == 0:# and j!=0:
             end = time.time()
 
-            to_print_info_string = "{}, {}, {:.1f}/{:.1f}/{:.1f}/{:.1f}, {}, {:.1f}, {:.1f}".format(j, total_num_steps,
+            to_print_info_string = "{}, {}, {:.1f}/{:.1f}/{:.1f}/{:.1f}, {}, {:.1f}, {:.2f}".format(j, total_num_steps,
                                        final_rewards.min(),
                                        final_rewards.median(),
                                        final_rewards.mean(),
@@ -270,9 +296,9 @@ def train(model_dict):
                                        int(total_num_steps / (end - start)),
                                        end - start,
                                        end - start2)
-            print(to_print_info_string) 
+            state_pred_error_print =  "{:.2f}".format(agent.state_pred_error.data.cpu().numpy()[0])
+            print(to_print_info_string+' '+state_pred_error_print)
             start2 = time.time()
-
 
 
             to_print_legend_string = "Upts, n_timesteps, min/med/mean/max, FPS, Time"
