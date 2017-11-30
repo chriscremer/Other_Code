@@ -30,6 +30,10 @@ class RolloutStorage(object):
         self.real_states = []
 
 
+        self.num_steps = num_steps
+        self.num_processes = num_processes
+
+
     def cuda(self):
         self.states = self.states.cuda()
         self.rewards = self.rewards.cuda()
@@ -72,12 +76,45 @@ class RolloutStorage(object):
                 gae = delta + gamma * tau * self.masks[step+1] * gae
                 self.returns[step] = gae + self.value_preds[step]
         else:
+
+            # self.returns[-1] = next_value
+            # for step in reversed(range(self.rewards.size(0))):
+            #     self.returns[step] = self.returns[step + 1] * gamma * self.masks[step+1] + self.rewards[step]  
+
+
+
+
+            # # Average future p(x)
+
+            # #for exploration
+            # # gamma = 1.
+            # self.returns[-1] = next_value
+
+            # count = torch.ones(self.num_steps+1, self.num_processes).cuda()
+            # for step in reversed(range(self.rewards.size(0))):
+            #     self.returns[step] = self.returns[step + 1]  * self.masks[step+1] + self.rewards[step]  
+
+            #     # print (count[step+1] )
+            #     # print (torch.ones(self.num_processes).cuda())
+            #     # print (self.masks[step+1].squeeze(1))
+            #     count[step] = count[step+1]* self.masks[step+1].squeeze(1) + 1. #torch.ones(self.num_processes).cuda()
+
+            # count = count.view(self.num_steps+1, self.num_processes, 1)
+            # self.returns = self.returns / count
+
+
+
+
+
+
+
+            # Discounted future p(x)
+
+            #for exploration
+            gamma = .99999
             self.returns[-1] = next_value
             for step in reversed(range(self.rewards.size(0))):
                 self.returns[step] = self.returns[step + 1] * gamma * self.masks[step+1] + self.rewards[step]  
-
-
-
 
 
 

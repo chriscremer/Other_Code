@@ -44,6 +44,7 @@ class a2c(object):
         self.opt = hparams['opt']
         self.grad_clip = hparams['grad_clip']
 
+        self.next_state_pred_ = hparams['next_state_pred_']
 
 
         # Policy and Value network
@@ -95,7 +96,7 @@ class a2c(object):
         #     self.deterministic_action = 0
         # else:
         #     self.deterministic_action = 0
-        if hparams['gif_'] or hparams['ls_']:
+        if hparams['gif_'] or hparams['ls_'] or hparams['vae_'] :
             self.rollouts_list = RolloutStorage_list()
 
         self.hparams = hparams
@@ -144,11 +145,18 @@ class a2c(object):
 
         # print (len(self.rollouts.state_preds))
 
+        if self.next_state_pred_:
 
-        state_preds = torch.cat(self.rollouts.state_preds).view(self.num_steps, self.num_processes, 1, 84,84)
+            state_preds = torch.cat(self.rollouts.state_preds).view(self.num_steps, self.num_processes, 1, 84,84)
 
-        real_states = self.rollouts.states[1:]  #[Steps, P, stack, 84,84]
-        real_states = real_states[:,:,-1].contiguous().view(self.num_steps, self.num_processes, 1, 84,84)  #[Steps, P, 1, 84,84]
+            real_states = self.rollouts.states[1:]  #[Steps, P, stack, 84,84]
+            real_states = real_states[:,:,-1].contiguous().view(self.num_steps, self.num_processes, 1, 84,84)  #[Steps, P, 1, 84,84]
+
+
+            self.state_pred_error = (state_preds- Variable(real_states)).pow(2).mean()
+            # self.state_pred_error = Variable(torch.zeros(1)).mean().cuda()
+
+            state_pred_error_value = self.state_pred_error.detach()
 
 
         # print (real_states.size())
@@ -166,22 +174,36 @@ class a2c(object):
         # print (state_preds)
         # print (real_states)
 
-        self.state_pred_error = (state_preds- Variable(real_states)).pow(2).mean()
-        # self.state_pred_error = Variable(torch.zeros(1)).mean().cuda()
-
-        state_pred_error_value = self.state_pred_error.detach()
-
 
 
         # print (state_pred_error)
 
         advantages = Variable(self.rollouts.returns[:-1]) - values
+
+        # advantages = values - Variable(self.rollouts.returns[:-1]) 
+
         value_loss = advantages.pow(2).mean()
 
-        # action_loss = -(Variable(advantages.data) * action_log_probs).mean()
-        action_loss = -((Variable(advantages.data)+state_pred_error_value*.0001) * action_log_probs).mean()
+        if self.next_state_pred_:
+            action_loss = -((Variable(advantages.data)+state_pred_error_value*.0001) * action_log_probs).mean()
+            cost = action_loss + value_loss*self.value_loss_coef - dist_entropy.mean()*self.entropy_coef + .0001*self.state_pred_error
+            fasdfa
 
-        cost = action_loss + value_loss*self.value_loss_coef - dist_entropy.mean()*self.entropy_coef + .0001*self.state_pred_error
+
+        else:  
+
+            # adv = torch.clamp(Variable(advantages.data), min= -10, max=10)
+            # action_loss = - (adv* action_log_probs).mean() #could just do detach instead of data
+
+            # action_loss = (Variable(self.rollouts.returns[:-1]).detach() * action_log_probs).mean()
+
+
+            action_loss = (advantages.detach() * action_log_probs).mean()
+
+            cost = action_loss + value_loss*self.value_loss_coef - dist_entropy.mean()*self.entropy_coef *10.
+            
+
+
 
         self.optimizer.zero_grad()
         cost.backward()

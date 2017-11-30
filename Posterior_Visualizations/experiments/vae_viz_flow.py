@@ -275,7 +275,7 @@ if __name__ == "__main__":
     #annotate
     ax = plt.subplot2grid((rows,cols), (0,0), frameon=False)
     # ax.annotate('True Posterior', xytext=(.1, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Blue', size='large')
-    ax.annotate('   True\nPosterior', xytext=(x_text, y_text), xy=xy, textcoords='axes fraction', family='serif', color='Black')#, size='large')
+    ax.annotate('   True\nPosterior', xytext=(.35, y_text), xy=xy, textcoords='axes fraction', family='serif', color='Black')#, size='large')
     ax.set_yticks([])
     ax.set_xticks([])
     plt.gca().set_aspect('equal', adjustable='box')
@@ -283,7 +283,8 @@ if __name__ == "__main__":
 
     ax = plt.subplot2grid((rows,cols), (1,0), frameon=False)
     # ax.annotate('Amortized\nFFG', xytext=(.1, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Green', size='large')
-    ax.annotate('Amortized\n    FFG', xytext=(x_text, y_text), xy=xy, textcoords='axes fraction', family='serif', color='Black')#, size='large')
+    # ax.annotate('Amortized\n    FFG', xytext=(x_text, y_text), xy=xy, textcoords='axes fraction', family='serif', color='Black')#, size='large')
+    ax.annotate('        Amortized\nFactorized Gaussian', xytext=(0., y_text), xy=xy, textcoords='axes fraction', family='serif', color='Black')#, size='large')
     ax.set_yticks([])
     ax.set_xticks([])
     plt.gca().set_aspect('equal', adjustable='box')
@@ -291,7 +292,7 @@ if __name__ == "__main__":
 
     ax = plt.subplot2grid((rows,cols), (2,0), frameon=False)
     # ax.annotate('Optimal\nFFG', xytext=(.1, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Purple', size='large')
-    ax.annotate('Optimal\n   FFG', xytext=(x_text, y_text), xy=xy, textcoords='axes fraction', family='serif', color='Black')#, size='large')
+    ax.annotate('         Optimal\nFactorized Gaussian', xytext=(0., y_text), xy=xy, textcoords='axes fraction', family='serif', color='Black')#, size='large')
     ax.set_yticks([])
     ax.set_xticks([])
     plt.gca().set_aspect('equal', adjustable='box')
@@ -299,7 +300,7 @@ if __name__ == "__main__":
 
     ax = plt.subplot2grid((rows,cols), (3,0), frameon=False)
     # ax.annotate('Optimal\nFlow', xytext=(.1, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Red', size='large')
-    ax.annotate('Optimal\n  Flow', xytext=(x_text, y_text), xy=xy, textcoords='axes fraction', family='serif', color='Black')#, size='large')
+    ax.annotate('Optimal\n  Flow', xytext=(.35, y_text), xy=xy, textcoords='axes fraction', family='serif', color='Black')#, size='large')
     ax.set_yticks([])
     ax.set_xticks([])
     plt.gca().set_aspect('equal', adjustable='box')

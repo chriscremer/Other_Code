@@ -32,6 +32,7 @@ def print_stuff():
     print ('vid_', vid_)
     print ('gif_', gif_)
     print ('ls_', ls_)
+    print ('vae_', vae_)
     print ('save_interval', save_interval)
     print ()
     print ()
@@ -67,7 +68,7 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'testing_state_prediction_montezuma_getR'
+exp_name = 'testing_explore_discountedfuturepx_momentum'
 envs = ['MontezumaRevenge'] #['Enduro']   #['Pong'] #['Breakout'] ##['Seaquest'] # , ,  #['Kangaroo'] ## #['Freeway'] ###,,,,, 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
             # ,'Venture','Zaxxon','PrivateEye', 'Gopher']
@@ -80,12 +81,14 @@ seed_offset = 0
 noFrameSkip = True
 num_processes= 32
 
-save_interval=5e5 #save model params and videos and gifs
+save_interval= 2e5 #save model params and videos and gifs
 save_params = 0
 vid_ = 0
 gif_ = 0
 ls_ = 0
-code_location = home+"/Other_Code/RL4/rl_nov2017_6/"
+vae_ = 1
+explore_ = 1
+code_location = home+"/Other_Code/RL4/rl_nov2017_7/"
 #####################
 
 
@@ -145,6 +148,8 @@ for env in envs:
             model_dict['vid_'] = vid_
             model_dict['gif_'] = gif_
             model_dict['ls_'] = ls_
+            model_dict['vae_'] = vae_
+            model_dict['explore_'] = explore_
 
             print (env, model_dict['name'], iter_i)
 
@@ -154,7 +159,7 @@ for env in envs:
                 json.dump(model_dict, outfile,sort_keys=True, indent=4)
 
             #train model
-            subprocess.call("(cd "+code_location+" && python train4.py --m {})".format(json_path), shell=True) 
+            subprocess.call("(cd "+code_location+" && python train_explore_exploit.py --m {})".format(json_path), shell=True) 
             print('')
 
     print_stuff()
