@@ -66,24 +66,16 @@ class RolloutStorage(object):
         # self.real_states.append(real_state)
 
 
-    def reset_lists(self):
-        self.value_preds = []
-        self.action_log_probs = []
-        self.dist_entropy = []
-        self.state_preds = []
-        self.real_states = []
-
-
 
     def compute_returns(self, next_value, use_gae, gamma, tau):
-        # if use_gae:
-        #     self.value_preds[-1] = next_value
-        #     gae = 0
-        #     for step in reversed(range(self.rewards.size(0))):
-        #         delta = self.rewards[step] + gamma * self.value_preds[step + 1] * self.masks[step+1] - self.value_preds[step]
-        #         gae = delta + gamma * tau * self.masks[step+1] * gae
-        #         self.returns[step] = gae + self.value_preds[step]
-        # else:
+        if use_gae:
+            self.value_preds[-1] = next_value
+            gae = 0
+            for step in reversed(range(self.rewards.size(0))):
+                delta = self.rewards[step] + gamma * self.value_preds[step + 1] * self.masks[step+1] - self.value_preds[step]
+                gae = delta + gamma * tau * self.masks[step+1] * gae
+                self.returns[step] = gae + self.value_preds[step]
+        else:
 
             # self.returns[-1] = next_value
             # for step in reversed(range(self.rewards.size(0))):
@@ -116,73 +108,73 @@ class RolloutStorage(object):
 
 
 
-        # Discounted future p(x)
+            # Discounted future p(x)
 
-        #for exploration
-        # gamma = .99999
+            #for exploration
+            # gamma = .99999
+            self.returns[-1] = next_value
+            for step in reversed(range(self.rewards.size(0))):
+                self.returns[step] = self.returns[step + 1] * gamma * self.masks[step+1] + self.rewards[step]  
+
+
+
+
+
+
+
+
+
+
+
+
+
+class RolloutStorage_with_var(object):
+    def __init__(self, num_steps, num_processes, obs_shape, action_space):
+        self.states = torch.zeros(num_steps + 1, num_processes, *obs_shape)
+        self.rewards = torch.zeros(num_steps, num_processes, 1)
+
+        self.value_means = torch.zeros(num_steps + 1, num_processes, 1)
+        self.value_logvars = torch.zeros(num_steps + 1, num_processes, 1)
+
+        self.returns = torch.zeros(num_steps + 1, num_processes, 1)
+        if action_space.__class__.__name__ == 'Discrete':
+            action_shape = 1
+        else:
+            action_shape = action_space.shape[0]
+        self.actions = torch.zeros(num_steps, num_processes, action_shape)
+        if action_space.__class__.__name__ == 'Discrete':
+            self.actions = self.actions.long()
+        self.masks = torch.ones(num_steps + 1, num_processes, 1)
+
+    def cuda(self):
+        self.states = self.states.cuda()
+        self.rewards = self.rewards.cuda()
+        self.value_means = self.value_means.cuda()
+        self.value_logvars = self.value_logvars.cuda()
+        self.returns = self.returns.cuda()
+        self.actions = self.actions.cuda()
+        self.masks = self.masks.cuda()
+
+    def insert(self, step, current_state, action, value_mean, value_logvar, reward, mask):
+        self.states[step + 1].copy_(current_state)
+        self.actions[step].copy_(action)
+        self.value_means[step].copy_(value_mean)
+        self.value_logvars[step].copy_(value_logvar)
+        self.rewards[step].copy_(reward)
+        self.masks[step].copy_(mask)
+
+    def compute_returns(self, next_value, use_gae, gamma, tau):
+        # if use_gae:
+        #     self.value_preds[-1] = next_value
+        #     gae = 0
+        #     for step in reversed(range(self.rewards.size(0))):
+        #         delta = self.rewards[step] + gamma * self.value_preds[step + 1] * self.masks[step+1] - self.value_preds[step]
+        #         gae = delta + gamma * tau * self.masks[step+1] * gae
+        #         self.returns[step] = gae + self.value_preds[step]
+        # else:
         self.returns[-1] = next_value
         for step in reversed(range(self.rewards.size(0))):
             self.returns[step] = self.returns[step + 1] * gamma * self.masks[step+1] + self.rewards[step]  
-
-
-
-
-
-
-
-
-
-
-
-
-
-# class RolloutStorage_with_var(object):
-#     def __init__(self, num_steps, num_processes, obs_shape, action_space):
-#         self.states = torch.zeros(num_steps + 1, num_processes, *obs_shape)
-#         self.rewards = torch.zeros(num_steps, num_processes, 1)
-
-#         self.value_means = torch.zeros(num_steps + 1, num_processes, 1)
-#         self.value_logvars = torch.zeros(num_steps + 1, num_processes, 1)
-
-#         self.returns = torch.zeros(num_steps + 1, num_processes, 1)
-#         if action_space.__class__.__name__ == 'Discrete':
-#             action_shape = 1
-#         else:
-#             action_shape = action_space.shape[0]
-#         self.actions = torch.zeros(num_steps, num_processes, action_shape)
-#         if action_space.__class__.__name__ == 'Discrete':
-#             self.actions = self.actions.long()
-#         self.masks = torch.ones(num_steps + 1, num_processes, 1)
-
-#     def cuda(self):
-#         self.states = self.states.cuda()
-#         self.rewards = self.rewards.cuda()
-#         self.value_means = self.value_means.cuda()
-#         self.value_logvars = self.value_logvars.cuda()
-#         self.returns = self.returns.cuda()
-#         self.actions = self.actions.cuda()
-#         self.masks = self.masks.cuda()
-
-#     def insert(self, step, current_state, action, value_mean, value_logvar, reward, mask):
-#         self.states[step + 1].copy_(current_state)
-#         self.actions[step].copy_(action)
-#         self.value_means[step].copy_(value_mean)
-#         self.value_logvars[step].copy_(value_logvar)
-#         self.rewards[step].copy_(reward)
-#         self.masks[step].copy_(mask)
-
-#     def compute_returns(self, next_value, use_gae, gamma, tau):
-#         # if use_gae:
-#         #     self.value_preds[-1] = next_value
-#         #     gae = 0
-#         #     for step in reversed(range(self.rewards.size(0))):
-#         #         delta = self.rewards[step] + gamma * self.value_preds[step + 1] * self.masks[step+1] - self.value_preds[step]
-#         #         gae = delta + gamma * tau * self.masks[step+1] * gae
-#         #         self.returns[step] = gae + self.value_preds[step]
-#         # else:
-#         self.returns[-1] = next_value
-#         for step in reversed(range(self.rewards.size(0))):
-#             self.returns[step] = self.returns[step + 1] * gamma * self.masks[step+1] + self.rewards[step]  
 
 
 

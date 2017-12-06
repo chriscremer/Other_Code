@@ -145,18 +145,18 @@ class a2c(object):
 
         # print (len(self.rollouts.state_preds))
 
-        # if self.next_state_pred_:
+        if self.next_state_pred_:
 
-        #     state_preds = torch.cat(self.rollouts.state_preds).view(self.num_steps, self.num_processes, 1, 84,84)
+            state_preds = torch.cat(self.rollouts.state_preds).view(self.num_steps, self.num_processes, 1, 84,84)
 
-        #     real_states = self.rollouts.states[1:]  #[Steps, P, stack, 84,84]
-        #     real_states = real_states[:,:,-1].contiguous().view(self.num_steps, self.num_processes, 1, 84,84)  #[Steps, P, 1, 84,84]
+            real_states = self.rollouts.states[1:]  #[Steps, P, stack, 84,84]
+            real_states = real_states[:,:,-1].contiguous().view(self.num_steps, self.num_processes, 1, 84,84)  #[Steps, P, 1, 84,84]
 
 
-        #     self.state_pred_error = (state_preds- Variable(real_states)).pow(2).mean()
-        #     # self.state_pred_error = Variable(torch.zeros(1)).mean().cuda()
+            self.state_pred_error = (state_preds- Variable(real_states)).pow(2).mean()
+            # self.state_pred_error = Variable(torch.zeros(1)).mean().cuda()
 
-        #     state_pred_error_value = self.state_pred_error.detach()
+            state_pred_error_value = self.state_pred_error.detach()
 
 
         # print (real_states.size())
@@ -184,13 +184,13 @@ class a2c(object):
 
         value_loss = advantages.pow(2).mean()
 
-        # if self.next_state_pred_:
-        #     action_loss = -((Variable(advantages.data)+state_pred_error_value*.0001) * action_log_probs).mean()
-        #     cost = action_loss + value_loss*self.value_loss_coef - dist_entropy.mean()*self.entropy_coef + .0001*self.state_pred_error
-        #     fasdfa
+        if self.next_state_pred_:
+            action_loss = -((Variable(advantages.data)+state_pred_error_value*.0001) * action_log_probs).mean()
+            cost = action_loss + value_loss*self.value_loss_coef - dist_entropy.mean()*self.entropy_coef + .0001*self.state_pred_error
+            fasdfa
 
 
-        # else:  
+        else:  
 
             # adv = torch.clamp(Variable(advantages.data), min= -10, max=10)
             # action_loss = - (adv* action_log_probs).mean() #could just do detach instead of data
@@ -198,9 +198,9 @@ class a2c(object):
             # action_loss = (Variable(self.rollouts.returns[:-1]).detach() * action_log_probs).mean()
 
 
-        action_loss = (advantages.detach() * action_log_probs).mean()
+            action_loss = -(advantages.detach() * action_log_probs).mean()
 
-        cost = action_loss + value_loss*self.value_loss_coef - dist_entropy.mean()*self.entropy_coef# *10.
+            cost = action_loss + value_loss*self.value_loss_coef - dist_entropy.mean()*self.entropy_coef #*10.
             
 
 
@@ -211,7 +211,6 @@ class a2c(object):
         nn.utils.clip_grad_norm(self.actor_critic.parameters(), self.grad_clip)
 
         self.optimizer.step()
-
 
         
 
