@@ -70,6 +70,40 @@ a2c_adam_1 = {
 
 
 
+a2c_adam_explore = {
+            'name': 'a2c_explore_only',
+            'algo': 'a2c',
+            'dropout': False,
+            'num_steps': 5,
+            'num_stack': num_stack,
+            'log_interval':10,
+            #Optimizer
+            'opt': 'adam',
+            'lr':lr,
+            'eps':eps, 
+            'alpha':alpha,
+            'grad_clip':.5,
+            #Objective
+            'value_loss_coef':value_loss_coef, 
+            'entropy_coef':entropy_coef,
+            'gamma':gamma,
+            'use_gae':False,
+            'tau':tau,
+            'init_exploit_processes': 0,
+            'inc_exploiters_over': -1
+}
+
+
+
+
+
+
+
+
+
+
+
+
 a2c_traj_action_mask = {
             'name': 'a2c_bin_mask',
             'algo': 'a2c',

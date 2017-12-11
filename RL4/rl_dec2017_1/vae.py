@@ -33,7 +33,7 @@ class VAE(nn.Module):
 
         # self.x_size = 3072
         self.x_size = 84
-        self.z_size = 20
+        self.z_size = 100
 
         # self.conv1 = torch.nn.Conv2d(in_channels=1, out_channels=10, kernel_size=5, stride=2, padding=0, dilation=1, bias=True)
         # self.conv2 = torch.nn.Conv2d(in_channels=10, out_channels=3, kernel_size=3, stride=1, padding=0, dilation=1, bias=True)
@@ -55,7 +55,8 @@ class VAE(nn.Module):
         self.deconv3 = torch.nn.ConvTranspose2d(in_channels=32, out_channels=1, kernel_size=8, stride=4)
 
 
-        self.optimizer = optim.Adam(self.parameters(), lr=.0001)
+        # self.optimizer = optim.Adam(self.parameters(), lr=.0001)
+        self.optimizer = optim.Adam(self.parameters(), lr=.001)
 
 
 
@@ -139,7 +140,7 @@ class VAE(nn.Module):
 
         logpx = log_bernoulli(x_hat, x)  #[P,B]
 
-        elbo = logpx #+ logpz - logqz  #[P,B]
+        elbo = logpx + logpz - logqz  #[P,B]
 
         if k>1:
             max_ = torch.max(elbo, 0)[0] #[B]
@@ -200,7 +201,7 @@ class VAE(nn.Module):
 
 
 
-    def forward(self, x, k=1):
+    def forward3(self, x, k=1):
         
         self.B = x.size()[0]
         mu, logvar = self.encode(x)
@@ -272,6 +273,61 @@ class VAE(nn.Module):
         #         'logqz:{:.4f}'.format(logqz.data[0]) 
 
 
+
+
+
+
+
+
+
+
+
+
+
+# def train(model, train_x, train_y, valid_x=[], valid_y=[], 
+#             path_to_load_variables='', path_to_save_variables='', 
+#             epochs=10, batch_size=20, display_epoch=2, k=1):
+    
+
+#     if path_to_load_variables != '':
+#         model.load_state_dict(torch.load(path_to_load_variables))
+#         print 'loaded variables ' + path_to_load_variables
+
+#     train = torch.utils.data.TensorDataset(train_x, train_y)
+#     train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
+#     optimizer = optim.Adam(model.parameters(), lr=.0001)
+
+#     for epoch in range(1, epochs + 1):
+
+#         for batch_idx, (data, target) in enumerate(train_loader):
+
+#             # if data.is_cuda:
+#             if torch.cuda.is_available():
+#                 data = Variable(data).type(torch.cuda.FloatTensor)# , Variable(target).type(torch.cuda.LongTensor) 
+#             else:
+#                 data = Variable(data)#, Variable(target)
+
+#             optimizer.zero_grad()
+
+#             elbo, logpx, logpz, logqz = model.forward(data, k=k)
+#             loss = -(elbo)
+
+#             loss.backward()
+#             optimizer.step()
+
+#             if epoch%display_epoch==0 and batch_idx == 0:
+#                 print 'Train Epoch: {}/{} [{}/{} ({:.0f}%)]'.format(epoch, epochs, 
+#                         batch_idx * len(data), len(train_loader.dataset),
+#                         100. * batch_idx / len(train_loader)), \
+#                     'Loss:{:.4f}'.format(loss.data[0]), \
+#                     'logpx:{:.4f}'.format(logpx.data[0]), \
+#                     'logpz:{:.4f}'.format(logpz.data[0]), \
+#                     'logqz:{:.4f}'.format(logqz.data[0]) 
+
+
+#     if path_to_save_variables != '':
+#         torch.save(model.state_dict(), path_to_save_variables)
+#         print 'Saved variables to ' + path_to_save_variables
 
 
 

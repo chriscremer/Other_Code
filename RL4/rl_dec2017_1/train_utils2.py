@@ -2,6 +2,62 @@
 
 
 
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.autograd import Variable
+from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
+
+
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+import subprocess
+import os
+import shutil
+
+import imageio
+
+import copy
+
+import csv  
+
+
+def makedir(dir_, print_=True, rm=False):
+
+    if rm and os.path.exists(dir_):
+        shutil.rmtree(dir_)
+        os.makedirs(dir_)
+        print ('rm dir and made', dir_) 
+        
+        # if print_:
+        #     print ('Made dir', dir_) 
+    elif not os.path.exists(dir_):
+        os.makedirs(dir_)
+        if print_:
+            print ('Made dir', dir_) 
+
+
+
+color_defaults = [
+    '#1f77b4',  # muted blue
+    '#ff7f0e',  # safety orange
+    '#2ca02c',  # cooked asparagus green
+    '#d62728',  # brick red
+    '#9467bd',  # muted purple
+    '#8c564b',  # chestnut brown
+    '#e377c2',  # raspberry yogurt pink
+    '#7f7f7f',  # middle gray
+    '#bcbd22',  # curry yellow-green
+    '#17becf'  # blue-teal
+]
+
+
+
 
 
 
@@ -77,6 +133,8 @@ def do_gifs3(envs, agent, vae, model_dict, update_current_state, update_rewards,
             state1 = np.squeeze(state[0])
             state_frames.append(state1)
 
+            # print (state1.shape)
+
             value, action, action_log_probs, dist_entropy = agent.act(Variable(agent.rollouts_list.states[-1], volatile=True))
             value_frames.append([value.data.cpu().numpy()[0][0]])
 
@@ -116,7 +174,11 @@ def do_gifs3(envs, agent, vae, model_dict, update_current_state, update_rewards,
             elbo, logpx, logpz, logqz, recon = vae.forward3(state_get_prob, k=100)
             probs.append(elbo.data.cpu().numpy())
 
-            recons.append(recon.data.cpu().numpy())
+            recon = recon[0].view(84,84).data.cpu().numpy()
+            recons.append(recon)
+
+            # print (recon.shape)
+            # fdas
 
 
         next_value = agent.actor_critic(Variable(agent.rollouts_list.states[-1], volatile=True))[0].data
@@ -257,7 +319,324 @@ def do_gifs3(envs, agent, vae, model_dict, update_current_state, update_rewards,
         for i in range(max_epoch+1):
             images.append(imageio.imread(frames_path+'plt'+str(i)+'.png'))
             
-        gif_path_this = gif_epoch_path + str(j) + '.gif'
+        gif_path_this = gif_epoch_path +str(total_num_steps)+'_'+ str(j) + '.gif'
         imageio.mimsave(gif_path_this, images)
         print ('made gif', gif_path_this)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def do_ls_2(envs, agent, model_dict, total_num_steps, update_current_state, update_rewards, vae):
+
+    save_dir = model_dict['save_to']
+    shape_dim0 = model_dict['shape_dim0']
+    num_processes = model_dict['num_processes']
+    obs_shape = model_dict['obs_shape']
+    dtype = model_dict['dtype']
+    num_steps = model_dict['num_steps']
+    gamma = model_dict['gamma']
+
+    ls_path = save_dir+'/learning_signal/'
+    ls_file = ls_path + 'ls_monitor.csv'
+
+    makedir(ls_path, print_=False)
+
+
+    avg_over = 10
+    num_processes = 1
+    
+
+    episode_rewards = torch.zeros([num_processes, 1]) #keeps track of current episode cumulative reward
+    final_rewards = torch.zeros([num_processes, 1])
+
+
+    # dist_entropies = []
+
+    reward_sums = []
+
+    # next_frame_errors = []
+
+    probs_sums = []
+
+    # get data
+    for j in range(avg_over):
+
+        # state_frames = []
+        # value_frames = []
+        # actions_frames = []
+
+        # Init state
+        state = envs.reset()  # (channels, height, width)
+
+        state = np.expand_dims(state,0) # (1, channels, height, width)
+
+        current_state = torch.zeros(num_processes, *obs_shape)  # (processes, channels*stack, height, width)
+        current_state = update_current_state(current_state, state, shape_dim0).type(dtype) #add the new frame, remove oldest
+        # agent.insert_first_state(current_state) #storage has states: (num_steps + 1, num_processes, *obs_shape), set first step 
+
+
+        agent.rollouts_list.reset()
+        agent.rollouts_list.states = [current_state]
+
+
+        step = 0
+        done_ = False
+        while not done_ and step < 400:
+
+            state1 = np.squeeze(state[0])
+            # state_frames.append(state1)
+
+            value, action, action_log_probs, dist_entropy = agent.act(Variable(agent.rollouts_list.states[-1], volatile=True))
+            # value_frames.append([value.data.cpu().numpy()[0][0]])
+
+            # action_prob = agent.actor_critic.action_dist(Variable(agent.rollouts_list.states[-1], volatile=True))[0]
+            # action_prob = np.squeeze(action_prob.data.cpu().numpy())  # [A]
+            # actions_frames.append(action_prob)
+
+            # value, action = agent.act(Variable(agent.rollouts_list.states[-1], volatile=True))
+            cpu_actions = action.data.squeeze(1).cpu().numpy() #[P]
+            # Step, S:[P,C,H,W], R:[P], D:[P]
+            state, reward, done, info = envs.step(cpu_actions) 
+
+            state = np.expand_dims(state,0) # (1, channels, height, width)
+            reward = np.expand_dims(reward,0) # (1, 1)
+            done = np.expand_dims(done,0) # (1, 1)
+
+            # Record rewards
+            reward, masks, final_rewards, episode_rewards, current_state = update_rewards(reward, done, final_rewards, episode_rewards, current_state)
+            # Update state
+            current_state = update_current_state(current_state, state, shape_dim0)
+            # Agent record step
+            # agent.insert_data(step, current_state, action.data, value.data, reward, masks)
+            agent.rollouts_list.insert(step, current_state, action.data, value.data, reward.numpy()[0][0], masks)
+
+
+            done_ = done[0]
+            # print (done)
+
+            step+=1
+            # print ('step', step)
+
+            # dist_entropies.append(dist_entropy.data.cpu().numpy())
+
+            # next_frame_errors.append(agent.state_pred_error.data.cpu().numpy()[0])
+            
+
+            batch = state1[:,-1] #last of stack
+            batch = batch.contiguous() # [P,84,84]
+            elbo = vae.forward2(batch, k=10) #[P]
+            elbo = elbo.view(-1,1).data  #[P,1]
+
+
+        next_value = agent.actor_critic(Variable(agent.rollouts_list.states[-1], volatile=True))[0].data
+        agent.rollouts_list.compute_returns(next_value, gamma)
+        # print (agent.rollouts_list.returns)#.cpu().numpy())
+
+        # reward_sums.append(np.sum(agent.rollouts_list.rewards))
+        reward_sums.append(np.mean(agent.rollouts_list.rewards))
+
+        probs_sums.append(np.mean(agent.rollouts_list.rewards))
+
+
+
+    # print (dist_entropy)
+    # dist_entropies = 
+    # avg_ent = np.mean(dist_entropies)
+
+    # if np.var(reward_sums) > 0:
+    #     var_reward_sum = np.var(reward_sums/np.var(reward_sums)) #[10] -> 1
+    var_reward_sum = np.var(reward_sums)  #/np.var(reward_sums)) #[10] -> 1
+
+    var_probs_sum = np.var(probs_sums)  #/np.var(reward_sums)) #[10] -> 1
+
+    # avg_next_state_pred_error = np.mean(next_frame_errors)
+
+
+
+    with open(ls_file,'a') as f:
+        writer = csv.writer(f)
+        # writer.writerow([total_num_steps, avg_ent, var_reward_sum, avg_next_state_pred_error])
+        writer.writerow([total_num_steps, var_reward_sum, var_probs_sum])
+
+
+    return
+
+
+
+
+
+
+
+
+
+
+
+
+def update_ls_plot_2(model_dict):
+
+
+    num_frames = model_dict['num_frames']
+    save_dir = model_dict['save_to']
+    env = model_dict['env']
+
+    ls_path = save_dir+'/learning_signal/'
+    ls_file = ls_path + 'ls_monitor.csv'
+
+
+    # load data
+    timesteps = []
+    ents = []
+    var_reward_sums = []
+    next_state_errors = []
+    with open(ls_file, 'r') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            # print (row)
+            timesteps.append(float(row[0]))
+            ents.append(float(row[1]))
+            var_reward_sums.append(float(row[2]))
+            next_state_errors.append(float(row[3]))
+
+
+    if len(timesteps) < 10:
+        return
+
+    # plot data
+
+    rows =1
+    cols=1
+    fig = plt.figure(figsize=(8+cols,3+rows), facecolor='white')
+
+    # cur_col = 0
+    # cur_row = 0
+    # for env_i in os.listdir(exp_path):
+    #     if os.path.isdir(exp_path+env_i):
+
+            # print (cur_row, cur_col)
+    ax = plt.subplot2grid((rows,cols), (0,0), frameon=False)#, aspect=0.3)# adjustable='box', )
+
+    plt.xlim(0, num_frames)
+    # if cur_row == rows-1:
+    if num_frames == 6e6:
+        plt.xticks([1e6, 2e6, 4e6, 6e6],["1M", "2M", "4M", "6M"])
+    elif num_frames == 10e6:
+        plt.xticks([2e6, 4e6, 6e6, 8e6, 10e6],["2M", "4M", "6M", "8M", "10M"])
+    plt.xlabel('Number of Timesteps',family='serif')
+    # else:
+    #     plt.xticks([])
+    # if cur_col == 0:
+    # plt.ylabel('Entropy',family='serif')
+    # plt.ylabel('V[R]',family='serif')
+
+    plt.ylabel('State Prediction Error',family='serif')
+
+
+    plt.title(env.split('NoF')[0],family='serif')
+    # plt.title(env,family='serif')
+
+    ax.yaxis.grid(alpha=.1)
+    # ax.set(aspect=1)
+    # plt.gca().set_aspect('equal', adjustable='box')
+    # ax.set_aspect(.5, adjustable='box')
+
+    m_count =0
+    # for m_i in os.listdir(exp_path+env_i):
+    #     m_dir = exp_path+env_i+'/'+m_i+'/'
+    #     if os.path.isdir(m_dir):
+            
+    # print (cur_row, cur_col, m_dir)
+    color = color_defaults[m_count] 
+    # plot_multiple_iterations2(m_dir, ax, color, m_i)
+    # m_count+=1
+
+    # print (timesteps)
+    # print (var_reward_sums)
+    # if len(timesteps) > 30:
+    #     timesteps, var_reward_sums = smooth_reward_curve(timesteps, var_reward_sums)
+
+    # plt.plot(timesteps, ents)
+
+    var_reward_sums = next_state_errors
+
+    # my smoothing
+    var_reward_sums_smooth = []
+    var_reward_sums_smooth.append(var_reward_sums[0])
+    for i in range(1,len(var_reward_sums)-1):
+        var_reward_sums_smooth.append(np.mean(var_reward_sums[i-1:i+2]))
+    var_reward_sums_smooth.append(var_reward_sums[-1])
+
+
+    # plt.plot(timesteps, var_reward_sums)
+    # plt.plot(timesteps, var_reward_sums_smooth)
+    plt.plot(timesteps[6:], var_reward_sums_smooth[6:])
+
+
+
+    # cur_col+=1
+    # if cur_col >= cols:
+    #     cur_col = 0
+    #     cur_row+=1
+
+
+    # fig_path = exp_path + model_dict['exp_name'] #+ 'exp_plot' 
+
+    fig_path = ls_path + 'learning_signal'
+
+    plt.savefig(fig_path+'.png')
+    # print('made fig', fig_path+'.png')
+    plt.savefig(fig_path+'.pdf')
+    # print('made fig', fig_path+'.pdf')
+    plt.close(fig)
+
 

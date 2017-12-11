@@ -46,25 +46,25 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'testing_exploit_explore_kmf'
-envs =  ['Kangaroo', 'MontezumaRevenge', 'Freeway'] # 'Seaquest', #['Kangaroo']  ['Breakout']#, , 'Enduro', 'Pong']  #['Pong']#['MontezumaRevenge'] #['Enduro']['Seaquest']   # # ## # , ,  ### # ###,,,,, 'BeamRider', 'Alien', 
+exp_name = 'testing_explore_ls'
+envs =  [ 'MontezumaRevenge'] #'Kangaroo', 'Freeway'] # 'Seaquest', #['Kangaroo']  ['Breakout']#, , 'Enduro', 'Pong']  #['Pong']#['MontezumaRevenge'] #['Enduro']['Seaquest']   # # ## # , ,  ### # ###,,,,, 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
             # ,'Venture','Zaxxon','PrivateEye', 'Gopher']
-models_list = [ms.a2c_adam]# [ms.a2c_adam_1] #  # #  # #, #[ms.a2c_traj_action_mask] #  # #,   #[]  # # # # #[ms.a2c_with_var]  # #[ms.a2c_sgd]#  #[ms.a2c_list]  #  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
+models_list =  [ms.a2c_adam] #[ms.a2c_adam_explore] ## [ms.a2c_adam_1] #  # #  # #, #[ms.a2c_traj_action_mask] #  # #,   #[]  # # # # #[ms.a2c_with_var]  # #[ms.a2c_sgd]#  #[ms.a2c_list]  #  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
 which_gpu = 0
 
-num_frames = 10e6
+num_frames = 6e6
 iters = 1
 seed_offset = 0
 noFrameSkip = True
 num_processes= 32
 
 
-save_interval= 1e4 #save model params and videos and gifs
+save_interval= 2e5 #save model params and videos and gifs
 save_params = 0
 vid_ = 0
 gif_ = 0
-ls_ = 0
+ls_ = 1
 vae_ = 1
 explore_ = 1
 code_location = home+"/Other_Code/RL4/rl_dec2017_1/"
@@ -203,7 +203,6 @@ print ('Done.')
 # VideoPinball
 # WizardOfWor
 # Zaxxon
-
 
 
 
