@@ -434,10 +434,15 @@ def do_ls_2(envs, agent, model_dict, total_num_steps, update_current_state, upda
         done_ = False
         while not done_ and step < 400:
 
-            state1 = np.squeeze(state[0])
+            # state1 = np.squeeze(state[0])
             # state_frames.append(state1)
 
-            value, action, action_log_probs, dist_entropy = agent.act(Variable(agent.rollouts_list.states[-1], volatile=True))
+            # state_pytorch = Variable(agent.rollouts.states[-1])
+
+            state_pytorch = Variable(agent.rollouts_list.states[-1], volatile=True)
+
+
+            value, action, action_log_probs, dist_entropy = agent.act(state_pytorch)
             # value_frames.append([value.data.cpu().numpy()[0][0]])
 
             # action_prob = agent.actor_critic.action_dist(Variable(agent.rollouts_list.states[-1], volatile=True))[0]
@@ -473,10 +478,12 @@ def do_ls_2(envs, agent, model_dict, total_num_steps, update_current_state, upda
             # next_frame_errors.append(agent.state_pred_error.data.cpu().numpy()[0])
             
 
-            batch = state1[:,-1] #last of stack
+            batch = state_pytorch[:,-1] #last of stack
             batch = batch.contiguous() # [P,84,84]
             elbo = vae.forward2(batch, k=10) #[P]
             elbo = elbo.view(-1,1).data  #[P,1]
+
+            probs_sums.append(elbo.cpu().numpy())
 
 
         next_value = agent.actor_critic(Variable(agent.rollouts_list.states[-1], volatile=True))[0].data
@@ -486,7 +493,7 @@ def do_ls_2(envs, agent, model_dict, total_num_steps, update_current_state, upda
         # reward_sums.append(np.sum(agent.rollouts_list.rewards))
         reward_sums.append(np.mean(agent.rollouts_list.rewards))
 
-        probs_sums.append(np.mean(agent.rollouts_list.rewards))
+        
 
 
 
@@ -536,20 +543,23 @@ def update_ls_plot_2(model_dict):
 
     # load data
     timesteps = []
-    ents = []
+    # ents = []
     var_reward_sums = []
-    next_state_errors = []
+    var_prob_sums = []
+    # next_state_errors = []
     with open(ls_file, 'r') as csvfile:
         reader = csv.reader(csvfile)
         for row in reader:
             # print (row)
             timesteps.append(float(row[0]))
-            ents.append(float(row[1]))
-            var_reward_sums.append(float(row[2]))
-            next_state_errors.append(float(row[3]))
+            # ents.append(float(row[1]))
+            var_reward_sums.append(float(row[1]))
+            var_prob_sums.append(float(row[2]))
+            # next_state_errors.append(float(row[3]))
 
 
     if len(timesteps) < 10:
+        print (len(timesteps))
         return
 
     # plot data
@@ -579,7 +589,9 @@ def update_ls_plot_2(model_dict):
     # plt.ylabel('Entropy',family='serif')
     # plt.ylabel('V[R]',family='serif')
 
-    plt.ylabel('State Prediction Error',family='serif')
+    # plt.ylabel('State Prediction Error',family='serif')
+    plt.ylabel('V[log p(x)]',family='serif')
+
 
 
     plt.title(env.split('NoF')[0],family='serif')
@@ -607,7 +619,7 @@ def update_ls_plot_2(model_dict):
 
     # plt.plot(timesteps, ents)
 
-    var_reward_sums = next_state_errors
+    var_reward_sums = var_prob_sums
 
     # my smoothing
     var_reward_sums_smooth = []
@@ -634,9 +646,17 @@ def update_ls_plot_2(model_dict):
     fig_path = ls_path + 'learning_signal'
 
     plt.savefig(fig_path+'.png')
-    # print('made fig', fig_path+'.png')
+    print('made fig', fig_path+'.png')
     plt.savefig(fig_path+'.pdf')
     # print('made fig', fig_path+'.pdf')
     plt.close(fig)
+
+
+
+
+
+
+
+
 
 

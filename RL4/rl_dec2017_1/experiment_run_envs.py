@@ -46,21 +46,21 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'testing_explore_ls'
-envs =  [ 'MontezumaRevenge'] #'Kangaroo', 'Freeway'] # 'Seaquest', #['Kangaroo']  ['Breakout']#, , 'Enduro', 'Pong']  #['Pong']#['MontezumaRevenge'] #['Enduro']['Seaquest']   # # ## # , ,  ### # ###,,,,, 'BeamRider', 'Alien', 
+exp_name = 'testing_explore_ls_2'
+envs =  ['Kangaroo', 'Freeway','MontezumaRevenge'] #[ ] ## 'Seaquest', #['Kangaroo']  ['Breakout']#, , 'Enduro', 'Pong']  #['Pong']#['MontezumaRevenge'] #['Enduro']['Seaquest']   # # ## # , ,  ### # ###,,,,, 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
             # ,'Venture','Zaxxon','PrivateEye', 'Gopher']
-models_list =  [ms.a2c_adam] #[ms.a2c_adam_explore] ## [ms.a2c_adam_1] #  # #  # #, #[ms.a2c_traj_action_mask] #  # #,   #[]  # # # # #[ms.a2c_with_var]  # #[ms.a2c_sgd]#  #[ms.a2c_list]  #  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
+models_list = [ms.a2c_adam_explore] #[ms.a2c_adam] # ## [ms.a2c_adam_1] #  # #  # #, #[ms.a2c_traj_action_mask] #  # #,   #[]  # # # # #[ms.a2c_with_var]  # #[ms.a2c_sgd]#  #[ms.a2c_list]  #  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
 which_gpu = 0
 
-num_frames = 6e6
+num_frames = 10e6
 iters = 1
 seed_offset = 0
 noFrameSkip = True
 num_processes= 32
 
 
-save_interval= 2e5 #save model params and videos and gifs
+save_interval= 1e6 #save model params and videos and gifs
 save_params = 0
 vid_ = 0
 gif_ = 0
