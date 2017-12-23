@@ -107,7 +107,7 @@ def optimize_local_q_dist(logposterior, hyper_config, x, q):
     # eps = Variable(torch.FloatTensor(1000, B, model.z_size).normal_().type(model.dtype)) #[P,B,Z]
     # z = eps.mul(torch.exp(.5*logvar)) + mean  #[P,B,Z]
     # logqz = lognormal(z, mean, logvar) #[P,B]
-    z, logqz = q.sample(mean, logvar, 1000)
+    z, logqz = q.sample(mean, logvar, 5000)
 
     # print (logqz)
     # fad

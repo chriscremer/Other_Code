@@ -188,8 +188,8 @@ hyper_config = {
             }
 
 
-q = Gaussian(hyper_config)
-# q = Flow(hyper_config)
+# q = Gaussian(hyper_config)
+q = Flow(hyper_config)
 hyper_config['q'] = q
 
 
@@ -223,11 +223,11 @@ if compute_amort:
     print ('Load params for encoder')
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_encoder_100.pt'
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_encoder_3280.pt'
-    path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_encoder_3280.pt'
+    # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_encoder_3280.pt'
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_regencoder_encoder_3280.pt'
-    # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_withflow_encoder_2200.pt'
+    path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_withflow_encoder_3280.pt'
 
-    
+
     model.q_dist.load_state_dict(torch.load(path_to_load_variables, map_location=lambda storage, loc: storage))
     print ('loaded variables ' + path_to_load_variables)
 
@@ -245,7 +245,7 @@ if compute_amort:
 
 # start_time = time.time()
 
-n_data = 2 #100
+n_data = 1000 #2 #100
 
 vaes = []
 iwaes = []
@@ -278,8 +278,8 @@ if compute_local_opt:
         # vaes_flex.append(vae.data.cpu().numpy())
         # iwaes_flex.append(iwae.data.cpu().numpy())
 
-        # q_local = Gaussian(hyper_config) #, mean, logvar)
-        q_local = Flow(hyper_config).cuda()#, mean, logvar)
+        q_local = Gaussian(hyper_config) #, mean, logvar)
+        # q_local = Flow(hyper_config).cuda()#, mean, logvar)
 
         # print (q_local)
 
@@ -299,8 +299,8 @@ if compute_local_opt:
 # print()
 
 if compute_amort:
-    VAE_train = test_vae(model=model, data_x=train_x[:n_data], batch_size=np.minimum(n_data, 50), display=10, k=500)
-    IW_train = test(model=model, data_x=train_x[:n_data], batch_size=np.minimum(n_data, 50), display=10, k=500)
+    VAE_train = test_vae(model=model, data_x=train_x[:n_data], batch_size=np.minimum(n_data, 50), display=10, k=5000)
+    IW_train = test(model=model, data_x=train_x[:n_data], batch_size=np.minimum(n_data, 50), display=10, k=5000)
     print ('amortized VAE',VAE_train)
     print ('amortized IW',IW_train)
 
