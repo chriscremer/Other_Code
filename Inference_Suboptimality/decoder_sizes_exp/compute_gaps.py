@@ -53,6 +53,7 @@ from distributions import Flow
 
 
 
+
 def test_vae(model, data_x, batch_size, display, k):
     
     time_ = time.time()
@@ -166,6 +167,31 @@ z_size = 50
 # save_freq = 300
 # display_epoch = 3
 
+
+
+#small encoder
+# hyper_config = { 
+#                 'x_size': x_size,
+#                 'z_size': z_size,
+#                 'act_func': F.tanh,# F.relu,
+#                 'encoder_arch': [[x_size,z_size*2]],
+#                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+#                 'cuda': 1
+#             }
+
+#no hidden decoder
+# hyper_config = { 
+#                 'x_size': x_size,
+#                 'z_size': z_size,
+#                 'act_func': F.tanh,# F.relu,
+#                 'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+#                 'decoder_arch': [[z_size,x_size]],
+#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+#                 'cuda': 1
+#             }
+
+# 2 hidden decoder
 # hyper_config = { 
 #                 'x_size': x_size,
 #                 'z_size': z_size,
@@ -177,19 +203,21 @@ z_size = 50
 #             }
 
 
+# 4 hidden decoder
 hyper_config = { 
                 'x_size': x_size,
                 'z_size': z_size,
                 'act_func': F.tanh,# F.relu,
-                'encoder_arch': [[x_size,z_size*2]],
-                'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+                'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+                'decoder_arch': [[z_size,200],[200,200],[200,200],[200,200],[200,x_size]],
                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
                 'cuda': 1
             }
 
 
-# q = Gaussian(hyper_config)
-q = Flow(hyper_config)
+
+q = Gaussian(hyper_config)
+# q = Flow(hyper_config)
 hyper_config['q'] = q
 
 
@@ -204,18 +232,25 @@ if torch.cuda.is_available():
     model.cuda()
 print('\nModel:', hyper_config,'\n')
 
+print (model.q_dist)
+# print (model.q_dist.q)
+print (model.generator)
 
 
 print ('Load params for decoder')
-path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_generator_3280.pt'
+# path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_generator_3280.pt'
+path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_4_generator_3280.pt'
+# path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_2_generator_3280.pt'
+# path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_0_generator_3280.pt'
+
 model.generator.load_state_dict(torch.load(path_to_load_variables, map_location=lambda storage, loc: storage))
 print ('loaded variables ' + path_to_load_variables)
 print ()
 
 
 
-compute_local_opt = 0
-compute_amort = 1
+compute_local_opt = 1
+compute_amort = 0
 
 
 if compute_amort:
@@ -225,11 +260,18 @@ if compute_amort:
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_encoder_3280.pt'
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_encoder_3280.pt'
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_regencoder_encoder_3280.pt'
-    path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_withflow_encoder_3280.pt'
+    # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_withflow_encoder_3280.pt'
+    path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_4_encoder_3280.pt'
+    # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_2_encoder_3280.pt'
+    # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_0_encoder_3280.pt'
+
+
 
 
     model.q_dist.load_state_dict(torch.load(path_to_load_variables, map_location=lambda storage, loc: storage))
     print ('loaded variables ' + path_to_load_variables)
+
+
 
 
 
@@ -245,7 +287,7 @@ if compute_amort:
 
 # start_time = time.time()
 
-n_data = 1000 #2 #100
+n_data = 2 #1000 #100
 
 vaes = []
 iwaes = []
