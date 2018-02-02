@@ -28,6 +28,9 @@ import torch.nn.functional as F
 from utils import lognormal2 as lognormal
 from utils import log_bernoulli
 
+import os
+
+
 # from utils import LayerNorm
 
 
@@ -78,6 +81,9 @@ class VAE(nn.Module):
         #     # print (aaa)
         #     print (aaa.size())
         # # fasdfs
+
+        # if hyper_config['']
+        # os.environ['CUDA_VISIBLE_DEVICES'] = hyper_config['cuda']
 
 
         if torch.cuda.is_available():

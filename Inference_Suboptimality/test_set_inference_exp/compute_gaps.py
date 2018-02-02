@@ -50,17 +50,6 @@ from distributions import Gaussian
 from distributions import Flow
 
 
-import csv
-
-# print (sys.argv)
-
-
-
-gpu_to_use = sys.argv[1]
-epoch = sys.argv[2]
-os.environ['CUDA_VISIBLE_DEVICES'] = gpu_to_use  #'1'
-
-
 
 
 
@@ -133,44 +122,18 @@ def test(model, data_x, batch_size, display, k):
 # train_x = np.concatenate([train_x, valid_x], axis=0)
 # print (train_x.shape)
 
-# #Load data
-# print ('Loading data' )
-# data_location = home + '/Documents/MNIST_data/'
-# # with open(data_location + 'binarized_mnist.pkl', 'rb') as f:
-# #     train_x, valid_x, test_x = pickle.load(f)
+#Load data
+print ('Loading data' )
+data_location = home + '/Documents/MNIST_data/'
 # with open(data_location + 'binarized_mnist.pkl', 'rb') as f:
-#     train_x, valid_x, test_x = pickle.load(f, encoding='latin1')
-# print ('Train', train_x.shape)
-# print ('Valid', valid_x.shape)
-# print ('Test', test_x.shape)
+#     train_x, valid_x, test_x = pickle.load(f)
+with open(data_location + 'binarized_mnist.pkl', 'rb') as f:
+    train_x, valid_x, test_x = pickle.load(f, encoding='latin1')
+print ('Train', train_x.shape)
+print ('Valid', valid_x.shape)
+print ('Test', test_x.shape)
 
 
-
-
-#FASHION
-def load_mnist(path, kind='train'):
-
-    images_path = os.path.join(path,
-                               '%s-images-idx3-ubyte.gz'
-                               % kind)
-
-    with gzip.open(images_path, 'rb') as imgpath:
-        images = np.frombuffer(imgpath.read(), dtype=np.uint8,
-                               offset=16).reshape(-1, 784)
-
-    return images#, labels
-
-
-path = home+'/Documents/fashion_MNIST'
-
-train_x = load_mnist(path=path)
-test_x = load_mnist(path=path, kind='t10k')
-
-train_x = train_x / 255.
-test_x = test_x / 255.
-
-print (train_x.shape)
-print (test_x.shape)
 
 
 
@@ -193,8 +156,6 @@ print (test_x.shape)
 #     model.cuda()
 
 # print('\nModel:', hyper_config,'\n')
-
-
 
 
 x_size = 784
@@ -238,7 +199,7 @@ hyper_config = {
                 'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
-                'cuda': gpu_to_use
+                'cuda': 1
             }
 
 
@@ -263,17 +224,12 @@ hyper_config['q'] = q
 
 
 # Which gpu
-os.environ['CUDA_VISIBLE_DEVICES'] = gpu_to_use
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 print ('Init model')
 model = VAE(hyper_config)
 if torch.cuda.is_available():
     model.cuda()
-    print ('using cuda')
-else:
-    print ('no gpus')
-
-
 print('\nModel:', hyper_config,'\n')
 
 print (model.q_dist)
@@ -281,13 +237,8 @@ print (model.q_dist)
 print (model.generator)
 
 
-# epoch = '1600' # '2200' # '1300' # '100'# '3280'
-
-
 print ('Load params for decoder')
-path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/fashion_params/reg_generator_'+epoch+'.pt'
-# path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_generator_'+epoch+'.pt'
-# path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_generator_3280.pt'
+path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_generator_3280.pt'
 # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_4_generator_3280.pt'
 # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_2_generator_3280.pt'
 # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_0_generator_3280.pt'
@@ -314,7 +265,7 @@ if compute_amort:
 
     print ('Load params for encoder')
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_encoder_100.pt'
-    path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/fashion_params/reg_encoder_'+epoch+'.pt'
+    path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_encoder_3280.pt'
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_encoder_3280.pt'
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_regencoder_encoder_3280.pt'
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_withflow_encoder_3280.pt'
@@ -335,7 +286,6 @@ if compute_amort:
 
 
 
-
 ###########################
 # For each datapoint, compute L[q], L[q*], log p(x)
 
@@ -345,12 +295,7 @@ if compute_amort:
 
 # start_time = time.time()
 
-n_data = 100 #10 # 2 # #3 # 100 #1000 #100
-
-
-#to save results
-file_ = home+'/Documents/tmp/inference_suboptimality/over_training_exps/results_'+str(n_data)+'_fashion.txt'
-
+n_data = 100 #1000 #100
 
 vaes = []
 iwaes = []
@@ -403,25 +348,11 @@ if compute_local_opt:
 # print ('opt iwae flex',np.mean(iwaes_flex))
 # print()
 
-
-with open(file_, 'a') as f:
-    writer = csv.writer(f, delimiter=' ')
-
-    writer.writerow(['training', epoch, 'L_q_star', np.mean(vaes)])
-    writer.writerow(['training', epoch, 'logpx', np.mean(iwaes)])
-
-
 if compute_amort:
     VAE_train = test_vae(model=model, data_x=train_x[:n_data], batch_size=np.minimum(n_data, 50), display=10, k=5000)
     IW_train = test(model=model, data_x=train_x[:n_data], batch_size=np.minimum(n_data, 50), display=10, k=5000)
     print ('amortized VAE',VAE_train)
     print ('amortized IW',IW_train)
-
-
-with open(file_, 'a') as f:
-    writer = csv.writer(f, delimiter=' ')
-
-    writer.writerow(['training', epoch, 'L_q', VAE_train])
 
 
 # print()
@@ -497,13 +428,6 @@ if compute_local_opt_test:
     print ('opt iwae',np.mean(iwaes_test))
     print()
 
-with open(file_, 'a') as f:
-    writer = csv.writer(f, delimiter=' ')
-
-    writer.writerow(['validation', epoch, 'L_q_star', np.mean(vaes_test)])
-    writer.writerow(['validation', epoch, 'logpx', np.mean(iwaes_test)])
-
-
 # print ('opt vae flex',np.mean(vaes_flex))
 # print ('opt iwae flex',np.mean(iwaes_flex))
 # print()
@@ -513,12 +437,6 @@ if compute_amort_test:
     IW_test = test(model=model, data_x=test_x[:n_data], batch_size=np.minimum(n_data, 50), display=10, k=5000)
     print ('amortized VAE',VAE_test)
     print ('amortized IW',IW_test)
-
-
-with open(file_, 'a') as f:
-    writer = csv.writer(f, delimiter=' ')
-
-    writer.writerow(['validation', epoch, 'L_q', VAE_test])
 
 
 
@@ -535,35 +453,6 @@ print ('opt vae',np.mean(vaes_test))
 print ('opt iwae',np.mean(iwaes_test))
 print ('amortized VAE',VAE_test)
 print ('amortized IW',IW_test)
-
-
-
-
-
-#write to file
-# file_ = home+'/Documents/tmp/inference_suboptimality/over_training_exps/results_50.txt'
-# file_ = home+'/Documents/tmp/inference_suboptimality/over_training_exps/results_'+str(n_data)+'_fashion.txt'
-
-
-# with open(file_, 'a') as f:
-#     writer = csv.writer(f, delimiter=' ')
-
-#     writer.writerow(['training', epoch, 'L_q', VAE_train])
-#     writer.writerow(['training', epoch, 'L_q_star', np.mean(vaes)])
-#     writer.writerow(['training', epoch, 'logpx', np.mean(iwaes)])
-
-#     writer.writerow(['validation', epoch, 'L_q', VAE_test])
-#     writer.writerow(['validation', epoch, 'L_q_star', np.mean(vaes_test)])
-#     writer.writerow(['validation', epoch, 'logpx', np.mean(iwaes_test)])
-
-
-
-
-
-
-
-
-
 
 
 

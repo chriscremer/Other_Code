@@ -14,16 +14,19 @@ import matplotlib.pyplot as plt
 
 import csv
 
-epochs=['200','400','600']
+# epochs=['100','1000','1900','2800']
+# epochs=['100','1000','2200']
+# epochs=['100','2800']
+epochs = []
 bounds = ['logpx', 'L_q_star', 'L_q']
 
 
 values = {}
 values['training'] = {}
 values['validation'] = {}
-for epoch in epochs:
-    values['training'][epoch] = {}
-    values['validation'][epoch] = {}
+# for epoch in epochs:
+#     values['training'][epoch] = {}
+#     values['validation'][epoch] = {}
 # for bound in bounds:
 #     for epoch in epochs:
 #         values['training'][epoch][bound] = {}
@@ -32,20 +35,46 @@ for epoch in epochs:
 
     
 #read values
-file_ = home+'/Documents/tmp/inference_suboptimality/over_training_exps/results1.txt'
+# results_file = 'results_50'
+# results_file = 'results_2_fashion'
+# results_file = 'results_10_fashion'
+results_file = 'results_100_fashion'
+
+file_ = home+'/Documents/tmp/inference_suboptimality/over_training_exps/'+results_file+'.txt'
+
+max_value = None
+min_value = None
 
 with open(file_, 'r') as f:
     reader = csv.reader(f, delimiter=' ')
     for row in reader:
         if len(row) and row[0] in ['training','validation']: 
-            print (row)
+            # print (row)
             dataset = row[0]
             epoch = row[1]
             bound = row[2]
             value = row[3]
+
+            if epoch not in values[dataset]:
+                values[dataset][epoch] = {}
+                if epoch not in epochs:
+                    epochs.append(epoch)
+                    print (epoch)
+
             values[dataset][epoch][bound] = value
 
+            if max_value == None or float(value) > max_value:
+                max_value = float(value)
+            if min_value == None or float(value) < min_value:
+                min_value = float(value)
+
 # print (values)
+
+#sort epochs
+epochs.sort()
+
+# print (epochs)
+# fads
 
 #convert to list
 training_plot = {}
@@ -61,7 +90,7 @@ validation_plot = {}
 for bound in bounds:
     values_to_plot = []
     for epoch in epochs:
-        values_to_plot.append(float(values['training'][epoch][bound]))
+        values_to_plot.append(float(values['validation'][epoch][bound]))
     validation_plot[bound] = values_to_plot 
 print (validation_plot)
 
@@ -76,6 +105,10 @@ legend=False
 
 fig = plt.figure(figsize=(8+cols,2+rows), facecolor='white')
 
+# ylimits = [-110, -84]
+ylimits = [min_value, max_value]
+
+
 
 
 # Training set
@@ -89,6 +122,14 @@ ax.set_title('Training Set',family='serif')
 ax.fill_between(epochs_float, training_plot['logpx'], training_plot['L_q_star'])
 ax.fill_between(epochs_float, training_plot['L_q_star'], training_plot['L_q'])
 
+ax.set_ylim(ylimits)
+ax.grid(True, alpha=.1)
+
+
+
+
+
+
 
 
 # Validation set
@@ -99,22 +140,68 @@ ax.set_title('Validation Set',family='serif')
 # for bound in bounds:
 #     ax.plot(epochs_float,validation_plot[bound]) #, label=legends[i], c=colors[i], ls=line_styles[i])
 
+ax.grid(True, alpha=.1)
+
 ax.fill_between(epochs_float, validation_plot['logpx'], validation_plot['L_q_star'])
 ax.fill_between(epochs_float, validation_plot['L_q_star'], validation_plot['L_q'])
 
+ax.set_ylim(ylimits)
+
+
+
+# ax.set_yticks()
+
+# family='serif'
+# fontProperties = {'family':'serif'}
+# ax.set_xticklabels(ax.get_xticks(), fontProperties)
 
 
 
 
-name_file = home+'/Documents/tmp/inference_suboptimality/over_training_exps/results1.png'
-name_file2 = home+'/Documents/tmp/inference_suboptimality/over_training_exps/results1.pdf'
+
+
+name_file = home+'/Documents/tmp/inference_suboptimality/over_training_exps/'+results_file+'.png'
+name_file2 = home+'/Documents/tmp/inference_suboptimality/over_training_exps/'+results_file+'.pdf'
 # name_file = home+'/Documents/tmp/plot.png'
 plt.savefig(name_file)
 plt.savefig(name_file2)
 print ('Saved fig', name_file)
 print ('Saved fig', name_file2)
 
+
+
+print ('DONE')
 fdsa
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
