@@ -38,7 +38,8 @@ values['validation'] = {}
 # results_file = 'results_50'
 # results_file = 'results_2_fashion'
 # results_file = 'results_10_fashion'
-results_file = 'results_100_fashion'
+# results_file = 'results_100_fashion'
+results_file = 'results_20_fashion_binarized_2'
 
 file_ = home+'/Documents/tmp/inference_suboptimality/over_training_exps/'+results_file+'.txt'
 
@@ -70,8 +71,8 @@ with open(file_, 'r') as f:
 
 # print (values)
 
-#sort epochs
-epochs.sort()
+# #sort epochs
+# epochs.sort()
 
 # print (epochs)
 # fads

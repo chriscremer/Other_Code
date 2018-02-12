@@ -138,13 +138,13 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
         batch = data_x[data_index:data_index+batch_size]
         data_index += batch_size
 
-        B = int(model.B)
+        
 
         if torch.cuda.is_available():
             batch = Variable(torch.from_numpy(batch).type(model.dtype), volatile=volatile_, requires_grad=requires_grad).cuda()
-            zeros = Variable(torch.zeros(B, int(model.z_size)).type(model.dtype), volatile=volatile_, requires_grad=requires_grad).cuda() # [B,Z]
-            logw = Variable(torch.zeros(k, B).type(model.dtype), volatile=True, requires_grad=requires_grad).cuda()
-            grad_outputs = torch.ones(k, B).cuda()
+            zeros = Variable(torch.zeros(model.B, model.z_size).type(model.dtype), volatile=volatile_, requires_grad=requires_grad).cuda() # [B,Z]
+            logw = Variable(torch.zeros(k, model.B).type(model.dtype), volatile=True, requires_grad=requires_grad).cuda()
+            grad_outputs = torch.ones(k, model.B).cuda()
         else:
             batch = Variable(torch.from_numpy(batch))
             zeros = Variable(torch.zeros(model.B, model.z_size)) # [B,Z]
@@ -163,7 +163,7 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
 
         # z = Variable(torch.FloatTensor(k, model.B, model.z_size).normal_().type(model.dtype),requires_grad=True)
 
-        z = Variable(torch.FloatTensor(k, B, model.z_size).normal_().type(model.dtype))
+        z = Variable(torch.FloatTensor(k, model.B, model.z_size).normal_().type(model.dtype))
 
         time_2 = time.time()
         for (t0, t1) in zip(schedule[:-1], schedule[1:]):

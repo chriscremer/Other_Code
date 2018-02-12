@@ -22,7 +22,7 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
     def intermediate_dist(t, z, mean, logvar, zeros, batch):
         # logp1 = lognormal(z, mean, logvar)  #[P,B]
         log_prior = lognormal(z, zeros, zeros)  #[P,B]
-        log_likelihood = log_bernoulli(model.decode(z), batch)
+        log_likelihood = log_bernoulli(model.generator.decode(z), batch)
         # logpT = log_prior + log_likelihood
         # log_intermediate_2 = (1-float(t))*logp1 + float(t)*logpT
 
@@ -94,7 +94,7 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
         else:
             accept = accept.type(torch.FloatTensor)
         
-        accept = accept.view(k, model.B, 1)
+        accept = accept.view(k, int(model.B), 1)
 
         z = (accept * z) + ((1-accept) * z0)
 

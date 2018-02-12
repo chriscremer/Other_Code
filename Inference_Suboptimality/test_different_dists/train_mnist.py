@@ -42,6 +42,43 @@ from inference_net import standard
 
 from distributions import Gaussian
 from distributions import Flow
+from distributions import HNF
+from distributions import Flow1
+
+
+
+
+
+gpu_to_use = sys.argv[1]
+os.environ['CUDA_VISIBLE_DEVICES'] = gpu_to_use  #'1'
+
+q_name = sys.argv[2]
+
+hnf = 0
+if q_name == 'Gaus':
+    q = Gaussian
+elif q_name == 'Flow':
+    q = Flow
+elif q_name == 'Flow1':
+    q = Flow1
+elif q_name == 'HNF':
+    q = HNF
+    hnf = 1
+else:
+    dfadfas
+
+
+
+
+# path_to_save_variables=home+'/Documents/tmp/inference_suboptimality/fashion_params/10k_binarized_fashion2_SSE_'+q_name #.pt'
+
+
+
+# path_to_save_variables=home+'/Documents/tmp/inference_suboptimality/fashion_params/binarized_fashion3_LE_'+q_name #.pt'
+
+path_to_save_variables=home+'/Documents/tmp/inference_suboptimality/fashion_params/binarized_fashion3_'+q_name #.pt'
+
+
 
 
 
@@ -70,14 +107,30 @@ test_x = load_mnist(path=path, kind='t10k')
 train_x = train_x / 255.
 test_x = test_x / 255.
 
-print (train_x.shape)
-print (test_x.shape)
-
-
-
 #binarize
 train_x = (train_x > .5).astype(float)
 test_x = (test_x > .5).astype(float)
+
+
+print (train_x.shape)
+print (test_x.shape)
+print ()
+
+valid_x = train_x[50000:]
+train_x = train_x[:50000]
+# train_x = train_x[:10000]  #small dataset 
+
+
+print (train_x.shape)
+print (valid_x.shape)
+print (test_x.shape)
+print ()
+
+
+# fdsa
+
+
+
 
 # print (train_x)
 # fads
@@ -132,8 +185,10 @@ def train_encoder_and_decoder(model, train_x, test_x, k, batch_size,
     total_epochs = 0
 
     i_max = 7
+    # i_max = 6
 
     warmup_over_epochs = 100.
+    # warmup_over_epochs = 20.
 
 
     all_params = []
@@ -246,39 +301,115 @@ def train_encoder_and_decoder(model, train_x, test_x, k, batch_size,
 
 
 # Which gpu
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 
 x_size = 784
-z_size = 50
-batch_size = 20
+z_size = 20
+batch_size = 50
 k = 1
 #save params 
+# start_at = 50
+# save_freq = 250
 start_at = 100
 save_freq = 300
+
 display_epoch = 3
 
+hyper_config = { 
+                'x_size': x_size,
+                'z_size': z_size,
+                'act_func': F.elu, #F.tanh,# F.relu,
+                'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+                'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+                'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+                'cuda': 1,
+                'hnf': hnf
+            }
+
+
+# #LB
+# hyper_config = { 
+#                 'x_size': x_size,
+#                 'z_size': z_size,
+#                 'act_func': F.elu, #F.tanh,# F.relu,
+#                 'encoder_arch': [[x_size,500],[500,500],[500,z_size*2]],
+#                 'decoder_arch': [[z_size,500],[500,500],[500,x_size]],
+#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+#                 'cuda': 1,
+#                 'hnf': hnf
+#             }
+
+
+# #LD
 # hyper_config = { 
 #                 'x_size': x_size,
 #                 'z_size': z_size,
 #                 'act_func': F.elu, #F.tanh,# F.relu,
 #                 'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+#                 'decoder_arch': [[z_size,500],[500,500],[500,500],[500,x_size]],
+#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+#                 'cuda': 1,
+#                 'hnf': hnf
+#             }
+
+
+
+
+# #LE
+# hyper_config = { 
+#                 'x_size': x_size,
+#                 'z_size': z_size,
+#                 'act_func': F.elu, #F.tanh,# F.relu,
+#                 'encoder_arch': [[x_size,500],[500,500],[500,500],[500,z_size*2]],
+#                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+#                 'cuda': 1,
+#                 'hnf': hnf
+#             }
+
+
+
+
+# #SE
+# hyper_config = { 
+#                 'x_size': x_size,
+#                 'z_size': z_size,
+#                 'act_func': F.elu, #F.tanh,# F.relu,
+#                 'encoder_arch': [[x_size,100],[100,z_size*2]],
+#                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+#                 'cuda': 1,
+#                 'hnf': hnf
+#             }
+
+
+
+
+# #SSE
+# hyper_config = { 
+#                 'x_size': x_size,
+#                 'z_size': z_size,
+#                 'act_func': F.elu, #F.tanh,# F.relu,
+#                 'encoder_arch': [[x_size,z_size*2]],
+#                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+#                 'cuda': 1,
+#                 'hnf': hnf
+#             }
+
+
+
+# #LE
+# hyper_config = { 
+#                 'x_size': x_size,
+#                 'z_size': z_size,
+#                 'act_func': F.elu, #F.tanh,# F.relu,
+#                 'encoder_arch': [[x_size,500],[500,500],[500,z_size*2]],
 #                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
 #                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
 #                 'cuda': 1
 #             }
-
-
-#LE
-hyper_config = { 
-                'x_size': x_size,
-                'z_size': z_size,
-                'act_func': F.elu, #F.tanh,# F.relu,
-                'encoder_arch': [[x_size,500],[500,500],[500,z_size*2]],
-                'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
-                'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
-                'cuda': 1
-            }
 
 # hyper_config = { 
 #                 'x_size': x_size,
@@ -302,9 +433,9 @@ hyper_config = {
 #             }
 
 
-q = Gaussian(hyper_config)
-# q = Flow(hyper_config)
-hyper_config['q'] = q
+# q = Gaussian(hyper_config)
+# # q = Flow(hyper_config)
+hyper_config['q'] = q(hyper_config)
 
 
 print ('Init model')
@@ -318,7 +449,7 @@ print('\nModel:', hyper_config,'\n')
 
 
 # path_to_load_variables=''
-path_to_save_variables=home+'/Documents/tmp/inference_suboptimality/fashion_params/LE_binarized_fashion' #.pt'
+# path_to_save_variables=home+'/Documents/tmp/inference_suboptimality/fashion_params/LE_binarized_fashion' #.pt'
 # path_to_save_variables=home+'/Documents/tmp/inference_suboptimality/fashion_params/binarized_fashion_' #.pt'
 
 # path_to_save_variables=home+'/Documents/tmp/pytorch_vae'+str(epochs)+'.pt'

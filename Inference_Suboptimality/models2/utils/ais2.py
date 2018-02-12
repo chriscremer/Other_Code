@@ -2,8 +2,6 @@
 
 # This one samples the prior distribution
 
-# Use this to time everytthing
-
 
 import math
 import torch
@@ -138,13 +136,13 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
         batch = data_x[data_index:data_index+batch_size]
         data_index += batch_size
 
-        B = int(model.B)
+        
 
         if torch.cuda.is_available():
-            batch = Variable(torch.from_numpy(batch).type(model.dtype), volatile=volatile_, requires_grad=requires_grad).cuda()
-            zeros = Variable(torch.zeros(B, int(model.z_size)).type(model.dtype), volatile=volatile_, requires_grad=requires_grad).cuda() # [B,Z]
-            logw = Variable(torch.zeros(k, B).type(model.dtype), volatile=True, requires_grad=requires_grad).cuda()
-            grad_outputs = torch.ones(k, B).cuda()
+            batch = Variable(torch.from_numpy(batch), volatile=volatile_, requires_grad=requires_grad).cuda()
+            zeros = Variable(torch.zeros(model.B, model.z_size), volatile=volatile_, requires_grad=requires_grad).cuda() # [B,Z]
+            logw = Variable(torch.zeros(k, model.B), volatile=True, requires_grad=requires_grad).cuda()
+            grad_outputs = torch.ones(k, model.B).cuda()
         else:
             batch = Variable(torch.from_numpy(batch))
             zeros = Variable(torch.zeros(model.B, model.z_size)) # [B,Z]
@@ -159,13 +157,9 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
 
 
         # z, logqz = model.q_dist.forward(k=k, x=batch, logposterior=model.logposterior)
+        z = Variable(torch.FloatTensor(k, model.B, model.z_size).normal_().type(model.dtype),requires_grad=True)
 
 
-        # z = Variable(torch.FloatTensor(k, model.B, model.z_size).normal_().type(model.dtype),requires_grad=True)
-
-        z = Variable(torch.FloatTensor(k, B, model.z_size).normal_().type(model.dtype))
-
-        time_2 = time.time()
         for (t0, t1) in zip(schedule[:-1], schedule[1:]):
 
 
@@ -178,11 +172,6 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
 
             logw += log_intermediate_2 - log_intermediate_1
 
-            # print('ere')
-
-            z = z.data
-
-            z = Variable(z, requires_grad=True)
 
 
             #HMC dynamics
@@ -190,25 +179,12 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
             intermediate_dist_func = lambda aaa: intermediate_dist(t1, aaa, zeros, zeros, zeros, batch)
 
             # print (t1)
-            time_1 = time.time()
-            z0, v0, z, v = hmc(z, intermediate_dist_func)
-            # print (t0, 'time to do hmc', time.time()-time_1)
 
+            z0, v0, z, v = hmc(z, intermediate_dist_func)
 
             #MH step
             z, step_size = mh_step(z0, v0, z, v, step_size, intermediate_dist_func)
 
-            z = z.detach()
-
-
-
-
-
-
-
-
-        # print ('time to do whole schedule', time.time()-time_2)
-        # fasd
         #log sum exp
         max_ = torch.max(logw,0)[0] #[B]
         logw = torch.log(torch.mean(torch.exp(logw - max_), 0)) + max_ #[B]
@@ -217,7 +193,7 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
 
 
         if i%display==0:
-            print (i,len(data_x)/ batch_size, np.mean(logws),step_size, time.time()-time_)
+            print (i,len(data_x)/ batch_size, np.mean(logws),step_size)
 
     mean_ = np.mean(logws)
     print(mean_, 'T:', time.time()-time_)

@@ -26,98 +26,36 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 
-# from ais2 import test_ais
-
-# from pytorch_vae_v6 import VAE
-
-# from vae_1 import VAE
 from vae_2 import VAE
 
-
-# from approx_posteriors_v6 import FFG_LN
-# from approx_posteriors_v6 import ANF_LN
-# import argparse
-# from approx_posteriors_v6 import standard
 from inference_net import standard
 
 from distributions import Gaussian
-from distributions import Flow
+from distributions import Flow1
 
 
 
-
-
-
-#FASHION
-def load_mnist(path, kind='train'):
-
-    images_path = os.path.join(path,
-                               '%s-images-idx3-ubyte.gz'
-                               % kind)
-
-    with gzip.open(images_path, 'rb') as imgpath:
-        images = np.frombuffer(imgpath.read(), dtype=np.uint8,
-                               offset=16).reshape(-1, 784)
-
-    return images#, labels
-
-
-path = home+'/Documents/fashion_MNIST'
-
-train_x = load_mnist(path=path)
-test_x = load_mnist(path=path, kind='t10k')
-
-train_x = train_x / 255.
-test_x = test_x / 255.
-
-print (train_x.shape)
-print (test_x.shape)
-
-
-
-#binarize
-train_x = (train_x > .5).astype(float)
-test_x = (test_x > .5).astype(float)
-
-# print (train_x)
-# fads
-
-# print (np.max(train_x))
-# print (test_x[3])
-# fsda
-
-
-# print ('Loading data')
-# with open(home+'/Documents/MNIST_data/mnist.pkl','rb') as f:
-#     mnist_data = pickle.load(f, encoding='latin1')
-# train_x = mnist_data[0][0]
-# valid_x = mnist_data[1][0]
-# test_x = mnist_data[2][0]
-# train_x = np.concatenate([train_x, valid_x], axis=0)
-# print (train_x.shape)
-
-
-
-# #Load data  mnist
-# print ('Loading data' )
-# data_location = home + '/Documents/MNIST_data/'
-# # with open(data_location + 'binarized_mnist.pkl', 'rb') as f:
-# #     train_x, valid_x, test_x = pickle.load(f)
+#Load data
+print ('Loading data' )
+data_location = home + '/Documents/MNIST_data/'
 # with open(data_location + 'binarized_mnist.pkl', 'rb') as f:
-#     train_x, valid_x, test_x = pickle.load(f, encoding='latin1')
-# print ('Train', train_x.shape)
-# print ('Valid', valid_x.shape)
-# print ('Test', test_x.shape)
-
-
-# print (np.max(train_x))
-
-# fadad
+#     train_x, valid_x, test_x = pickle.load(f)
+with open(data_location + 'binarized_mnist.pkl', 'rb') as f:
+    train_x, valid_x, test_x = pickle.load(f, encoding='latin1')
+print ('Train', train_x.shape)
+print ('Valid', valid_x.shape)
+print ('Test', test_x.shape)
 
 
 
 
-def train_encoder_and_decoder(model, train_x, test_x, k, batch_size,
+
+
+
+
+
+
+def train_encdoer_and_decoder(model, train_x, test_x, k, batch_size,
                     start_at, save_freq, display_epoch, 
                     path_to_save_variables):
 
@@ -139,39 +77,18 @@ def train_encoder_and_decoder(model, train_x, test_x, k, batch_size,
     all_params = []
     for aaa in model.q_dist.parameters():
         all_params.append(aaa)
-    for aaa in model.generator.parameters():
-        all_params.append(aaa)
+    # for aaa in model.generator.parameters():
+    #     all_params.append(aaa)
     # print (len(all_params), 'number of params')
 
     print (model.q_dist)
     # print (model.q_dist.q)
     print (model.generator)
 
-    # fads
-
-
     for i in range(0,i_max+1):
 
         lr = .001 * 10**(-i/float(i_max))
         print (i, 'LR:', lr)
-
-        # # optimizer = optim.Adam(model.parameters(), lr=lr)
-        # print (model.q_dist)
-        # print (model.generator)
-        # print (model.q_dist.parameters())
-        # print (model.generator.parameters())
-
-        # print ('Encoder')
-        # for aaa in model.q_dist.parameters():
-        #     # print (aaa)
-        #     print (aaa.size())
-        # print ('Decoder')
-        # for aaa in model.generator.parameters():
-        #     # print (aaa)
-        #     print (aaa.size())
-        # # fasdfs
-        # fads
-
 
         optimizer = optim.Adam(all_params, lr=lr)
 
@@ -216,9 +133,9 @@ def train_encoder_and_decoder(model, train_x, test_x, k, batch_size,
                 save_file = path_to_save_variables+'_encoder_'+str(total_epochs)+'.pt'
                 torch.save(model.q_dist.state_dict(), save_file)
                 print ('saved variables ' + save_file)
-                save_file = path_to_save_variables+'_generator_'+str(total_epochs)+'.pt'
-                torch.save(model.generator.state_dict(), save_file)
-                print ('saved variables ' + save_file)
+                # save_file = path_to_save_variables+'_generator_'+str(total_epochs)+'.pt'
+                # torch.save(model.generator.state_dict(), save_file)
+                # print ('saved variables ' + save_file)
 
 
 
@@ -226,9 +143,9 @@ def train_encoder_and_decoder(model, train_x, test_x, k, batch_size,
     save_file = path_to_save_variables+'_encoder_'+str(total_epochs)+'.pt'
     torch.save(model.q_dist.state_dict(), save_file)
     print ('saved variables ' + save_file)
-    save_file = path_to_save_variables+'_generator_'+str(total_epochs)+'.pt'
-    torch.save(model.generator.state_dict(), save_file)
-    print ('saved variables ' + save_file)
+    # save_file = path_to_save_variables+'_generator_'+str(total_epochs)+'.pt'
+    # torch.save(model.generator.state_dict(), save_file)
+    # print ('saved variables ' + save_file)
 
 
     print ('done training')
@@ -243,12 +160,6 @@ def train_encoder_and_decoder(model, train_x, test_x, k, batch_size,
 
 
 
-
-
-# Which gpu
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-
-
 x_size = 784
 z_size = 50
 batch_size = 20
@@ -261,7 +172,7 @@ display_epoch = 3
 # hyper_config = { 
 #                 'x_size': x_size,
 #                 'z_size': z_size,
-#                 'act_func': F.elu, #F.tanh,# F.relu,
+#                 'act_func': F.tanh,# F.relu,
 #                 'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
 #                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
 #                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
@@ -269,42 +180,40 @@ display_epoch = 3
 #             }
 
 
-#LE
+
+
+# Which gpu
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+
+
+
+
+
+# hyper_config = { 
+#                 'x_size': x_size,
+#                 'z_size': z_size,
+#                 'act_func': F.tanh,# F.relu,
+#                 'encoder_arch': [[x_size,z_size*2]],
+#                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+#                 'cuda': 1
+#             }
+
+
+#flow1
 hyper_config = { 
                 'x_size': x_size,
                 'z_size': z_size,
-                'act_func': F.elu, #F.tanh,# F.relu,
-                'encoder_arch': [[x_size,500],[500,500],[500,z_size*2]],
+                'act_func': F.tanh,  #F.elu, #,# F.relu,
+                'encoder_arch': [[x_size,z_size*2]],
                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
-                'cuda': 1
+                'cuda': 1,
+                'hnf': 0
             }
 
-# hyper_config = { 
-#                 'x_size': x_size,
-#                 'z_size': z_size,
-#                 'act_func': F.tanh,# F.relu,
-#                 'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
-#                 'decoder_arch': [[z_size,x_size]],
-#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
-#                 'cuda': 1
-#             }
-
-
-# hyper_config = { 
-#                 'x_size': x_size,
-#                 'z_size': z_size,
-#                 'act_func': F.tanh,# F.relu,
-#                 'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
-#                 'decoder_arch': [[z_size,200],[200,200],[200,200],[200,200],[200,x_size]],
-#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
-#                 'cuda': 1
-#             }
-
-
-q = Gaussian(hyper_config)
-# q = Flow(hyper_config)
-hyper_config['q'] = q
+hyper_config['q'] = Flow1(hyper_config)
+# hyper_config['q'] = Gaussian(hyper_config)
 
 
 print ('Init model')
@@ -317,13 +226,26 @@ print('\nModel:', hyper_config,'\n')
 
 
 
-# path_to_load_variables=''
-path_to_save_variables=home+'/Documents/tmp/inference_suboptimality/fashion_params/LE_binarized_fashion' #.pt'
-# path_to_save_variables=home+'/Documents/tmp/inference_suboptimality/fashion_params/binarized_fashion_' #.pt'
 
+# path_to_load_variables=''
+path_to_save_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_withflow1' #.pt'
+# path_to_save_variables=home+'/Documents/tmp/inference_suboptimality/vae_regencoder' #.pt'
 # path_to_save_variables=home+'/Documents/tmp/pytorch_vae'+str(epochs)+'.pt'
 # path_to_save_variables=this_dir+'/params_'+model_name+'_'
 # path_to_save_variables=''
+
+
+# load generator
+print ('Load params for decoder')
+path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_generator_3280.pt'
+model.generator.load_state_dict(torch.load(path_to_load_variables, map_location=lambda storage, loc: storage))
+print ('loaded variables ' + path_to_load_variables)
+print ()
+
+
+
+
+
 
 
 
@@ -333,12 +255,11 @@ print('\nTraining')
 #                     path_to_save_variables=path_to_save_variables)
 
 
-train_encoder_and_decoder(model=model, train_x=train_x, test_x=test_x, k=k, batch_size=batch_size,
+train_encdoer_and_decoder(model=model, train_x=train_x, test_x=test_x, k=k, batch_size=batch_size,
                     start_at=start_at, save_freq=save_freq, display_epoch=display_epoch, 
                     path_to_save_variables=path_to_save_variables)
 
 print ('Done.')
-
 
 
 

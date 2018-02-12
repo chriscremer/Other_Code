@@ -1,8 +1,6 @@
 
 
-# This one samples the prior distribution
 
-# Use this to time everytthing
 
 
 import math
@@ -20,14 +18,11 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
 
 
     def intermediate_dist(t, z, mean, logvar, zeros, batch):
-        # logp1 = lognormal(z, mean, logvar)  #[P,B]
+        logp1 = lognormal(z, mean, logvar)  #[P,B]
         log_prior = lognormal(z, zeros, zeros)  #[P,B]
         log_likelihood = log_bernoulli(model.decode(z), batch)
-        # logpT = log_prior + log_likelihood
-        # log_intermediate_2 = (1-float(t))*logp1 + float(t)*logpT
-
-        log_intermediate_2 = log_prior + float(t)*log_likelihood
-
+        logpT = log_prior + log_likelihood
+        log_intermediate_2 = (1-float(t))*logp1 + float(t)*logpT
         return log_intermediate_2
 
 
@@ -41,8 +36,6 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
         v0 = v
         z0 = z
 
-        # print (intermediate_dist_func(z))
-        # fasdf
         gradients = torch.autograd.grad(outputs=intermediate_dist_func(z), inputs=z,
                           grad_outputs=grad_outputs,
                           create_graph=True, retain_graph=retain_graph, only_inputs=True)[0]
@@ -101,7 +94,7 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
         #Adapt step size
         avg_acceptance_rate = torch.mean(accept)
 
-        if avg_acceptance_rate.cpu().data.numpy() > .65:
+        if avg_acceptance_rate.cpu().data.numpy() > .7:
             step_size = 1.02 * step_size
         else:
             step_size = .98 * step_size
@@ -117,7 +110,7 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
 
 
     # n_intermediate_dists = 10
-    n_HMC_steps = 10
+    n_HMC_steps = 5
     step_size = .1
 
     retain_graph = False
@@ -138,13 +131,13 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
         batch = data_x[data_index:data_index+batch_size]
         data_index += batch_size
 
-        B = int(model.B)
+        
 
         if torch.cuda.is_available():
-            batch = Variable(torch.from_numpy(batch).type(model.dtype), volatile=volatile_, requires_grad=requires_grad).cuda()
-            zeros = Variable(torch.zeros(B, int(model.z_size)).type(model.dtype), volatile=volatile_, requires_grad=requires_grad).cuda() # [B,Z]
-            logw = Variable(torch.zeros(k, B).type(model.dtype), volatile=True, requires_grad=requires_grad).cuda()
-            grad_outputs = torch.ones(k, B).cuda()
+            batch = Variable(torch.from_numpy(batch), volatile=volatile_, requires_grad=requires_grad).cuda()
+            zeros = Variable(torch.zeros(model.B, model.z_size), volatile=volatile_, requires_grad=requires_grad).cuda() # [B,Z]
+            logw = Variable(torch.zeros(k, model.B), volatile=True, requires_grad=requires_grad).cuda()
+            grad_outputs = torch.ones(k, model.B).cuda()
         else:
             batch = Variable(torch.from_numpy(batch))
             zeros = Variable(torch.zeros(model.B, model.z_size)) # [B,Z]
@@ -152,63 +145,28 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
             grad_outputs = torch.ones(k, model.B)
 
 
-        # #Encode x
-        # mean, logvar = model.encode(batch) #[B,Z]
-        # #Init z
-        # z, logpz, logqz = model.sample(mean, logvar, k=k)  #[P,B,Z], [P,B], [P,B]
+        #Encode x
+        mean, logvar = model.encode(batch) #[B,Z]
+        #Init z
+        z, logpz, logqz = model.sample(mean, logvar, k=k)  #[P,B,Z], [P,B], [P,B]
 
-
-        # z, logqz = model.q_dist.forward(k=k, x=batch, logposterior=model.logposterior)
-
-
-        # z = Variable(torch.FloatTensor(k, model.B, model.z_size).normal_().type(model.dtype),requires_grad=True)
-
-        z = Variable(torch.FloatTensor(k, B, model.z_size).normal_().type(model.dtype))
-
-        time_2 = time.time()
         for (t0, t1) in zip(schedule[:-1], schedule[1:]):
 
 
-            #logw = logw + logpt-1(zt-1) - logpt(zt-1)  t, z, mean, logvar, zeros, batch
-            # log_intermediate_1 = intermediate_dist(t0, z, mean, logvar, zeros, batch)
-            # log_intermediate_2 = intermediate_dist(t1, z, mean, logvar, zeros, batch)
-            log_intermediate_1 = intermediate_dist(t=t0, z=z, mean=zeros, logvar=zeros, zeros=zeros, batch=batch)
-            log_intermediate_2 = intermediate_dist(t=t1, z=z, mean=zeros, logvar=zeros, zeros=zeros, batch=batch)
-
-
+            #logw = logw + logpt-1(zt-1) - logpt(zt-1)
+            log_intermediate_1 = intermediate_dist(t0, z, mean, logvar, zeros, batch)
+            log_intermediate_2 = intermediate_dist(t1, z, mean, logvar, zeros, batch)
             logw += log_intermediate_2 - log_intermediate_1
 
-            # print('ere')
-
-            z = z.data
-
-            z = Variable(z, requires_grad=True)
 
 
             #HMC dynamics
-            # intermediate_dist_func = lambda aaa: intermediate_dist(t1, aaa, mean, logvar, zeros, batch)
-            intermediate_dist_func = lambda aaa: intermediate_dist(t1, aaa, zeros, zeros, zeros, batch)
-
-            # print (t1)
-            time_1 = time.time()
+            intermediate_dist_func = lambda aaa: intermediate_dist(t1, aaa, mean, logvar, zeros, batch)
             z0, v0, z, v = hmc(z, intermediate_dist_func)
-            # print (t0, 'time to do hmc', time.time()-time_1)
-
 
             #MH step
             z, step_size = mh_step(z0, v0, z, v, step_size, intermediate_dist_func)
 
-            z = z.detach()
-
-
-
-
-
-
-
-
-        # print ('time to do whole schedule', time.time()-time_2)
-        # fasd
         #log sum exp
         max_ = torch.max(logw,0)[0] #[B]
         logw = torch.log(torch.mean(torch.exp(logw - max_), 0)) + max_ #[B]
@@ -217,7 +175,7 @@ def test_ais(model, data_x, batch_size, display, k, n_intermediate_dists):
 
 
         if i%display==0:
-            print (i,len(data_x)/ batch_size, np.mean(logws),step_size, time.time()-time_)
+            print (i,len(data_x)/ batch_size, np.mean(logws))
 
     mean_ = np.mean(logws)
     print(mean_, 'T:', time.time()-time_)

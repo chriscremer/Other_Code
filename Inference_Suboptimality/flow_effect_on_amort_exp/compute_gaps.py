@@ -48,6 +48,7 @@ from optimize_local_q import optimize_local_q_dist
 
 from distributions import Gaussian
 from distributions import Flow
+from distributions import Flow1
 
 
 
@@ -184,19 +185,21 @@ hyper_config = {
                 'encoder_arch': [[x_size,z_size*2]],
                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
-                'cuda': 1
+                'cuda': 1,
+                'hnf':0
             }
 
 
 # q = Gaussian(hyper_config)
-q = Flow(hyper_config)
+# q = Flow(hyper_config)
+q = Flow1(hyper_config)
 hyper_config['q'] = q
 
 
 
 
 # Which gpu
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 print ('Init model')
 model = VAE(hyper_config)
@@ -225,7 +228,9 @@ if compute_amort:
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_encoder_3280.pt'
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_encoder_3280.pt'
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_regencoder_encoder_3280.pt'
-    path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_withflow_encoder_3280.pt'
+    # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_withflow_encoder_3280.pt'
+    # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_withflow1_encoder_1000.pt'
+    path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_withflow1_encoder_3280.pt'
 
 
     model.q_dist.load_state_dict(torch.load(path_to_load_variables, map_location=lambda storage, loc: storage))
@@ -245,7 +250,9 @@ if compute_amort:
 
 # start_time = time.time()
 
-n_data = 1000 #2 #100
+# n_data = 1000 #2 #100
+n_data = 500 #2 #100
+
 
 vaes = []
 iwaes = []
@@ -256,11 +263,12 @@ iwaes_flex = []
 
 if compute_local_opt:
     print ('optmizing local')
-    for i in range(len(train_x[:n_data])):
+    # for i in range(len(train_x[:n_data])):
+    for i in range(n_data):
 
-        print (i)
+        print (i+500)
 
-        x = train_x[i]
+        x = train_x[i+500]
         x = Variable(torch.from_numpy(x)).type(model.dtype)
         x = x.view(1,784)
 
@@ -278,8 +286,10 @@ if compute_local_opt:
         # vaes_flex.append(vae.data.cpu().numpy())
         # iwaes_flex.append(iwae.data.cpu().numpy())
 
-        q_local = Gaussian(hyper_config) #, mean, logvar)
+        # q_local = Gaussian(hyper_config) #, mean, logvar)
         # q_local = Flow(hyper_config).cuda()#, mean, logvar)
+        q_local = Flow1(hyper_config).cuda() #, mean, logvar)
+
 
         # print (q_local)
 

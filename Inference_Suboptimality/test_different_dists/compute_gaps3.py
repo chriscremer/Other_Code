@@ -3,6 +3,8 @@
 
 
 
+
+
 import numpy as np
 import gzip
 import time
@@ -36,6 +38,8 @@ from vae_2 import VAE
 from inference_net import standard
 
 # from ais3 import test_ais
+from ais4 import test_ais
+
 
 
 # from optimize_local import optimize_local_gaussian
@@ -48,6 +52,7 @@ from optimize_local_q import optimize_local_q_dist
 
 from distributions import Gaussian
 from distributions import Flow
+from distributions import Flow1
 
 
 import csv
@@ -58,9 +63,72 @@ import csv
 
 gpu_to_use = sys.argv[1]
 epoch = sys.argv[2]
+
+
+todo = sys.argv[3]
+
+q_name = sys.argv[4]
+
+n_data = int(sys.argv[5])
+
+model_to_load = sys.argv[6]
+
+
+
 os.environ['CUDA_VISIBLE_DEVICES'] = gpu_to_use  #'1'
+# params_file = 'binarized_fashion_'
+# params_file = 'LE_binarized_fashion'
+# params_file = '10k_binarized_fashion2_Gaus'
+params_file = model_to_load
 
 
+
+
+# n_data =1001
+# n_data =20
+
+
+
+#to save results
+# file_ = home+'/Documents/tmp/inference_suboptimality/over_training_exps/results_'+str(n_data)+'_fashion_binarized_2.txt'
+file_ = home+'/Documents/tmp/inference_suboptimality/over_training_exps/results_ndata_'+str(n_data)+'_'+model_to_load+'.txt'
+
+
+
+compute_local_opt = 0
+compute_amort = 0
+compute_local_opt_test = 0
+compute_amort_test = 0
+ais_train = 0
+ais_test = 0
+
+if todo == 'amort':
+    compute_amort = 1
+    compute_amort_test = 1
+elif todo == 'opt_train':
+    compute_local_opt = 1
+elif todo == 'opt_valid':
+    compute_local_opt_test = 1
+elif todo == 'ais_train':
+    ais_train = 1
+elif todo == 'ais_test':
+    ais_test = 1
+else:
+    fadsfafd
+
+
+hnf = 0
+if q_name == 'Gaus':
+    q = Gaussian
+elif q_name == 'Flow':
+    q = Flow
+elif q_name == 'Flow1':
+    q = Flow1
+elif q_name == 'HNF':
+    q = HNF
+    hnf = 1
+else:
+    dfadfas
 
 
 
@@ -169,15 +237,24 @@ test_x = load_mnist(path=path, kind='t10k')
 train_x = train_x / 255.
 test_x = test_x / 255.
 
-print (train_x.shape)
-print (test_x.shape)
-
-
 
 #binarize
 train_x = (train_x > .5).astype(float)
 test_x = (test_x > .5).astype(float)
 
+print (train_x.shape)
+print (test_x.shape)
+print ()
+
+valid_x = train_x[50000:]
+train_x = train_x[:50000]
+# train_x = train_x[:10000]  #small dataset 
+
+
+print (train_x.shape)
+print (valid_x.shape)
+print (test_x.shape)
+print ()
 
 
 
@@ -202,7 +279,9 @@ test_x = (test_x > .5).astype(float)
 
 
 x_size = 784
-z_size = 50
+# z_size = 50
+z_size = 20
+
 # batch_size = 20
 # k = 1
 #save params 
@@ -234,17 +313,60 @@ z_size = 50
 #                 'cuda': 1
 #             }
 
-# 2 hidden decoder
-hyper_config = { 
-                'x_size': x_size,
-                'z_size': z_size,
-                'act_func': F.tanh,# F.relu,
-                'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
-                'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
-                'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
-                'cuda': gpu_to_use
-            }
 
+if 'LD' in model_to_load:
+    #LD
+    hyper_config = { 
+                    'x_size': x_size,
+                    'z_size': z_size,
+                    'act_func': F.elu, #F.tanh,# F.relu,
+                    'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+                    'decoder_arch': [[z_size,500],[500,500],[500,500],[500,x_size]],
+                    'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+                    'cuda': 1,
+                    'hnf': hnf
+                }
+
+
+elif 'LE' in model_to_load:
+    #LE
+    hyper_config = { 
+                    'x_size': x_size,
+                    'z_size': z_size,
+                    'act_func': F.elu, #F.tanh,# F.relu,
+                    'encoder_arch': [[x_size,500],[500,500],[500,500],[500,z_size*2]],
+                    'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+                    'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+                    'cuda': 1,
+                    'hnf': hnf
+                }
+
+
+else:
+    # 2 hidden decoder  , REGULAR
+    hyper_config = { 
+                    'x_size': x_size,
+                    'z_size': z_size,
+                    'act_func': F.elu, #F.tanh,# F.relu,
+                    'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+                    'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+                    'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+                    'cuda': 1,
+                    'hnf': 0
+                }
+
+
+# #LE
+# hyper_config = { 
+#                 'x_size': x_size,
+#                 'z_size': z_size,
+#                 'act_func': F.elu, #F.tanh,# F.relu,
+#                 'encoder_arch': [[x_size,500],[500,500],[500,z_size*2]],
+#                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+#                 'cuda': 1,
+#                 'hnf': 0
+#             }
 
 # # 4 hidden decoder
 # hyper_config = { 
@@ -259,15 +381,16 @@ hyper_config = {
 
 
 
-q = Gaussian(hyper_config)
-# q = Flow(hyper_config)
-hyper_config['q'] = q
 
+# q = Gaussian(hyper_config)
+# # q = Flow(hyper_config)
+# hyper_config['q'] = q
+hyper_config['q'] = q(hyper_config)
 
 
 
 # Which gpu
-os.environ['CUDA_VISIBLE_DEVICES'] = gpu_to_use
+# os.environ['CUDA_VISIBLE_DEVICES'] = gpu_to_use
 
 print ('Init model')
 model = VAE(hyper_config)
@@ -287,7 +410,7 @@ print (model.generator)
 
 # epoch = '1600' # '2200' # '1300' # '100'# '3280'
 
-params_file = 'binarized_fashion_'
+
 
 
 print ('Load params for decoder')
@@ -301,14 +424,6 @@ path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/fashion_para
 model.generator.load_state_dict(torch.load(path_to_load_variables, map_location=lambda storage, loc: storage))
 print ('loaded variables ' + path_to_load_variables)
 print ()
-
-
-
-compute_local_opt = 1
-compute_amort = 1
-
-compute_local_opt_test = 1
-compute_amort_test = 1
 
 
 
@@ -352,11 +467,11 @@ if compute_amort:
 
 # start_time = time.time()
 
-n_data = 100 #10 # 2 # #3 # 100 #1000 #100
+# n_data = 100 #10 # 2 # #3 # 100 #1000 #100
 
 
-#to save results
-file_ = home+'/Documents/tmp/inference_suboptimality/over_training_exps/results_'+str(n_data)+'_fashion_binarized.txt'
+# #to save results
+# file_ = home+'/Documents/tmp/inference_suboptimality/over_training_exps/results_'+str(n_data)+'_fashion_binarized.txt'
 
 
 vaes = []
@@ -364,6 +479,8 @@ iwaes = []
 vaes_flex = []
 iwaes_flex = []
 
+
+batch_size = 5
 
 
 if compute_local_opt:
@@ -390,8 +507,21 @@ if compute_local_opt:
         # vaes_flex.append(vae.data.cpu().numpy())
         # iwaes_flex.append(iwae.data.cpu().numpy())
 
-        q_local = Gaussian(hyper_config) #, mean, logvar)
+        # q_local = Gaussian(hyper_config) #, mean, logvar)
         # q_local = Flow(hyper_config).cuda()#, mean, logvar)
+
+        hnf = 0
+        if q_name == 'Gaus':
+            q_local = Gaussian(hyper_config)
+        elif q_name == 'Flow':
+            q_local = Flow(hyper_config).cuda()
+        elif q_name == 'Flow1':
+            q_local = Flow1(hyper_config).cuda()
+        elif q_name == 'HNF':
+            q_local = HNF(hyper_config)
+            hnf = 1
+        else:
+            dfadfas
 
         # print (q_local)
 
@@ -406,29 +536,32 @@ if compute_local_opt:
     print ('opt iwae',np.mean(iwaes))
     print()
 
+
+    with open(file_, 'a') as f:
+        writer = csv.writer(f, delimiter=' ')
+
+        writer.writerow(['training', epoch, 'L_q_star', np.mean(vaes)])
+        writer.writerow(['training', epoch, 'logpx', np.mean(iwaes)])
+
+
 # print ('opt vae flex',np.mean(vaes_flex))
 # print ('opt iwae flex',np.mean(iwaes_flex))
 # print()
 
 
-with open(file_, 'a') as f:
-    writer = csv.writer(f, delimiter=' ')
-
-    writer.writerow(['training', epoch, 'L_q_star', np.mean(vaes)])
-    writer.writerow(['training', epoch, 'logpx', np.mean(iwaes)])
-
 
 if compute_amort:
-    VAE_train = test_vae(model=model, data_x=train_x[:n_data], batch_size=np.minimum(n_data, 50), display=10, k=5000)
-    IW_train = test(model=model, data_x=train_x[:n_data], batch_size=np.minimum(n_data, 50), display=10, k=5000)
+    VAE_train = test_vae(model=model, data_x=train_x[:n_data], batch_size=np.minimum(n_data, batch_size), display=10, k=5000)
+    IW_train = test(model=model, data_x=train_x[:n_data], batch_size=np.minimum(n_data, batch_size), display=10, k=5000)
     print ('amortized VAE',VAE_train)
     print ('amortized IW',IW_train)
 
 
-with open(file_, 'a') as f:
-    writer = csv.writer(f, delimiter=' ')
+    with open(file_, 'a') as f:
+        writer = csv.writer(f, delimiter=' ')
 
-    writer.writerow(['training', epoch, 'L_q', VAE_train])
+        writer.writerow(['training', epoch, 'L_q', VAE_train])
+        writer.writerow(['training', epoch, 'L_q_IWAE', IW_train])
 
 
 # print()
@@ -455,16 +588,18 @@ with open(file_, 'a') as f:
 
 
 # TEST SET
-print ('TEST SET')
+
 
 vaes_test = []
 iwaes_test = []
 # vaes_flex = []
 # iwaes_flex = []
 
+test_x = valid_x
 
 
 if compute_local_opt_test:
+    print ('TEST SET')
     print ('optmizing local')
     for i in range(len(test_x[:n_data])):
 
@@ -488,8 +623,22 @@ if compute_local_opt_test:
         # vaes_flex.append(vae.data.cpu().numpy())
         # iwaes_flex.append(iwae.data.cpu().numpy())
 
-        q_local = Gaussian(hyper_config) #, mean, logvar)
+        # q_local = Gaussian(hyper_config) #, mean, logvar)
         # q_local = Flow(hyper_config).cuda()#, mean, logvar)
+
+        hnf = 0
+        if q_name == 'Gaus':
+            q_local = Gaussian(hyper_config)
+        elif q_name == 'Flow':
+            q_local = Flow(hyper_config).cuda()
+        elif q_name == 'Flow1':
+            q_local = Flow1(hyper_config).cuda()
+        elif q_name == 'HNF':
+            q_local = HNF(hyper_config)
+            hnf = 1
+        else:
+            dfadfas
+
 
         # print (q_local)
 
@@ -504,11 +653,11 @@ if compute_local_opt_test:
     print ('opt iwae',np.mean(iwaes_test))
     print()
 
-with open(file_, 'a') as f:
-    writer = csv.writer(f, delimiter=' ')
+    with open(file_, 'a') as f:
+        writer = csv.writer(f, delimiter=' ')
 
-    writer.writerow(['validation', epoch, 'L_q_star', np.mean(vaes_test)])
-    writer.writerow(['validation', epoch, 'logpx', np.mean(iwaes_test)])
+        writer.writerow(['validation', epoch, 'L_q_star', np.mean(vaes_test)])
+        writer.writerow(['validation', epoch, 'logpx', np.mean(iwaes_test)])
 
 
 # print ('opt vae flex',np.mean(vaes_flex))
@@ -516,32 +665,60 @@ with open(file_, 'a') as f:
 # print()
 
 if compute_amort_test:
-    VAE_test = test_vae(model=model, data_x=test_x[:n_data], batch_size=np.minimum(n_data, 50), display=10, k=5000)
-    IW_test = test(model=model, data_x=test_x[:n_data], batch_size=np.minimum(n_data, 50), display=10, k=5000)
+    VAE_test = test_vae(model=model, data_x=test_x[:n_data], batch_size=np.minimum(n_data, batch_size), display=10, k=5000)
+    IW_test = test(model=model, data_x=test_x[:n_data], batch_size=np.minimum(n_data, batch_size), display=10, k=5000)
     print ('amortized VAE',VAE_test)
     print ('amortized IW',IW_test)
 
 
-with open(file_, 'a') as f:
-    writer = csv.writer(f, delimiter=' ')
+    with open(file_, 'a') as f:
+        writer = csv.writer(f, delimiter=' ')
 
-    writer.writerow(['validation', epoch, 'L_q', VAE_test])
-
-
-
-
-print('TRAIN')
-print ('opt vae',np.mean(vaes))
-print ('opt iwae',np.mean(iwaes))
-print ('amortized VAE',VAE_train)
-print ('amortized IW',IW_train)
+        writer.writerow(['validation', epoch, 'L_q', VAE_test])
+        writer.writerow(['validation', epoch, 'L_q_IWAE', IW_test])
 
 
-print('TEST')
-print ('opt vae',np.mean(vaes_test))
-print ('opt iwae',np.mean(iwaes_test))
-print ('amortized VAE',VAE_test)
-print ('amortized IW',IW_test)
+
+n_intermediate_dists=5000
+if ais_train:
+
+    print()
+    AIS_train = test_ais(model=model, data_x=train_x[:n_data], batch_size=np.minimum(n_data, batch_size), display=2, k=100, n_intermediate_dists=n_intermediate_dists)
+    print ('AIS_train',AIS_train)
+
+
+    with open(file_, 'a') as f:
+        writer = csv.writer(f, delimiter=' ')
+        writer.writerow(['training', epoch, 'AIS', AIS_train])
+
+
+
+if ais_test:
+
+    print()
+    AIS_test = test_ais(model=model, data_x=test_x[:n_data], batch_size=np.minimum(n_data, batch_size), display=2, k=100, n_intermediate_dists=n_intermediate_dists)
+    print ('AIS_test',AIS_test)
+
+
+    with open(file_, 'a') as f:
+        writer = csv.writer(f, delimiter=' ')
+        writer.writerow(['validation', epoch, 'AIS', AIS_test])
+
+
+
+
+# print('TRAIN')
+# print ('opt vae',np.mean(vaes))
+# print ('opt iwae',np.mean(iwaes))
+# print ('amortized VAE',VAE_train)
+# print ('amortized IW',IW_train)
+
+
+# print('TEST')
+# print ('opt vae',np.mean(vaes_test))
+# print ('opt iwae',np.mean(iwaes_test))
+# print ('amortized VAE',VAE_test)
+# print ('amortized IW',IW_test)
 
 
 

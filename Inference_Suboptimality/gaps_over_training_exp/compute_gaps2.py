@@ -60,6 +60,39 @@ gpu_to_use = sys.argv[1]
 epoch = sys.argv[2]
 os.environ['CUDA_VISIBLE_DEVICES'] = gpu_to_use  #'1'
 
+todo = sys.argv[3]
+
+
+# params_file = 'binarized_fashion_'
+# params_file = 'LE_binarized_fashion'
+params_file = '10k_binarized_fashion2_Gaus'
+
+
+# n_data =1001
+n_data =20
+
+#to save results
+file_ = home+'/Documents/tmp/inference_suboptimality/over_training_exps/results_'+str(n_data)+'_fashion_binarized_2.txt'
+
+
+
+compute_local_opt = 0
+compute_amort = 0
+compute_local_opt_test = 0
+compute_amort_test = 0
+
+if todo == 'amort':
+    compute_amort = 1
+    compute_amort_test = 1
+
+elif todo == 'opt_train':
+    compute_local_opt = 1
+
+elif todo == 'opt_valid':
+    compute_local_opt_test = 1
+
+else:
+    fadsfafd
 
 
 
@@ -202,7 +235,9 @@ test_x = (test_x > .5).astype(float)
 
 
 x_size = 784
-z_size = 50
+# z_size = 50
+z_size = 20
+
 # batch_size = 20
 # k = 1
 #save params 
@@ -234,17 +269,30 @@ z_size = 50
 #                 'cuda': 1
 #             }
 
-# 2 hidden decoder
+# 2 hidden decoder  , REGULAR
 hyper_config = { 
                 'x_size': x_size,
                 'z_size': z_size,
-                'act_func': F.tanh,# F.relu,
+                'act_func': F.elu, #F.tanh,# F.relu,
                 'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
-                'cuda': gpu_to_use
+                'cuda': 1,
+                'hnf': 0
             }
 
+
+# #LE
+# hyper_config = { 
+#                 'x_size': x_size,
+#                 'z_size': z_size,
+#                 'act_func': F.elu, #F.tanh,# F.relu,
+#                 'encoder_arch': [[x_size,500],[500,500],[500,z_size*2]],
+#                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+#                 'cuda': 1,
+#                 'hnf': 0
+#             }
 
 # # 4 hidden decoder
 # hyper_config = { 
@@ -259,6 +307,7 @@ hyper_config = {
 
 
 
+
 q = Gaussian(hyper_config)
 # q = Flow(hyper_config)
 hyper_config['q'] = q
@@ -267,7 +316,7 @@ hyper_config['q'] = q
 
 
 # Which gpu
-os.environ['CUDA_VISIBLE_DEVICES'] = gpu_to_use
+# os.environ['CUDA_VISIBLE_DEVICES'] = gpu_to_use
 
 print ('Init model')
 model = VAE(hyper_config)
@@ -287,7 +336,7 @@ print (model.generator)
 
 # epoch = '1600' # '2200' # '1300' # '100'# '3280'
 
-params_file = 'binarized_fashion_'
+
 
 
 print ('Load params for decoder')
@@ -301,14 +350,6 @@ path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/fashion_para
 model.generator.load_state_dict(torch.load(path_to_load_variables, map_location=lambda storage, loc: storage))
 print ('loaded variables ' + path_to_load_variables)
 print ()
-
-
-
-compute_local_opt = 1
-compute_amort = 1
-
-compute_local_opt_test = 1
-compute_amort_test = 1
 
 
 
@@ -352,11 +393,11 @@ if compute_amort:
 
 # start_time = time.time()
 
-n_data = 100 #10 # 2 # #3 # 100 #1000 #100
+# n_data = 100 #10 # 2 # #3 # 100 #1000 #100
 
 
-#to save results
-file_ = home+'/Documents/tmp/inference_suboptimality/over_training_exps/results_'+str(n_data)+'_fashion_binarized.txt'
+# #to save results
+# file_ = home+'/Documents/tmp/inference_suboptimality/over_training_exps/results_'+str(n_data)+'_fashion_binarized.txt'
 
 
 vaes = []
@@ -364,6 +405,8 @@ iwaes = []
 vaes_flex = []
 iwaes_flex = []
 
+
+batch_size = 10
 
 
 if compute_local_opt:
@@ -406,29 +449,32 @@ if compute_local_opt:
     print ('opt iwae',np.mean(iwaes))
     print()
 
+
+    with open(file_, 'a') as f:
+        writer = csv.writer(f, delimiter=' ')
+
+        writer.writerow(['training', epoch, 'L_q_star', np.mean(vaes)])
+        writer.writerow(['training', epoch, 'logpx', np.mean(iwaes)])
+
+
 # print ('opt vae flex',np.mean(vaes_flex))
 # print ('opt iwae flex',np.mean(iwaes_flex))
 # print()
 
 
-with open(file_, 'a') as f:
-    writer = csv.writer(f, delimiter=' ')
-
-    writer.writerow(['training', epoch, 'L_q_star', np.mean(vaes)])
-    writer.writerow(['training', epoch, 'logpx', np.mean(iwaes)])
-
 
 if compute_amort:
-    VAE_train = test_vae(model=model, data_x=train_x[:n_data], batch_size=np.minimum(n_data, 50), display=10, k=5000)
-    IW_train = test(model=model, data_x=train_x[:n_data], batch_size=np.minimum(n_data, 50), display=10, k=5000)
+    VAE_train = test_vae(model=model, data_x=train_x[:n_data], batch_size=np.minimum(n_data, batch_size), display=10, k=5000)
+    IW_train = test(model=model, data_x=train_x[:n_data], batch_size=np.minimum(n_data, batch_size), display=10, k=5000)
     print ('amortized VAE',VAE_train)
     print ('amortized IW',IW_train)
 
 
-with open(file_, 'a') as f:
-    writer = csv.writer(f, delimiter=' ')
+    with open(file_, 'a') as f:
+        writer = csv.writer(f, delimiter=' ')
 
-    writer.writerow(['training', epoch, 'L_q', VAE_train])
+        writer.writerow(['training', epoch, 'L_q', VAE_train])
+        writer.writerow(['training', epoch, 'L_q_IWAE', IW_train])
 
 
 # print()
@@ -455,7 +501,7 @@ with open(file_, 'a') as f:
 
 
 # TEST SET
-print ('TEST SET')
+
 
 vaes_test = []
 iwaes_test = []
@@ -465,6 +511,7 @@ iwaes_test = []
 
 
 if compute_local_opt_test:
+    print ('TEST SET')
     print ('optmizing local')
     for i in range(len(test_x[:n_data])):
 
@@ -504,11 +551,11 @@ if compute_local_opt_test:
     print ('opt iwae',np.mean(iwaes_test))
     print()
 
-with open(file_, 'a') as f:
-    writer = csv.writer(f, delimiter=' ')
+    with open(file_, 'a') as f:
+        writer = csv.writer(f, delimiter=' ')
 
-    writer.writerow(['validation', epoch, 'L_q_star', np.mean(vaes_test)])
-    writer.writerow(['validation', epoch, 'logpx', np.mean(iwaes_test)])
+        writer.writerow(['validation', epoch, 'L_q_star', np.mean(vaes_test)])
+        writer.writerow(['validation', epoch, 'logpx', np.mean(iwaes_test)])
 
 
 # print ('opt vae flex',np.mean(vaes_flex))
@@ -516,32 +563,33 @@ with open(file_, 'a') as f:
 # print()
 
 if compute_amort_test:
-    VAE_test = test_vae(model=model, data_x=test_x[:n_data], batch_size=np.minimum(n_data, 50), display=10, k=5000)
-    IW_test = test(model=model, data_x=test_x[:n_data], batch_size=np.minimum(n_data, 50), display=10, k=5000)
+    VAE_test = test_vae(model=model, data_x=test_x[:n_data], batch_size=np.minimum(n_data, batch_size), display=10, k=5000)
+    IW_test = test(model=model, data_x=test_x[:n_data], batch_size=np.minimum(n_data, batch_size), display=10, k=5000)
     print ('amortized VAE',VAE_test)
     print ('amortized IW',IW_test)
 
 
-with open(file_, 'a') as f:
-    writer = csv.writer(f, delimiter=' ')
+    with open(file_, 'a') as f:
+        writer = csv.writer(f, delimiter=' ')
 
-    writer.writerow(['validation', epoch, 'L_q', VAE_test])
-
-
-
-
-print('TRAIN')
-print ('opt vae',np.mean(vaes))
-print ('opt iwae',np.mean(iwaes))
-print ('amortized VAE',VAE_train)
-print ('amortized IW',IW_train)
+        writer.writerow(['validation', epoch, 'L_q', VAE_test])
+        writer.writerow(['validation', epoch, 'L_q_IWAE', IW_test])
 
 
-print('TEST')
-print ('opt vae',np.mean(vaes_test))
-print ('opt iwae',np.mean(iwaes_test))
-print ('amortized VAE',VAE_test)
-print ('amortized IW',IW_test)
+
+
+# print('TRAIN')
+# print ('opt vae',np.mean(vaes))
+# print ('opt iwae',np.mean(iwaes))
+# print ('amortized VAE',VAE_train)
+# print ('amortized IW',IW_train)
+
+
+# print('TEST')
+# print ('opt vae',np.mean(vaes_test))
+# print ('opt iwae',np.mean(iwaes_test))
+# print ('amortized VAE',VAE_test)
+# print ('amortized IW',IW_test)
 
 
 

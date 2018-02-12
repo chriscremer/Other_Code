@@ -95,7 +95,7 @@ class standard(nn.Module):
         # logqz = lognormal(z, mean, logvar) #[P,B]
 
 
-        if self.hyper_config['hnf']:
+        if hyper_config['hnf']:
             z, logqz = self.q.sample(mean, logvar, k, logposterior)
         else:
             z, logqz = self.q.sample(mean, logvar, k)
