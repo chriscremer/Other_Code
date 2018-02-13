@@ -1,5 +1,6 @@
 
 
+
 #Bayesian Neural Network
 
 import numpy as np
@@ -25,7 +26,11 @@ class BNN(object):
 
         #Model hyperparameters
         self.act_func = tf.nn.relu#tf.nn.softplus#tf.tanh #tf.nn.sigmoid### # ## #
-        self.learning_rate = .001
+        # self.learning_rate = .001
+        # self.learning_rate = .0001
+        self.learning_rate = .01
+        # self.learning_rate = .1
+
         self.rs = 0
         self.input_size = network_architecture[0]
         self.output_size = network_architecture[-1]
@@ -275,8 +280,36 @@ def build_toy_dataset(n_data=40, noise_std=0.1):
 if __name__ == '__main__':
 
     inputs, targets = build_toy_dataset()
+
+    # print (inputs.shape)
+
+
+
+    ones = np.ones((1000,1))*-1.
+    # ones_target = np.ones((1000,1))
+
+    # inputs = ones
+    # targets = ones
+    
+    inputs = np.concatenate([inputs,ones]) 
+    targets = np.concatenate([targets,ones]) 
+
+
+    ones = np.ones((1000,1))*2.
+    # ones_target = np.ones((1000,1))
+    
+    inputs = np.concatenate([inputs,ones]) 
+    targets = np.concatenate([targets,ones]) 
+
+
+    # print (inputs.shape)
+    # ffsas
     n_particles = 2
-    net = [1,20,20,1]
+    # net = [1,200,200,1]
+    # net = [1,20,20,1]
+    net = [1,20,1]
+    # net = [1,1]
+
 
     #epsilon for viewing constant weights
     eps = []
@@ -300,7 +333,7 @@ if __name__ == '__main__':
 
 
 
-    for iter_ in range(50000):
+    for iter_ in range(100000):
 
         # Fit training using batch data
         _,elbo,logpy,logpW,logqW = m.sess.run((m.optimizer, m.elbo, m.logpy, m.logpW, m.logqW), 
@@ -320,12 +353,12 @@ if __name__ == '__main__':
 
         
 
-        if iter_ % 50 == 0:
+        if iter_ % 100 == 0:
             print (iter_, elbo, logpy,logpW,logqW)
 
             # # Sample functions from posterior.
 
-            plot_inputs = np.linspace(-8, 8, num=400)
+            plot_inputs = np.linspace(-16, 16, num=400)
 
             # plot_inputs = np.linspace(-8, 8, num=400)
 
