@@ -276,7 +276,7 @@ if __name__ == "__main__":
         n_dists = 3
 
         viz_range = [-10,10]
-        numticks = 50
+        numticks = 200
 
 
         fig, ax = plt.subplots(1, 1)
@@ -458,7 +458,7 @@ if __name__ == "__main__":
             qIWs.append(qIW)
             ys.append(y)
 
-        ax.plot(x, np.mean(ys, axis=0), linewidth=2, label=r'$q_{IW}(z|x)$')
+        ax.plot(x, np.mean(ys, axis=0), linewidth=2, label=r'$q_{EW}(z|x)$')
         width = x[1] - x[0]
         int_ = width*np.sum(np.mean(ys, axis=0))
         print 'Integral qIW' +':', int_
