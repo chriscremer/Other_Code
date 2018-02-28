@@ -10,6 +10,8 @@
 
 
 
+
+
 import numpy as np
 import pickle
 from os.path import expanduser
@@ -271,69 +273,7 @@ class NN(nn.Module):
             # gradients2 = torch.sum(torch.stack(gradients2))
             gradients2 = torch.stack(gradients2)
 
-
             g_lax = (obj_value - pred) * gradients2 + gradients
-
-
-            # print (g_lax.volatile)
-            # print (obj_value.volatile, pred.volatile,  gradients.volatile, gradients2.volatile)
-
-            # print (g_lax)
-
-
-
-
-
-            # dafsf
-
-
-
-
-
-
-
-            # pred.backward()
-            # aa = q_x.mean.grad.data.numpy()[0]  #the indexing is important for not letting it change!
-            # bb = q_x.logvar.grad.data.numpy()[0]
-            # grad_sum2 = aa + bb
-
-            # q_x.mean.grad.data.zero_()
-            # q_x.logvar.grad.data.zero_()
-
-
-            # samps = samps.detach()
-
-
-
-
-            # log_probs = dist.log_prob(samps)  #.detach()
-
-            # obj_value = objective(samps).unsqueeze(1) #[B,1]
-            # pred = self.net(samps) #[B,1]
-            # f_minus_c = obj_value - pred #[B,1]
-            # f_minus_c = torch.mean(f_minus_c)
-            # log_probs = torch.mean(log_probs)
-
-
-            # log_probs.backward()
-            # grad_sum = dist.mean.grad + dist.logvar.grad
-
-            # term1 = grad_sum*log_probs
-
-            # q_x.mean.grad.data.zero_()
-            # q_x.logvar.grad.data.zero_()
-
-            # # # print (dist)
-            # # print ()
-            # # print ()
-            # # fafds
-
-
-
-
-            # g_lax = fads
-            # print (torch.mean((obj_value - pred)))
-            # fsada
 
             loss = torch.mean((obj_value - pred)**2) #[1]
             # loss = torch.mean((obj_value - pred)**2  + .9*gradients**2) #[1]
@@ -370,6 +310,63 @@ class NN(nn.Module):
 
 
 
+
+
+
+
+
+class NN_drop(NN):
+    def __init__(self, seed=1):
+        super(NN_drop, self).__init__()
+
+        torch.manual_seed(seed)
+
+        self.input_size = 1
+        self.output_size = 1
+        h_size = 50
+
+
+        # #this samples a mask for each datapoint in the batch
+        # self.net = nn.Sequential(
+        #   nn.Linear(self.input_size,h_size),
+        #   nn.ReLU(),
+        #   nn.Dropout(p=0.5),
+        #   nn.Linear(h_size,self.output_size)
+        # )
+
+        #want to keep mask constant for batch
+
+        self.l1 = nn.Linear(self.input_size,h_size)
+        self.a1 = nn.ReLU()
+        # nn.Dropout(p=0.5),
+        self.l2 = nn.Linear(h_size,self.output_size)
+
+        
+
+
+
+        self.optimizer = optim.Adam(self.parameters(), lr=.01)
+
+
+
+    def net(self, x_input):
+
+        output = self.l1(x_input)
+        output = self.a1(output)
+
+
+        # mask = Variable(torch.bernoulli(output.data.new(output.data.size()).fill_(0.5)))
+        mask = Variable(torch.bernoulli(output.data.new(1,50).fill_(0.5)))
+
+        # print (mask)
+        # fsad
+
+        output = output*mask
+
+        output = self.l2(output)
+
+
+        return output
 
 
 
@@ -417,8 +414,8 @@ if __name__ == "__main__":
 
 
     #MoG taget
-    q_mean = [-1.5]
-    q_logvar = [.5]
+    q_mean = [-.5] #[-1.5]
+    q_logvar = [0.]#[.5]
     mu_x_range = [-3,3] #for plotting
     baseline = .68
     p_x = target_MoG_1D()
@@ -463,11 +460,17 @@ if __name__ == "__main__":
     # fdasa
 
 
-    surrogate_model = NN()
+    # surrogate_model = NN()
+    surrogate_model = NN_drop()
+
+
     # surrogate_model.train(objective=objective, sampler=q_x.sample) 
     surrogate_model.train2(objective=objective, dist=q_x) 
     q_x.mean.grad.data.zero_()
     q_x.logvar.grad.data.zero_()
+
+
+
 
 
 
@@ -610,8 +613,157 @@ if __name__ == "__main__":
 
 
 
-    # Get distribution of gradients, SF + LAX
-    n_grads = 5000
+    # # Get distribution of gradients, SF + LAX
+    # n_grads = 5000
+    # n_samps = 1
+    # mean_grads_LAX = []
+    # logvar_grads_LAX = []
+    # for i in range(n_grads):
+    #     #Sample
+    #     samps = q_x.sample(n_samps)  #this is critical, or else its 0
+
+    #     pred = surrogate_model.net(samps) #[B,1]
+
+    #     pred.backward()
+    #     aa = q_x.mean.grad.data.numpy()[0]  #the indexing is important for not letting it change!
+    #     bb = q_x.logvar.grad.data.numpy()[0]
+    #     # print(aa)
+
+    #     # print (aa, bb)
+    #     # fdsaf
+    #     q_x.mean.grad.data.zero_()
+    #     q_x.logvar.grad.data.zero_()
+
+
+    #     samps = samps.detach()
+
+
+    #     log_qx = q_x.log_prob(samps)
+    #     log_px = p_x.log_prob(samps) #.detach() 
+
+
+
+    #     #Compute KL
+    #     log_qp = log_qx - log_px - pred
+
+    #     #Compute grad
+    #     log_qp_avg = torch.mean(log_qp) 
+    #     log_q_avg = torch.mean(log_qx)
+    #     log_q_avg.backward()
+
+    #     # print(q_x.mean.grad, q_x.logvar.grad)
+    #     # print (aa)
+    #     # fsd
+    #     mean_grads_LAX.append(q_x.mean.grad.data.numpy()[0]*log_qp_avg.data.numpy()[0] + aa)
+    #     logvar_grads_LAX.append(q_x.logvar.grad.data.numpy()[0]*log_qp_avg.data.numpy()[0] + bb)
+
+    #     q_x.mean.grad.data.zero_()
+    #     q_x.logvar.grad.data.zero_()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # # Get distribution of gradients, SF + LAX + Dropout
+    # n_grads = 500
+    # n_samps = 1
+    # mean_grads_LAX = []
+    # logvar_grads_LAX = []
+    # for i in range(n_grads):
+    #     #Sample
+    #     samps = q_x.sample(n_samps)  #this is critical, or else its 0
+
+    #     pred = surrogate_model.net(samps) #[B,1]
+
+    #     pred.backward()
+    #     aa = q_x.mean.grad.data.numpy()[0]  #the indexing is important for not letting it change!
+    #     bb = q_x.logvar.grad.data.numpy()[0]
+    #     # print(aa)
+
+
+    #     grad_of_dif_masks_mean = []
+    #     grad_of_dif_masks_logvar = []
+    #     for j in range(5):
+
+    #         # print (aa, bb)
+    #         # fdsaf
+    #         q_x.mean.grad.data.zero_()
+    #         q_x.logvar.grad.data.zero_()
+
+
+    #         samps = samps.detach()
+
+
+    #         log_qx = q_x.log_prob(samps)
+    #         log_px = p_x.log_prob(samps) #.detach() 
+
+    #         # print (log_qx)
+
+
+
+    #         #Compute KL
+    #         log_qp = log_qx - log_px - pred
+
+    #         #Compute grad
+    #         log_qp_avg = torch.mean(log_qp) 
+    #         log_q_avg = torch.mean(log_qx)
+    #         log_q_avg.backward()
+
+    #         # (grad param)*(R-pred) + grad param
+    #         mean_grad = q_x.mean.grad.data.numpy()[0]*log_qp_avg.data.numpy()[0] + aa
+    #         logvar_grad = q_x.logvar.grad.data.numpy()[0]*log_qp_avg.data.numpy()[0] + bb
+
+    #         grad_of_dif_masks_mean.append(mean_grad)
+    #         grad_of_dif_masks_logvar.append(logvar_grad)
+
+    #         q_x.mean.grad.data.zero_()
+    #         q_x.logvar.grad.data.zero_()
+
+
+    #     # grad_of_dif_masks_mean = torch.stack(grad_of_dif_masks_mean)
+    #     # grad_of_dif_masks_logvar = torch.stack(grad_of_dif_masks_logvar)
+
+    #     # print(grad_of_dif_masks_mean)
+
+    #     # print (grad_of_dif_masks_mean[0].shape)
+    #     # fasd
+
+
+    #     # print(q_x.mean.grad, q_x.logvar.grad)
+    #     # print (aa)
+    #     # fsd
+    #     # mean_grads_LAX.append(q_x.mean.grad.data.numpy()[0]*log_qp_avg.data.numpy()[0] + aa)
+    #     # logvar_grads_LAX.append(q_x.logvar.grad.data.numpy()[0]*log_qp_avg.data.numpy()[0] + bb)
+
+    #     mean_grads_LAX.append( np.mean(grad_of_dif_masks_mean))
+    #     logvar_grads_LAX.append(np.mean(grad_of_dif_masks_logvar) ) 
+
+    #     # q_x.mean.grad.data.zero_()
+    #     # q_x.logvar.grad.data.zero_()
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # Get distribution of gradients, SF + LAX + Dropout  version 2, take average of surrogate grads
+    n_grads = 500
     n_samps = 1
     mean_grads_LAX = []
     logvar_grads_LAX = []
@@ -619,26 +771,35 @@ if __name__ == "__main__":
         #Sample
         samps = q_x.sample(n_samps)  #this is critical, or else its 0
 
-        pred = surrogate_model.net(samps) #[B,1]
+        grad_of_dif_masks_mean = []
+        grad_of_dif_masks_logvar = []
+        for j in range(5):
 
-        pred.backward()
-        aa = q_x.mean.grad.data.numpy()[0]  #the indexing is important for not letting it change!
-        bb = q_x.logvar.grad.data.numpy()[0]
+            pred = surrogate_model.net(samps) #[B,1]
+
+            pred.backward(retain_graph=True)
+            # aa = q_x.mean.grad.data.numpy()[0]  #the indexing is important for not letting it change!
+            # bb = q_x.logvar.grad.data.numpy()[0]
+
+            # grad_of_dif_masks_mean.append(aa)
+            # grad_of_dif_masks_logvar.append(bb)
+
+        # print (q_x.mean.grad / 5.)
+        aa = q_x.mean.grad.data.numpy()[0]  / 5.
+        bb = q_x.logvar.grad.data.numpy()[0] / 5.
         # print(aa)
+        # ffdsa
 
-        # print (aa, bb)
-        # fdsaf
         q_x.mean.grad.data.zero_()
         q_x.logvar.grad.data.zero_()
 
+        # aa = np.mean(grad_of_dif_masks_mean)
+        # bb = np.mean(grad_of_dif_masks_logvar)
 
         samps = samps.detach()
 
-
         log_qx = q_x.log_prob(samps)
         log_px = p_x.log_prob(samps) #.detach() 
-
-
 
         #Compute KL
         log_qp = log_qx - log_px - pred
@@ -648,14 +809,17 @@ if __name__ == "__main__":
         log_q_avg = torch.mean(log_qx)
         log_q_avg.backward()
 
-        # print(q_x.mean.grad, q_x.logvar.grad)
-        # print (aa)
-        # fsd
-        mean_grads_LAX.append(q_x.mean.grad.data.numpy()[0]*log_qp_avg.data.numpy()[0] + aa)
-        logvar_grads_LAX.append(q_x.logvar.grad.data.numpy()[0]*log_qp_avg.data.numpy()[0] + bb)
+        # (grad param)*(R-pred) + grad param
+        mean_grad = q_x.mean.grad.data.numpy()[0]*log_qp_avg.data.numpy()[0] + aa
+        logvar_grad = q_x.logvar.grad.data.numpy()[0]*log_qp_avg.data.numpy()[0] + bb
 
-        q_x.mean.grad.data.zero_()
-        q_x.logvar.grad.data.zero_()
+
+            # q_x.mean.grad.data.zero_()
+            # q_x.logvar.grad.data.zero_()
+
+        mean_grads_LAX.append(mean_grad)
+        logvar_grads_LAX.append(logvar_grad) 
+
 
 
 
@@ -729,13 +893,22 @@ if __name__ == "__main__":
     # ax.plot(x, y, linewidth=2, label=r'$\log \frac{q}{p}$')
     ax.plot(x, y, linewidth=2, label=r'$\log q - \log p$')
 
-    surrogate_for_plot = lambda x: surrogate_model.net(x) * torch.exp(q_x.log_prob(x))
+    # surrogate_for_plot = lambda x: surrogate_model.net(x) * torch.exp(q_x.log_prob(x))
  
     x, y = return_1d_evaluation(eval_this=surrogate_model.net, xlimits=viz_range, numticks=numticks)
     # x, y = return_1d_evaluation(eval_this=surrogate_for_plot, xlimits=viz_range, numticks=numticks)
-    ax.plot(x, y, linewidth=1, label=r'$Surrogate$')
+    ax.plot(x, y, linewidth=1, label=r'$Surrogate1$')
 
-    ax.legend(fontsize=9, loc=2)
+    x, y = return_1d_evaluation(eval_this=surrogate_model.net, xlimits=viz_range, numticks=numticks)
+    # x, y = return_1d_evaluation(eval_this=surrogate_for_plot, xlimits=viz_range, numticks=numticks)
+    ax.plot(x, y, linewidth=1, label=r'$Surrogate2$')
+
+    x, y = return_1d_evaluation(eval_this=surrogate_model.net, xlimits=viz_range, numticks=numticks)
+    # x, y = return_1d_evaluation(eval_this=surrogate_for_plot, xlimits=viz_range, numticks=numticks)
+    ax.plot(x, y, linewidth=1, label=r'$Surrogate3$')
+
+
+    ax.legend(fontsize=6, loc=2)
     cur_row+=1
 
 
@@ -890,7 +1063,7 @@ if __name__ == "__main__":
 
     # # name_file = home+'/Documents/tmp/plot.pdf'
 
-    name_file = home+'/Downloads/grads_estimators_SF_Baseline_LAX_fixed_MoG.pdf'
+    name_file = home+'/Downloads/grads_estimators_SF_Baseline_LAX_dropout_10mask_v2.pdf'
     plt.savefig(name_file)
     print ('Saved fig', name_file)
 
