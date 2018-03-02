@@ -12,7 +12,8 @@ import numpy as np
 import gym
 from collections import deque
 
-from NN import NN
+# from NN import NN
+from ACQ_NN import NN
 
 #STEPS
 # see old code that did pg on this.
@@ -25,13 +26,15 @@ from NN import NN
 
 #DONE
 #set up a NN to predict R + Q
+#use dataset/buffer
 
 #NOW
-# either use dataset or train a policy using Q
+#train a policy using Q
 
 
-#oh btw this is a discrete task, not continuos
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '1' #str(which_gpu)
+cuda = 1
 
 
 # env_name = home + '/Documents/tmp/' + 'BreakoutNoFrameskip-v4'
@@ -39,13 +42,13 @@ from NN import NN
 env_name =  'CartPole-v0'
 env = gym.make(env_name) 
 
-model = NN()
+model = NN().cuda()
 
 
 MAX_EPISODES = 10000
 MAX_STEPS    = 200
 
-dataset = deque(maxlen=1000)  
+dataset = deque(maxlen=2000)  
 episode_history = deque(maxlen=100)
 
 for i_episode in range(MAX_EPISODES):
@@ -65,14 +68,19 @@ for i_episode in range(MAX_EPISODES):
         if rand > .9:
             a_t = env.action_space.sample()
         else:
-            data_x_0 = np.array([np.concatenate([s_t,np.array([0.])])])
-            data_x_1 = np.array([np.concatenate([s_t,np.array([1.])])])
-            q0 = model.forward(data_x_0).data.numpy()
-            q1 = model.forward(data_x_1).data.numpy()
+            data_x_0 = np.array([np.concatenate([s_t,np.array([1.,0.])])])
+            data_x_1 = np.array([np.concatenate([s_t,np.array([0.,1.])])])
+            q0 = model.forward(data_x_0).data.cpu().numpy()
+            q1 = model.forward(data_x_1).data.cpu().numpy()
             if q0 > q1:
                 a_t = 0
             else:
                 a_t = 1
+
+        a_t_onehot = np.zeros(2)
+        a_t_onehot[a_t] = 1.
+
+
 
 
 
@@ -82,12 +90,12 @@ for i_episode in range(MAX_EPISODES):
         total_rewards += reward
         # r_t = 0 if done else 0.1 # normalize reward
         if done:
-            r_t = 0
+            r_t = 0.
         else:
             r_t = reward
 
         # [s_t, a_t, r_t, s_tp1]
-        dataset.append([s_t, a_t, r_t, s_tp1, done])
+        dataset.append([s_t, a_t_onehot, r_t, s_tp1, done])
 
         s_t = s_tp1
         if done: break
@@ -126,7 +134,7 @@ for i_episode in range(MAX_EPISODES):
     mean_rewards = np.mean(episode_history)
 
     if i_episode % 5 == 0:
-        print('Episode', i_episode, 'Return', total_rewards, 'Last 100 Avg', mean_rewards)
+        print('Epi', i_episode, '  Ret', total_rewards, '  AvgRet', mean_rewards, '   Q0', q0[0][0], 'Q1', q1[0][0], 'V', model.forward3(s_t)[0][0], '   A', model.forward2(s_t)[0])
     if mean_rewards >= 195.0 and len(episode_history) >= 100:
         print("Environment {} solved after {} episodes".format(env_name, i_episode+1))
         break
