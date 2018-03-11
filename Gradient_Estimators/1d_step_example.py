@@ -894,10 +894,10 @@ if __name__ == "__main__":
     # fdsa
 
     #Plot distributions
-    rows = 7
-    cols = 2
+    # rows = 7
+    # cols = 2
     # fig = plt.figure(figsize=(4+cols,5+rows), facecolor='white')
-    fig = plt.figure(figsize=(4+cols,1+rows), facecolor='white')
+    fig = plt.figure(figsize=(10,4), facecolor='white')
     viz_range = [-3,3]
     numticks = 300
 
