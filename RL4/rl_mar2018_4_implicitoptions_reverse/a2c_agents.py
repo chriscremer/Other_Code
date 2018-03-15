@@ -140,7 +140,7 @@ class a2c(object):
 
 
 
-    def update2(self, discrim_error):
+    def update2(self, discrim_error, discrim_error_reverse):
         # discrim_error: [S,P]
         
         # next_value = self.actor_critic(Variable(self.rollouts.states[-1], volatile=True))[0].data
@@ -157,21 +157,14 @@ class a2c(object):
 
         discrim_error_unmodified = discrim_error.data.clone()
         discrim_error = discrim_error.data
-
         # self.returns[-1] = next_value
         divide_by = torch.ones(self.num_processes).cuda()
         for step in reversed(range(discrim_error.size(0)-1)):
             divide_by += 1
-
             ttmp = discrim_error_unmodified[step + 1] * self.gamma * torch.squeeze(self.rollouts.masks[step+1])
-
             discrim_error_unmodified[step] = ttmp + discrim_error_unmodified[step]
-
             discrim_error[step] = discrim_error_unmodified[step] / divide_by
-
             divide_by = divide_by * torch.squeeze(self.rollouts.masks[step+1])
-            
-
         discrim_error = Variable(discrim_error.view(self.num_steps,self.num_processes,1))
 
 
@@ -189,10 +182,15 @@ class a2c(object):
 
         # advantages = Variable(self.rollouts.returns[:-1]) - values
         # print (values)
+        # print (discrim_error_reverse.size())  #[S,P]
 
-        baseline = torch.mean(-discrim_error - action_log_probs.detach())
+        discrim_error_reverse = discrim_error_reverse.view(self.num_steps, self.num_processes, 1)
 
-        advantages = -discrim_error - action_log_probs.detach()- baseline  #- values #(-.7)#values
+        val_to_maximize = (-discrim_error  + discrim_error_reverse.detach())/2. - action_log_probs.detach()
+
+        baseline = torch.mean(val_to_maximize)
+
+        advantages = val_to_maximize - baseline  #- values #(-.7)#values
         # value_loss = advantages.pow(2).mean()
 
         # action_loss = -(advantages.detach() * action_log_probs).mean()

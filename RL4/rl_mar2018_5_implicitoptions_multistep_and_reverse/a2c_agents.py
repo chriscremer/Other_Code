@@ -140,7 +140,171 @@ class a2c(object):
 
 
 
-    def update2(self, discrim_error):
+    # def update2(self, discrim_error):
+    #     # discrim_error: [S,P]
+        
+    #     # next_value = self.actor_critic(Variable(self.rollouts.states[-1], volatile=True))[0].data
+
+
+    #     # next_value, _, _, _ = self.actor_critic.act(Variable(self.rollouts.states[-1], volatile=True), context_onehot)
+    #     # next_value = next_value.data
+    #     # self.rollouts.compute_returns(next_value, self.use_gae, self.gamma, self.tau)
+
+    #     # print (torch.mean(discrim_error, dim=0))
+
+
+    #     # print (discrim_error)
+
+    #     discrim_error_unmodified = discrim_error.data.clone()
+    #     discrim_error = discrim_error.data
+    #     # self.returns[-1] = next_value
+    #     divide_by = torch.ones(self.num_processes).cuda()
+    #     for step in reversed(range(discrim_error.size(0)-1)):
+    #         divide_by += 1
+    #         ttmp = discrim_error_unmodified[step + 1] * self.gamma * torch.squeeze(self.rollouts.masks[step+1])
+    #         discrim_error_unmodified[step] = ttmp + discrim_error_unmodified[step]
+    #         discrim_error[step] = discrim_error_unmodified[step] / divide_by
+    #         divide_by = divide_by * torch.squeeze(self.rollouts.masks[step+1])
+    #     discrim_error = Variable(discrim_error.view(self.num_steps,self.num_processes,1))
+
+
+    #     # discrim_error = discrim_error.view(self.num_processes*self.num_steps, 1).detach()
+
+    #     # values = torch.cat(self.rollouts.value_preds, 0).view(self.num_steps, self.num_processes, 1) #[S,P,1]
+    #     action_log_probs = torch.cat(self.rollouts.action_log_probs).view(self.num_steps, self.num_processes, 1)#[S,P,1]
+    #     # dist_entropy = torch.cat(self.rollouts.dist_entropy).view(self.num_steps, self.num_processes, 1)
+
+
+    #     self.rollouts.value_preds = []
+    #     self.rollouts.action_log_probs = []
+    #     self.rollouts.dist_entropy = []
+    #     self.rollouts.state_preds = []
+
+    #     # advantages = Variable(self.rollouts.returns[:-1]) - values
+    #     # print (values)
+    #     # print (discrim_error_reverse.size())  #[S,P]
+
+    #     # discrim_error_reverse = discrim_error_reverse.view(self.num_steps, self.num_processes, 1)
+    #     # val_to_maximize = (-discrim_error  + discrim_error_reverse.detach())/2. - action_log_probs.detach()
+
+    #     val_to_maximize = -discrim_error - action_log_probs.detach()
+
+
+    #     baseline = torch.mean(val_to_maximize)
+
+    #     advantages = val_to_maximize - baseline  #- values #(-.7)#values
+    #     # value_loss = advantages.pow(2).mean()
+
+    #     # action_loss = -(advantages.detach() * action_log_probs).mean()
+
+    #     action_loss = -(advantages.detach() * action_log_probs).mean()
+
+
+    #     # print (grad_sum)
+    #     # cost = action_loss - dist_entropy.mean()*self.entropy_coef # + value_loss*self.value_loss_coef # - grad_sum*100000.
+    #     cost = action_loss #- dist_entropy.mean()*self.entropy_coef # + value_loss*self.value_loss_coef # - grad_sum*100000.
+    #     # cost = value_loss*self.value_loss_coef - dist_entropy.mean()*self.entropy_coef - grad_sum*500.
+    #     # cost =- grad_sum
+            
+    #     self.optimizer.zero_grad()
+    #     cost.backward()
+
+    #     nn.utils.clip_grad_norm(self.actor_critic.parameters(), self.grad_clip)
+
+    #     self.optimizer.step()
+
+
+
+
+
+
+
+
+    # #with reverse
+    # def update2(self, discrim_error, discrim_error_reverse):
+    #     # discrim_error: [S,P]
+        
+    #     # next_value = self.actor_critic(Variable(self.rollouts.states[-1], volatile=True))[0].data
+
+
+    #     # next_value, _, _, _ = self.actor_critic.act(Variable(self.rollouts.states[-1], volatile=True), context_onehot)
+    #     # next_value = next_value.data
+    #     # self.rollouts.compute_returns(next_value, self.use_gae, self.gamma, self.tau)
+
+    #     # print (torch.mean(discrim_error, dim=0))
+
+
+    #     # print (discrim_error)
+
+    #     discrim_error_unmodified = discrim_error.data.clone()
+    #     discrim_error = discrim_error.data
+    #     # self.returns[-1] = next_value
+    #     divide_by = torch.ones(self.num_processes).cuda()
+    #     for step in reversed(range(discrim_error.size(0)-1)):
+    #         divide_by += 1
+    #         ttmp = discrim_error_unmodified[step + 1] * self.gamma * torch.squeeze(self.rollouts.masks[step+1])
+    #         discrim_error_unmodified[step] = ttmp + discrim_error_unmodified[step]
+    #         discrim_error[step] = discrim_error_unmodified[step] / divide_by
+    #         divide_by = divide_by * torch.squeeze(self.rollouts.masks[step+1])
+    #     discrim_error = Variable(discrim_error.view(self.num_steps,self.num_processes,1))
+
+
+    #     # discrim_error = discrim_error.view(self.num_processes*self.num_steps, 1).detach()
+
+    #     # values = torch.cat(self.rollouts.value_preds, 0).view(self.num_steps, self.num_processes, 1) #[S,P,1]
+    #     action_log_probs = torch.cat(self.rollouts.action_log_probs).view(self.num_steps, self.num_processes, 1)#[S,P,1]
+    #     # dist_entropy = torch.cat(self.rollouts.dist_entropy).view(self.num_steps, self.num_processes, 1)
+
+
+    #     self.rollouts.value_preds = []
+    #     self.rollouts.action_log_probs = []
+    #     self.rollouts.dist_entropy = []
+    #     self.rollouts.state_preds = []
+
+    #     # advantages = Variable(self.rollouts.returns[:-1]) - values
+    #     # print (values)
+    #     # print (discrim_error_reverse.size())  #[S,P]
+
+    #     discrim_error_reverse = discrim_error_reverse.view(self.num_steps, self.num_processes, 1)
+
+    #     val_to_maximize = (-discrim_error  + discrim_error_reverse.detach())/2. - action_log_probs.detach()
+
+    #     baseline = torch.mean(val_to_maximize)
+
+    #     advantages = val_to_maximize - baseline  #- values #(-.7)#values
+    #     # value_loss = advantages.pow(2).mean()
+
+    #     # action_loss = -(advantages.detach() * action_log_probs).mean()
+
+    #     action_loss = -(advantages.detach() * action_log_probs).mean()
+
+
+    #     # print (grad_sum)
+    #     # cost = action_loss - dist_entropy.mean()*self.entropy_coef # + value_loss*self.value_loss_coef # - grad_sum*100000.
+    #     cost = action_loss #- dist_entropy.mean()*self.entropy_coef # + value_loss*self.value_loss_coef # - grad_sum*100000.
+    #     # cost = value_loss*self.value_loss_coef - dist_entropy.mean()*self.entropy_coef - grad_sum*500.
+    #     # cost =- grad_sum
+            
+    #     self.optimizer.zero_grad()
+    #     cost.backward()
+
+    #     nn.utils.clip_grad_norm(self.actor_critic.parameters(), self.grad_clip)
+
+    #     self.optimizer.step()
+
+
+
+
+
+
+
+
+
+
+
+
+    #avg empowrement rather than avg error
+    def update2(self, discrim_error, discrim_error_reverse):
         # discrim_error: [S,P]
         
         # next_value = self.actor_critic(Variable(self.rollouts.states[-1], volatile=True))[0].data
@@ -154,31 +318,39 @@ class a2c(object):
 
 
         # print (discrim_error)
+        discrim_error_reverse = discrim_error_reverse.view(self.num_steps, self.num_processes, 1)
+        action_log_probs = torch.cat(self.rollouts.action_log_probs).view(self.num_steps, self.num_processes, 1)#[S,P,1]
+        discrim_error = discrim_error.view(self.num_steps,self.num_processes,1)
 
-        discrim_error_unmodified = discrim_error.data.clone()
-        discrim_error = discrim_error.data
+        # val_to_maximize = (-discrim_error  + discrim_error_reverse)/2. - action_log_probs.detach() #[S,P,1]
+
+        val_to_maximize = -discrim_error  - action_log_probs.detach() #[S,P,1]
+
+
+        val_to_maximize = val_to_maximize.view(self.num_steps,self.num_processes) #[S,P]
+
+        discrim_error_unmodified = val_to_maximize.data.clone()
+        discrim_error = val_to_maximize.data
+
+
+
+
+
 
         # self.returns[-1] = next_value
         divide_by = torch.ones(self.num_processes).cuda()
         for step in reversed(range(discrim_error.size(0)-1)):
             divide_by += 1
-
             ttmp = discrim_error_unmodified[step + 1] * self.gamma * torch.squeeze(self.rollouts.masks[step+1])
-
             discrim_error_unmodified[step] = ttmp + discrim_error_unmodified[step]
-
             discrim_error[step] = discrim_error_unmodified[step] / divide_by
-
             divide_by = divide_by * torch.squeeze(self.rollouts.masks[step+1])
-            
-
-        discrim_error = Variable(discrim_error.view(self.num_steps,self.num_processes,1))
+        val_to_maximize = Variable(discrim_error.view(self.num_steps,self.num_processes,1))
 
 
         # discrim_error = discrim_error.view(self.num_processes*self.num_steps, 1).detach()
 
         # values = torch.cat(self.rollouts.value_preds, 0).view(self.num_steps, self.num_processes, 1) #[S,P,1]
-        action_log_probs = torch.cat(self.rollouts.action_log_probs).view(self.num_steps, self.num_processes, 1)#[S,P,1]
         # dist_entropy = torch.cat(self.rollouts.dist_entropy).view(self.num_steps, self.num_processes, 1)
 
 
@@ -189,10 +361,16 @@ class a2c(object):
 
         # advantages = Variable(self.rollouts.returns[:-1]) - values
         # print (values)
+        # print (discrim_error_reverse.size())  #[S,P]
 
-        baseline = torch.mean(-discrim_error - action_log_probs.detach())
 
-        advantages = -discrim_error - action_log_probs.detach()- baseline  #- values #(-.7)#values
+
+        # val_to_maximize = (-discrim_error  + discrim_error_reverse.detach())/2. - action_log_probs.detach()
+        # val_to_maximize = discrim_error
+
+        baseline = torch.mean(val_to_maximize)
+
+        advantages = val_to_maximize - baseline  #- values #(-.7)#values
         # value_loss = advantages.pow(2).mean()
 
         # action_loss = -(advantages.detach() * action_log_probs).mean()
@@ -212,6 +390,8 @@ class a2c(object):
         nn.utils.clip_grad_norm(self.actor_critic.parameters(), self.grad_clip)
 
         self.optimizer.step()
+
+
 
 
 

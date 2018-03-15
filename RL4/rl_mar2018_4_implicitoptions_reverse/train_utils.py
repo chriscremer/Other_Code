@@ -288,7 +288,8 @@ def do_gifs(envs, agent, model_dict, update_current_state, update_rewards, total
             
             ax.bar(range(action_size), action_prob)
             ax.set_title('Action',family='serif')
-            plt.xticks(range(action_size),['NOOP', 'FIRE', 'RIGHT', 'LEFT', 'R_FIRE', 'L_FIRE'], fontsize=6)
+            # plt.xticks(range(action_size),['NOOP', 'FIRE', 'RIGHT', 'LEFT', 'R_FIRE', 'L_FIRE'], fontsize=6)
+            plt.xticks(range(action_size),[str(x) for x in range(action_size)], fontsize=6)
             ax.set_ylim([0.,1.])
 
 

@@ -43,7 +43,7 @@ from a2c_agents import a2c
 # from a2c_agents import a2c_under
 
 from discriminator import CNN_Discriminator
-
+from discrim_preds import discrim_predictions
 
 
 from train_utils import do_vid, do_gifs, do_params, do_ls, update_ls_plot, view_reward_episode, do_prob_state
@@ -254,27 +254,42 @@ def train(model_dict):
     start = time.time()
     start2 = time.time()
     for j in range(num_updates):
-        discrim_errors = []
-
+        # discrim_errors = []
+        # discrim_errors_reverse = []
+        # discrim_errors_2step = []
+        # frames = []
         for step in range(num_steps):
 
-            # Act, [P,1], [P], [P,1], [P]
+            # Act, [P,1], [P,1], [P,1], [P]
             state_pytorch = Variable(agent.rollouts.states[step])
             value, action, action_log_probs, dist_entropy = agent.act(state_pytorch)#, volatile=True))
+
+            # print (action)
+
+            # fsdaf
             
             # Apply to Environment, S:[P,C,H,W], R:[P], D:[P]
             cpu_actions = action.data.squeeze(1).cpu().numpy() #[P]
             frame, reward, done, info = envs.step(cpu_actions) 
 
+            # frames.append(torch.FloatTensor(frame)) #[P,1,84,84]
 
-            # current_frame = torch.from_numpy(frame)  #[P,1,84,84]
-            current_frame = torch.FloatTensor(frame)  #[P,1,84,84]
-            if step ==0:
-                prev_frame = torch.FloatTensor(state)  #[P,1,84,84]
-            #Pred action and get error
-            discrim_error = discriminator.forward(prev_frame, current_frame, action)
-            discrim_errors.append(discrim_error)
+
+            # # current_frame = torch.from_numpy(frame)  #[P,1,84,84]
+            # current_frame = torch.FloatTensor(frame)  #[P,1,84,84]
+            # if step ==0:
+            #     prev_frame = torch.FloatTensor(state)  #[P,1,84,84]
+
+
+            # #Pred action and get error
+            # discrim_error = discriminator.forward(prev_frame, current_frame, action)
+            # discrim_errors.append(discrim_error)
             
+            # discrim_error_reverse = discriminator.forward(current_frame, prev_frame, action)
+            # discrim_errors_reverse.append(discrim_error_reverse)
+
+
+
 
 
             # # THIS IS TO SEE PREDICTIONS
@@ -298,7 +313,16 @@ def train(model_dict):
             #     fdafds
 
 
-            prev_frame = current_frame
+            # prev_frame_2step = prev_frame
+
+            # prev_frame = current_frame
+
+            # # print (torch.sum(prev_frame_2step), torch.sum(prev_frame))
+
+
+
+
+            # fadsa
 
 
             # Record rewards and update state
@@ -322,19 +346,29 @@ def train(model_dict):
         
 
 
+        #Predict multistep actions
 
-        discrim_errors = torch.stack(discrim_errors)  #[S,P]
+        discrim_errors = discrim_predictions(model_dict, agent.rollouts, discriminator)
+
+        discrim_errors_reverse = discrim_predictions(model_dict, agent.rollouts, discriminator, reverse=True)
+
+
+
+        # discrim_errors = torch.stack(discrim_errors)  #[S,P]
+        # discrim_errors_reverse = torch.stack(discrim_errors_reverse)  #[S,P]
 
         #Optimize action-predictor
         discriminator.optimize(discrim_errors)
 
         #Optimize agent
-        agent.update2(discrim_errors)  #agent.update(j,num_updates)
+        agent.update2(discrim_errors, discrim_errors_reverse)  #agent.update(j,num_updates)
+        # agent.update2(discrim_errors)  #agent.update(j,num_updates)
 
         agent.insert_first_state(agent.rollouts.states[-1])
 
 
         
+
 
 
 

@@ -48,7 +48,7 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'testing_implicitoptions'
+exp_name = 'testing_implicitoptions_withnoreverse'
 envs =   ['MontezumaRevenge']  #['Breakout']# ['Kangaroo', 'Freeway', #[ ] ## 'Seaquest', #['Kangaroo']  , , 'Enduro', 'Pong']  #['Pong']#['MontezumaRevenge'] #['Enduro']['Seaquest']   # # ## # , ,  ### # ###,,,,, 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
             # ,'Venture','Zaxxon','PrivateEye', 'Gopher']
@@ -70,7 +70,7 @@ ls_ = 0
 vae_ = 0
 explore_ = 0
 grad_var_ = 0
-code_location = home+"/Other_Code/RL4/rl_mar2018_3_implicitoptions/"
+code_location = home+"/Other_Code/RL4/rl_mar2018_4_implicitoptions_reverse/"
 #####################
 
 

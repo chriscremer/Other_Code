@@ -255,7 +255,7 @@ def train(model_dict):
     start2 = time.time()
     for j in range(num_updates):
         discrim_errors = []
-
+        discrim_errors_reverse = []
         for step in range(num_steps):
 
             # Act, [P,1], [P], [P,1], [P]
@@ -275,7 +275,8 @@ def train(model_dict):
             discrim_error = discriminator.forward(prev_frame, current_frame, action)
             discrim_errors.append(discrim_error)
             
-
+            discrim_error_reverse = discriminator.forward(current_frame, prev_frame, action)
+            discrim_errors_reverse.append(discrim_error_reverse)
 
             # # THIS IS TO SEE PREDICTIONS
 
@@ -324,12 +325,13 @@ def train(model_dict):
 
 
         discrim_errors = torch.stack(discrim_errors)  #[S,P]
+        discrim_errors_reverse = torch.stack(discrim_errors_reverse)  #[S,P]
 
         #Optimize action-predictor
         discriminator.optimize(discrim_errors)
 
         #Optimize agent
-        agent.update2(discrim_errors)  #agent.update(j,num_updates)
+        agent.update2(discrim_errors, discrim_errors_reverse)  #agent.update(j,num_updates)
 
         agent.insert_first_state(agent.rollouts.states[-1])
 

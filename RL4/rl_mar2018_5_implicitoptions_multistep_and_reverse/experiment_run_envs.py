@@ -48,7 +48,7 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'testing_implicitoptions'
+exp_name = 'testing_implicitoptions_multistep_2'
 envs =   ['MontezumaRevenge']  #['Breakout']# ['Kangaroo', 'Freeway', #[ ] ## 'Seaquest', #['Kangaroo']  , , 'Enduro', 'Pong']  #['Pong']#['MontezumaRevenge'] #['Enduro']['Seaquest']   # # ## # , ,  ### # ###,,,,, 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
             # ,'Venture','Zaxxon','PrivateEye', 'Gopher']
@@ -62,7 +62,7 @@ noFrameSkip = True
 num_processes= 32
 
 
-save_interval= 5e5 #save model params and videos and gifs
+save_interval=  5e5 #save model params and videos and gifs
 save_params = 0
 vid_ = 0
 gif_ = 1
@@ -70,7 +70,8 @@ ls_ = 0
 vae_ = 0
 explore_ = 0
 grad_var_ = 0
-code_location = home+"/Other_Code/RL4/rl_mar2018_3_implicitoptions/"
+# code_location = home+"/Other_Code/RL4/rl_mar2018_5_implicitoptions_multistep_and_reverse/"
+code_location = os.path.dirname(os.path.realpath(__file__))
 #####################
 
 

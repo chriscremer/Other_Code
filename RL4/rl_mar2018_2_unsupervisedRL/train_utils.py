@@ -200,7 +200,8 @@ def do_gifs(envs, agent, model_dict, update_current_state, update_rewards, total
             current_state = update_current_state(current_state, state, shape_dim0)
             # Agent record step
             # agent.insert_data(step, current_state, action.data, value.data, reward, masks)
-            agent.rollouts_list.insert(step, current_state, action.data, value.data, reward.numpy()[0][0], masks)
+            agent.rollouts_list.insert(step, current_state, action.data, value.data, reward.numpy()[0][0], masks, action_log_probs)
+
 
 
             done_ = done[0]

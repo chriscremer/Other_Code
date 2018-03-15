@@ -156,6 +156,7 @@ def do_gifs(envs, agent, model_dict, update_current_state, update_rewards, total
         state_frames = []
         value_frames = []
         actions_frames = []
+        actions_frames2=[]
 
         # Init state
         state = envs.reset()  # (channels, height, width)
@@ -185,8 +186,10 @@ def do_gifs(envs, agent, model_dict, update_current_state, update_rewards, total
             action_prob = np.squeeze(action_prob.data.cpu().numpy())  # [A]
             actions_frames.append(action_prob)
 
+
             # value, action = agent.act(Variable(agent.rollouts_list.states[-1], volatile=True))
             cpu_actions = action.data.squeeze(1).cpu().numpy() #[P]
+            actions_frames2.append(cpu_actions)
             # Step, S:[P,C,H,W], R:[P], D:[P]
             state, reward, done, info = envs.step(cpu_actions) 
 
@@ -237,9 +240,12 @@ def do_gifs(envs, agent, model_dict, update_current_state, update_rewards, total
         # for step in range(num_steps):
         for step in range(len(state_frames)-1):
 
+            if step %10 == 0:
+                print (step, len(agent.rollouts_list.returns)-1)
+
 
             rows = 1
-            cols = 3
+            cols = 2
 
             fig = plt.figure(figsize=(8,4), facecolor='white')
 
@@ -256,26 +262,39 @@ def do_gifs(envs, agent, model_dict, update_current_state, update_rewards, total
             ax.set_title('State '+str(step),family='serif')
 
 
+            action_ = actions_frames2[step][0]
+            if 'Montezuma' in model_dict['env']:
+                if action_ in [2,10]:
+                    ax.text(.45, -.1, 'Up', transform=ax.transAxes, color='Blue')
+                elif action_ in [5,13]:
+                    ax.text(.45, -.1, 'Down', transform=ax.transAxes, color='Green')
+                elif action_ in [0,1]:
+                    ax.text(.45, -.1, 'NoOp', transform=ax.transAxes, color='Black')
+                elif action_ in [3,11]:
+                    ax.text(.45, -.1, 'Right', transform=ax.transAxes, color='Purple')
+                elif action_ in [4,12]:
+                    ax.text(.45, -.1, 'Left', transform=ax.transAxes, color='Yellow')
 
 
 
-            #plot values histogram
-            ax = plt.subplot2grid((rows,cols), (0,2), frameon=False)
 
-            values = value_frames[step]#[0]#.cpu().numpy()
-            weights = np.ones_like(values)/float(len(values))
-            ax.hist(values, 50, range=[0., 8.], weights=weights)
+            # #plot values histogram
+            # ax = plt.subplot2grid((rows,cols), (0,2), frameon=False)
+
+            # values = value_frames[step]#[0]#.cpu().numpy()
+            # weights = np.ones_like(values)/float(len(values))
+            # ax.hist(values, 50, range=[0., 8.], weights=weights)
             
-            ax.set_ylim([0.,1.])
-            ax.set_title('Value',family='serif')
+            # ax.set_ylim([0.,1.])
+            # ax.set_title('Value',family='serif'
 
-            if step %10 == 0:
-                print (step, len(agent.rollouts_list.returns)-1)
-            # print ()
-            val_return = agent.rollouts_list.returns[step] #.cpu().numpy()#[0][0]
-            # print(val_return)
-            ax.plot([val_return,val_return],[0,1])
+            # # print ()
+            # val_return = agent.rollouts_list.returns[step] #.cpu().numpy()#[0][0]
+            # # print(val_return)
+            # ax.plot([val_return,val_return],[0,1])
             
+
+
 
             #plot actions
             ax = plt.subplot2grid((rows,cols), (0,1), frameon=False)
@@ -285,11 +304,17 @@ def do_gifs(envs, agent, model_dict, update_current_state, update_rewards, total
             action_prob = actions_frames[step]
             action_size = envs.action_space.n
             # print (action_size)
+
+            # print (action_)
             
-            ax.bar(range(action_size), action_prob)
+            barlist=ax.bar(range(action_size), action_prob)
+            barlist[action_].set_color('black')
+
             ax.set_title('Action',family='serif')
-            plt.xticks(range(action_size),['NOOP', 'FIRE', 'RIGHT', 'LEFT', 'R_FIRE', 'L_FIRE'], fontsize=6)
+            # plt.xticks(range(action_size),['NOOP', 'FIRE', 'RIGHT', 'LEFT', 'R_FIRE', 'L_FIRE'], fontsize=6)
+            plt.xticks(range(action_size),[str(x) for x in range(action_size)], fontsize=6)
             ax.set_ylim([0.,1.])
+
 
 
             #plot fig
@@ -320,7 +345,11 @@ def do_gifs(envs, agent, model_dict, update_current_state, update_rewards, total
         for i in range(max_epoch+1):
             images.append(imageio.imread(frames_path+'plt'+str(i)+'.png'))
             
-        gif_path_this = gif_epoch_path + str(j) + '.gif'
+
+        # print (gif_epoch_path)
+        # fdsfa
+
+        gif_path_this = gif_epoch_path+ str(total_num_steps)+'_'+ str(j) + '.gif'
         imageio.mimsave(gif_path_this, images)
         print ('made gif', gif_path_this)
 
