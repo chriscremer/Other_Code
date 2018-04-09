@@ -44,6 +44,8 @@ class NN(nn.Module):
 
 
 
+
+
     def train(self, data_x, data_y):
         #data_x: [B,X]
         #data_y: [B,Y]

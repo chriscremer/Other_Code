@@ -155,8 +155,20 @@ def train(model_dict):
     model_dict['obs_shape']=obs_shape
     model_dict['shape_dim0']=shape_dim0
 
+    # print (envs.action_space)
+    # print (envs.action_space.shape)
 
-    model_dict['action_size'] = envs.action_space.n
+    action_size = envs.action_space.shape[0]
+
+    print (obs_shape)
+    print(action_size)
+    fasd
+    
+    if action_size == 1:
+        action_size = 2
+
+    # model_dict['action_size'] = envs.action_space.n
+    model_dict['action_size'] = action_size
 
 
 

@@ -96,6 +96,7 @@ code_location = home+"/Other_Code/RL4/rl_mar2018_3_implicitoptions/"
 
 
 
+
 exp_path = home + '/Documents/tmp/' + exp_name+'/'
 
 make_dir(exp_path)
