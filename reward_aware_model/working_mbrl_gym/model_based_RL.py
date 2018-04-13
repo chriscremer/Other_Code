@@ -36,11 +36,11 @@ class MB_RL():
             # - later: save vars
 
         #Define model 
-        print ('Defining model..')
+        print 'Defining model..'
         self.model = model_(model_architecture, batch_size=batch_size, n_particles=n_particles)
 
         #Define policy
-        print ('Defining policy..')
+        print 'Defining policy..'
         self.policy = policy_(policy_architecture, model=self.model, batch_size=batch_size, n_particles=n_particles, n_timesteps=n_timesteps)
 
         #Start session
@@ -58,29 +58,29 @@ class MB_RL():
 
         #Initialize vars or load them
         #Model
-        print ('Initializing model..')
+        print 'Initializing model..'
         saver = tf.train.Saver(self.model.params_dict)
         if model_path_to_load_variables == '':
             self.sess.run(tf.variables_initializer(self.model.params_list))
         else:
             saver.restore(self.sess, model_path_to_load_variables)
-            print ('loaded model variables ' + model_path_to_load_variables)
+            print 'loaded model variables ' + model_path_to_load_variables
 
         #Policy
-        print( 'Initializing policy..')
+        print 'Initializing policy..'
         saver = tf.train.Saver(self.policy.params_dict)
         if policy_path_to_load_variables == '':
             self.sess.run(tf.variables_initializer(self.policy.params_list))
         else:
             saver.restore(self.sess, policy_path_to_load_variables)
-            print ('loaded policy variables ' + policy_path_to_load_variables)
+            print 'loaded policy variables ' + policy_path_to_load_variables
 
 
 
         self.model_path_to_save_variables = model_path_to_save_variables
         self.policy_path_to_save_variables = policy_path_to_save_variables
 
-        print ('Init Complete')
+        print 'Init Complete'
 
 
 
@@ -113,7 +113,7 @@ class MB_RL():
 
                 j_eqn = self.sess.run(self.policy.objective)
 
-                print ("Step:", '%04d' % (step), "elbo=", "{:.5f}".format(elbo), 'px', p1, 'pz', p2, 'qz', p3, '   J', j_eqn)
+                print "Step:", '%04d' % (step), "elbo=", "{:.5f}".format(elbo), 'px', p1, 'pz', p2, 'qz', p3, '   J', j_eqn
 
 
 
@@ -123,14 +123,14 @@ class MB_RL():
         saver = tf.train.Saver(self.model.params_dict)
         if self.model_path_to_save_variables != '':
             saver.save(self.sess, self.model_path_to_save_variables)
-            print ('Saved variables to ' + self.model_path_to_save_variables)
+            print 'Saved variables to ' + self.model_path_to_save_variables
         #Policy
         saver = tf.train.Saver(self.policy.params_dict)
         if self.policy_path_to_save_variables != '':
             saver.save(self.sess, self.policy_path_to_save_variables)
-            print ('Saved variables to ' + self.policy_path_to_save_variables)
+            print 'Saved variables to ' + self.policy_path_to_save_variables
 
-        print ('Done training')
+        print 'Done training'
 
 
 
@@ -138,7 +138,6 @@ class MB_RL():
     def train_model(self, get_data, steps=1000, display_step=10):
 
         # print 'aaaaa'
-        best_mean_elbo=-1
         for step in range(steps):
 
             batch = []
@@ -156,57 +155,8 @@ class MB_RL():
             # print 'cccccc'
             # self.train_model(batch, batch_actions)
 
-            # elbo, p1,p2,p3 = self.sess.run([self.model.elbo, self.model.log_p_x_final, self.model.log_p_z_final, self.model.log_q_z_final], feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
-            # print "Step:", '%04d' % (step), "elbo=", "{:.5f}".format(elbo), 'px', p1, 'pz', p2, 'qz', p3 #'   J', j_eqn
-
-
-
-            # grads, vars_ = self.sess.run([self.model.grads, self.model.params_dict], feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
-            # names = self.model.grad_names
-
-            # bins=[.0001, .001, .01, .1, 1., 10.]
-            # print bins
-
-            # for i in range(len(grads)):
-
-            #     grads__ = np.array(grads[i][0]) #100, 1344
-            #     var__ = np.array(vars_[names[i]])  #100, 1344
-
-            #     print grads__.shape
-            #     print var__.shape
-
-            #     # if names[i] == 'decoder_weights_out_mean': 
-
-            #     print names[i]
-            #     print 'grads'
-            #     counts,edges = np.histogram(grads__, bins=bins)
-            #     print counts
-                
-
-            #     print 'vars'
-            #     counts,edges = np.histogram(var__, bins=bins)
-            #     print counts
-            #     # print edges
-            #     print 
-            #         # print np.array(grads[i]).shape 
-            #         # print 'vars grads'
-            #         # print np.array(vars_[names[i]]).shape
-            #         # print np.array(grads[i]).shape
-            #         # for j in range(len(vars_[names[i]])):
-            #         #     print vars_[names[i]][j] , grads[i][j]
-            #         # # print vars_[names[i]]   
-            #         # # print 'grads'
-            #         # # print grads[i]
-            #         # print 
-            # fdsf
-
-
 
             _ = self.sess.run(self.model.optimizer, feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
-
-
-            # elbo, p1,p2,p3 = self.sess.run([self.model.elbo, self.model.log_p_x_final, self.model.log_p_z_final, self.model.log_q_z_final], feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
-            # print "Step:", '%04d' % (step), "elbo=", "{:.5f}".format(elbo), 'px', p1, 'pz', p2, 'qz', p3 #'   J', j_eqn
 
 
             # self.train_policy()
@@ -220,86 +170,22 @@ class MB_RL():
 
                 # j_eqn = self.sess.run(self.policy.objective)
 
-                print ("Step:", '%04d' % (step), "elbo=", "{:.5f}".format(elbo), 'px', p1, 'pz', p2, 'qz', p3 )#'   J', j_eqn)
+                print "Step:", '%04d' % (step), "elbo=", "{:.5f}".format(elbo), 'px', p1, 'pz', p2, 'qz', p3 #'   J', j_eqn
 
-
-            #Check validation 
-            if step % 5000 == 0:
-                elbos = []
-                #size of validation set
-                for i in range(20):
-
-                    batch = []
-                    batch_actions = []
-                    batch_rewards = []
-                    while len(batch) != self.batch_size:
-                        sequence, actions, rewards = get_data(valid=i)
-                        batch.append(sequence)
-                        batch_actions.append(actions)
-                        batch_rewards.append(rewards)
-
-
-                    elbo, p1,p2,p3 = self.sess.run([self.model.elbo, self.model.log_p_x_final, self.model.log_p_z_final, self.model.log_q_z_final], feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
-
-                    elbos.append(elbo)
-
-                mean_elbo = np.mean(elbos)
-                print ('Validation', mean_elbo, np.std(elbos))
-
-                if mean_elbo > best_mean_elbo or best_mean_elbo==-1:
-                    best_mean_elbo = mean_elbo
-                    #save model
-                    saver = tf.train.Saver(self.model.params_dict)
-                    if self.model_path_to_save_variables != '':
-                        saver.save(self.sess, self.model_path_to_save_variables)
-                        print ('Saved variables to ' + self.model_path_to_save_variables)
-                else:
-                    print ('worse, best is', best_mean_elbo)
-
-
-
-        elbos = []
-        #size of validation set
-        for i in range(20):
-
-            batch = []
-            batch_actions = []
-            batch_rewards = []
-            while len(batch) != self.batch_size:
-                sequence, actions, rewards = get_data(valid=i)
-                batch.append(sequence)
-                batch_actions.append(actions)
-                batch_rewards.append(rewards)
-
-            elbo, p1,p2,p3 = self.sess.run([self.model.elbo, self.model.log_p_x_final, self.model.log_p_z_final, self.model.log_q_z_final], feed_dict={self.model.x: batch, self.model.actions: batch_actions, self.model.rewards: batch_rewards})
-            elbos.append(elbo)
-
-        mean_elbo = np.mean(elbos)
-        print ('Validation', mean_elbo, np.std(elbos))
-
-        if mean_elbo > best_mean_elbo or best_mean_elbo==-1:
-            best_mean_elbo = mean_elbo
-            #save model
-            saver = tf.train.Saver(self.model.params_dict)
-            if self.model_path_to_save_variables != '':
-                saver.save(self.sess, self.model_path_to_save_variables)
-                print ('Saved variables to ' + self.model_path_to_save_variables)
-        else:
-            print ('worse, best is', best_mean_elbo)
 
         #Save parameters
-        # #Model
-        # saver = tf.train.Saver(self.model.params_dict)
-        # if self.model_path_to_save_variables != '':
-        #     saver.save(self.sess, self.model_path_to_save_variables)
-        #     print 'Saved variables to ' + self.model_path_to_save_variables
+        #Model
+        saver = tf.train.Saver(self.model.params_dict)
+        if self.model_path_to_save_variables != '':
+            saver.save(self.sess, self.model_path_to_save_variables)
+            print 'Saved variables to ' + self.model_path_to_save_variables
         # Policy
         saver = tf.train.Saver(self.policy.params_dict)
         if self.policy_path_to_save_variables != '':
             saver.save(self.sess, self.policy_path_to_save_variables)
-            print ('Saved variables to ' + self.policy_path_to_save_variables)
+            print 'Saved variables to ' + self.policy_path_to_save_variables
 
-        print ('Done training model\n')
+        print 'Done training model\n'
         return
 
 
@@ -326,10 +212,7 @@ class MB_RL():
             # _ = self.sess.run(self.model.optimizer, feed_dict={self.model.x: batch, self.model.actions: batch_actions})
 
             # self.train_policy()
-
-
             _ = self.sess.run(self.policy.optimizer)
-
 
             # # Display
             if step % display_step == 0:
@@ -338,7 +221,7 @@ class MB_RL():
 
                 j_eqn = self.sess.run(self.policy.objective)
 
-                print ("Step:", '%04d' % (step), ' J', j_eqn)
+                print "Step:", '%04d' % (step), ' J', j_eqn
 
 
                 # rew = self.sess.run(self.policy.get_r)
@@ -394,14 +277,14 @@ class MB_RL():
         saver = tf.train.Saver(self.model.params_dict)
         if self.model_path_to_save_variables != '':
             saver.save(self.sess, self.model_path_to_save_variables)
-            print( 'Saved variables to ' + self.model_path_to_save_variables)
+            print 'Saved variables to ' + self.model_path_to_save_variables
         #Policy
         saver = tf.train.Saver(self.policy.params_dict)
         if self.policy_path_to_save_variables != '':
             saver.save(self.sess, self.policy_path_to_save_variables)
-            print ('Saved variables to ' + self.policy_path_to_save_variables)
+            print 'Saved variables to ' + self.policy_path_to_save_variables
 
-        print( 'Done training policy\n')
+        print 'Done training policy\n'
 
         return
 
@@ -599,14 +482,13 @@ class MB_RL():
 
         for t in range(n_timesteps):
 
-            print (t)
+            print t
 
             #predict action
             action_ = self.sess.run(self.policy.action_, feed_dict={self.policy.state_: state})
-            # action_ = [[1, 0]]
 
-            print ('action ' + str(action_))
-            print ('state ' + str(state))
+            print 'action ' + str(action_)
+            print 'state ' + str(state)
 
 
             prev_z_and_current_a = np.concatenate((state, action_), axis=1) #[B,ZA]
@@ -619,10 +501,7 @@ class MB_RL():
 
             x_mean, r_mean = self.sess.run(self.model.current_emission, feed_dict={self.model.current_z_: sample})
             
-            print (x_mean.shape, r_mean)
-
-            
-
+            print x_mean, r_mean
 
             obs.append(np.reshape(x_mean, [-1]))
 
@@ -641,12 +520,6 @@ class MB_RL():
 
 
         return np.array(obs)
-
-
-
-
-
-
 
 
 

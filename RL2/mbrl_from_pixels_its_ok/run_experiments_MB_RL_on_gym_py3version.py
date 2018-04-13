@@ -1,4 +1,6 @@
 
+
+
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -67,21 +69,21 @@ if __name__ == "__main__":
 
         # obs_dim = env.observation_space.shape[0]
         obs_dim = 24*56
-        print 'obs dims ' + str(obs_dim)
+        print ('obs dims ' + str(obs_dim))
 
         num_actions = env.action_space.n
-        print 'action dims ' + str(num_actions)
+        print ('action dims ' + str(num_actions))
 
 
         #Make dataset
-        print 'Making dataset'
+        print ('Making dataset')
         MAX_EPISODES = 20
         MAX_STEPS    = 200
         dataset = []
         lenghts = []
         for i_episode in xrange(MAX_EPISODES):
             if i_episode %10==0:
-                print i_episode
+                print (i_episode)
 
             obs = env.reset()
 
@@ -149,10 +151,10 @@ if __name__ == "__main__":
             dataset.append([observations, actions, rewards])
             lenghts.append(len(observations))
 
-        print 'Dataset size:' +str(len(dataset))
-        print 'Average length:' + str(np.mean(lenghts))
-        print 'Min length:' + str(np.min(lenghts))
-        print 'Max length:' + str(np.max(lenghts))
+        print ('Dataset size:' +str(len(dataset)))
+        print ('Average length:' + str(np.mean(lenghts)))
+        print ('Min length:' + str(np.min(lenghts)))
+        print ('Max length:' + str(np.max(lenghts)))
 
         # print len(dataset[0][0])
         # print len(dataset[1][0])
@@ -160,23 +162,23 @@ if __name__ == "__main__":
             
         with open(save_to+'cartpole_data_validation.pkl', 'wb') as f:
             pickle.dump(dataset, f)
-        print 'saved data to: ' +save_to+'cartpole_data_validation.pkl'
+        print ('saved data to: ' +save_to+'cartpole_data_validation.pkl')
         fsaf
 
 
 
 
     #load data
-    print 'loading data'
+    print ('loading data')
     with open(save_to+'cartpole_data3.pkl', 'rb') as f:
-        dataset = pickle.load(f)
+        dataset = pickle.load(f, encoding='latin1')
     len_dataset = len(dataset)
     # dataset = np.array(dataset) cant because len of seqs are dif
-    print 'loaded data from: ' +save_to+'cartpole_data3.pkl', len_dataset
+    print ('loaded data from: ' +save_to+'cartpole_data3.pkl', len_dataset)
 
     with open(save_to+'cartpole_data_validation.pkl', 'rb') as f:
-        validation_set = pickle.load(f)
-    print 'loaded data from: ' +save_to+'cartpole_data_validation.pkl', len(validation_set)
+        validation_set = pickle.load(f, encoding='latin1')
+    print ('loaded data from: ' +save_to+'cartpole_data_validation.pkl', len(validation_set))
 
 
     # print dataset[0][2]
@@ -289,7 +291,7 @@ if __name__ == "__main__":
                         policy_path_to_save_variables=policy_path_to_save_variables,
                         tb_path=tb_path)
 
-        print 'Training both'
+        print ('Training both')
         mb_rl.train_both(get_data=get_data, steps=training_steps, display_step=display_step)
 
 
@@ -308,7 +310,7 @@ if __name__ == "__main__":
                         policy_path_to_save_variables=policy_path_to_save_variables,
                         tb_path=tb_path)
 
-        print 'Training model'
+        print ('Training model')
         mb_rl.train_model(get_data=get_data, steps=training_steps, display_step=display_step)
 
 
@@ -325,7 +327,7 @@ if __name__ == "__main__":
                         policy_path_to_save_variables=policy_path_to_save_variables,
                         tb_path=tb_path)
 
-        print 'Training policy'
+        print ('Training policy')
         mb_rl.train_policy(steps=training_steps, display_step=display_step)
 
 
@@ -357,7 +359,7 @@ if __name__ == "__main__":
 
 
         # print 'Testing model and policy'
-        print 'Viz'
+        print ('Viz')
 
 
         viz_timesteps = 10
@@ -379,14 +381,14 @@ if __name__ == "__main__":
 
 
 
-        print 'Visualizing model predictions'
+        print ('Visualizing model predictions')
         policy_gen_traj = mb_rl.viz_traj_of_policy(n_timesteps=viz_timesteps)
 
         # print policy_gen_traj.shape [T,X]
         # fsd
 
         for frame in policy_gen_traj:
-            print '1'
+            print ('1')
             cv2.imshow('Video', np.reshape(frame, [24, 56]))
             cv2.waitKey(0)
             cv2.destroyAllWindows()
@@ -404,21 +406,21 @@ if __name__ == "__main__":
 
         real_sequence, actions, real_and_gen, mean_traj = mb_rl.test_model(get_data=get_data)
 
-        print real_sequence.shape #[T,X]
-        print actions.shape #[T,A]
-        print real_and_gen.shape #[P, T, X]
-        print mean_traj.shape  #[P, T, X]
+        print (real_sequence.shape )#[T,X]
+        print (actions.shape) #[T,A]
+        print (real_and_gen.shape) #[P, T, X]
+        print (mean_traj.shape ) #[P, T, X]
 
         #Get return for the trajectories
         real_return = buda.get_return(real_sequence)
-        print real_return
+        print (real_return)
 
 
 
 
 
 
-        print 'Visualizing policy performance'
+        print ('Visualizing policy performance')
         # def get_action_result():
         #     sequence_obs, sequence_actions = buda.get_result_of_action(prez_position, current_action, obs_height, obs_width)
         #     return np.array(sequence_obs), np.array(sequence_actions) 
@@ -426,7 +428,7 @@ if __name__ == "__main__":
 
         seq = mb_rl.test_policy(get_action_results=buda.get_result_of_action, n_timesteps=viz_timesteps, obs_height=obs_height, obs_width=obs_width)
 
-        print seq.shape  #[T,X]
+        print (seq.shape)  #[T,X]
         #plot it
 
         # fig = plt.figure(figsize=(6, 8))
@@ -690,7 +692,7 @@ if __name__ == "__main__":
                 count += 1.
                 running_timesteps_mean = ((count-1)*running_timesteps_mean + t) / count
 
-            print i_episode, t, running_timesteps_mean
+            print( i_episode, t, running_timesteps_mean)
 
             # for i in range(1, len(rewards)):
             #     rewards[-i-1] = rewards[-i-1] + rewards[-i]
@@ -706,7 +708,7 @@ if __name__ == "__main__":
         # # print len(dataset[0][0])
         # # print len(dataset[1][0])
 
-        print 'Done'
+        print( 'Done')
 
 
 
@@ -836,7 +838,7 @@ if __name__ == "__main__":
 
                 if done: break
 
-            print t
+            print (t)
             # fsdafsd
 
         # for i in range(1, len(real_rewards)):
@@ -846,13 +848,13 @@ if __name__ == "__main__":
         #     real_rewards[i] = [real_rewards[i]]
 
         for i in range(len(real_rewards)):
-            print real_rewards[i], sim_rewards[i]
+            print (real_rewards[i], sim_rewards[i])
 
 
 
         #show what I got
-        print np.array(real_obs).shape
-        print np.array(sim_obs).shape
+        print( np.array(real_obs).shape)
+        print (np.array(sim_obs).shape)
 
         for t in range(len(real_obs)):
 
@@ -876,19 +878,13 @@ if __name__ == "__main__":
 
 
         scipy.misc.imsave(save_to +'outfile.jpg', all_frames)
-        print 'saved'
+        print ('saved')
 
 
 
 
 
-        print 'Done'
-
-
-
-
-
-
+        print ('Done')
 
 
 
@@ -901,7 +897,13 @@ if __name__ == "__main__":
 
 
 
-    print 'Done everything'
+
+
+
+
+
+
+    print ('Done everything')
 
 
 
