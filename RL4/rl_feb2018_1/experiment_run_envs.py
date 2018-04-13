@@ -46,11 +46,11 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'testing_over_under_2'
-envs =  ['Breakout']# ['Kangaroo', 'Freeway','MontezumaRevenge'] #[ ] ## 'Seaquest', #['Kangaroo']  , , 'Enduro', 'Pong']  #['Pong']#['MontezumaRevenge'] #['Enduro']['Seaquest']   # # ## # , ,  ### # ###,,,,, 'BeamRider', 'Alien', 
+exp_name = 'testing_over_under_3'
+envs = ['Pong'] #['Breakout']# ['Kangaroo', 'Freeway','MontezumaRevenge'] #[ ] ## 'Seaquest', #['Kangaroo']  , , 'Enduro', 'Pong']  #['Pong']#['MontezumaRevenge'] #['Enduro']['Seaquest']   # # ## # , ,  ### # ###,,,,, 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
             # ,'Venture','Zaxxon','PrivateEye', 'Gopher']
-models_list = [ms.a2c_over, ms.a2c_under, ms.a2c_adam] # [ms.a2c_adam_1step, ms.a2c_adam_10step, ms.a2c_adam_50step] #[] #[ms.a2c_adam] # ## [ms.a2c_adam_1] #  # #  # #, #[ms.a2c_traj_action_mask] #  # #,   #[]  # # # # #[ms.a2c_with_var]  # #[ms.a2c_sgd]#  #[ms.a2c_list]  #  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
+models_list = [ms.a2c_adam] # [ms.a2c_over, ms.a2c_under, ms.a2c_adam] # [ms.a2c_adam_1step, ms.a2c_adam_10step, ms.a2c_adam_50step] #[] #[ms.a2c_adam] # ## [ms.a2c_adam_1] #  # #  # #, #[ms.a2c_traj_action_mask] #  # #,   #[]  # # # # #[ms.a2c_with_var]  # #[ms.a2c_sgd]#  #[ms.a2c_list]  #  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
 which_gpu = 0
 
 num_frames = 10e6
