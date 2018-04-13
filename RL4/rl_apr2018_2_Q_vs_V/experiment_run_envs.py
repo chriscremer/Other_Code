@@ -67,12 +67,12 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'Q_vs_V_3'
-envs = ['Breakout'] #['Enduro'] #['Seaquest'] # , ,  #['Kangaroo'] ## #['Freeway'] ###,,,,, 'BeamRider', 'Alien', 
+exp_name = 'Q_vs_V_not_trained'
+envs = ['Breakout'] #['Assault', 'IceHockey', 'Amidar'] # #['Enduro'] #['Seaquest'] # , ,  #['Kangaroo'] ## #['Freeway'] ###,,,,, 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
             # 'MontezumaRevenge','Venture','Zaxxon','PrivateEye', 'Gopher']
 models_list = [ms.a2c] #[ms.a2c_load_6M, ms.a2c_load_9M] # [ms.a2c, ms.a2c_load_3M] #  #  #[ms.a2c_load]  #[ms.a2c_traj_action_mask] #  # #,   #[]  # # # # #[ms.a2c_with_var]  # #[ms.a2c_sgd]#  #[ms.a2c_list]  #  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
-which_gpu = 0
+which_gpu = 1
 
 num_frames = 6e6 #10e6
 iters = 1

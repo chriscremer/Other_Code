@@ -188,16 +188,24 @@ class a2c(object):
         value_loss = advantages.pow(2).mean()
 
 
-        V_loss = (Variable(self.rollouts.returns[:-1]) - torch.stack(Vs)).pow(2).mean()
+        V_loss = (Variable(self.rollouts.returns[:-1]) - torch.stack(Vs)).pow(2).max(1)[0].mean()
+        Q_loss = (Variable(self.rollouts.returns[:-1]) - torch.stack(Qs)).pow(2).max(1)[0].mean()
 
-        Q_loss = (Variable(self.rollouts.returns[:-1]) - torch.stack(Qs)).pow(2).mean()
+
+        V_loss1 = (Variable(self.rollouts.returns[:-1]) - torch.stack(Vs)).pow(2).mean()
+        Q_loss1 = (Variable(self.rollouts.returns[:-1]) - torch.stack(Qs)).pow(2).mean()
 
 
 
         action_loss = -(Variable(advantages.data) * action_log_probs).mean()
 
         self.optimizer.zero_grad()
-        cost = action_loss + value_loss*self.value_loss_coef - dist_entropy.mean()*self.entropy_coef + .5*V_loss + .5*Q_loss
+        # cost = action_loss + value_loss*self.value_loss_coef - dist_entropy.mean()*self.entropy_coef + .5*V_loss1 + .5*Q_loss1
+
+        cost = - dist_entropy.mean()*self.entropy_coef + .5*V_loss1 + .5*Q_loss1
+
+
+
         cost.backward()
 
         nn.utils.clip_grad_norm(self.actor_critic.parameters(), self.grad_clip)

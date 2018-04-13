@@ -129,12 +129,12 @@ def print_stuff():
 # Experiment 
 ##################
 # exp_name = 'train_breakout_withimplicit_multiple_epochs'
-exp_name = 'implicit_v3'
-envs =  ['IceHockey', 'Amidar'] #['Assault'] #['Breakout'] #['Enduro'] #['Seaquest'] # , ,  #['Kangaroo'] ## #['Freeway'] ###,,,,, 'BeamRider', 'Alien', 
+exp_name = 'implicit_no_reverse'
+envs = ['Assault', 'IceHockey', 'Amidar'] # #['Breakout'] #['Enduro'] #['Seaquest'] # , ,  #['Kangaroo'] ## #['Freeway'] ###,,,,, 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
             # 'MontezumaRevenge','Venture','Zaxxon','PrivateEye', 'Gopher']
-models_list = [ms.a2c_implicit_v2, ms.a2c]# [ms.a2c_load_implicit_1M, ms.a2c_load_implicit_3M, ms.a2c_load_implicit_5M, ms.a2c] #]  #[ms.a2c_load_implicit] # [ms.a2c_implicit] # #[ms.a2c_traj_action_mask] #  # #,   #[]  # # # # #[ms.a2c_with_var]  # #[ms.a2c_sgd]#  #[ms.a2c_list]  #  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
-which_gpu = 1
+models_list = [ms.a2c] #[ms.a2c_implicit_v2] #, ms.a2c] # # [ms.a2c_load_implicit_1M, ms.a2c_load_implicit_3M, ms.a2c_load_implicit_5M, ms.a2c] #]  #[ms.a2c_load_implicit] # [ms.a2c_implicit] # #[ms.a2c_traj_action_mask] #  # #,   #[]  # # # # #[ms.a2c_with_var]  # #[ms.a2c_sgd]#  #[ms.a2c_list]  #  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
+which_gpu = 0
 
 num_frames = 10e6
 iters = 1
@@ -151,6 +151,7 @@ ls_ = 0
 code_location = os.path.dirname(os.path.realpath(__file__))
 print(os.path.dirname(os.path.realpath(__file__)))
 #####################
+
 
 
 

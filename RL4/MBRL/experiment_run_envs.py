@@ -95,11 +95,11 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'breakout_2frames'
+exp_name = 'make_dataset'
 envs = ['Breakout'] #['Enduro'] #['Seaquest'] # , ,  #['Kangaroo'] ## #['Freeway'] ###,,,,, 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
             # 'MontezumaRevenge','Venture','Zaxxon','PrivateEye', 'Gopher']
-models_list = [ms.a2c_stack2]# [ms.a2c_load_6M, ms.a2c_load_9M] # [ms.a2c, ms.a2c_load_3M] #  #  #[ms.a2c_load]  #[ms.a2c_traj_action_mask] #  # #,   #[]  # # # # #[ms.a2c_with_var]  # #[ms.a2c_sgd]#  #[ms.a2c_list]  #  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
+models_list = [ms.a2c_stack2]   # [ms.a2c_load_6M, ms.a2c_load_9M] # [ms.a2c, ms.a2c_load_3M] #  #  #[ms.a2c_load]  #[ms.a2c_traj_action_mask] #  # #,   #[]  # # # # #[ms.a2c_with_var]  # #[ms.a2c_sgd]#  #[ms.a2c_list]  #  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
 which_gpu = 0
 
 num_frames = 10e6 #6e6 #
@@ -109,7 +109,7 @@ noFrameSkip = True
 num_processes=32
 
 save_interval=2e6 -1 #save model params and videos and gifs
-save_params = 1
+save_params = 0
 vid_ = 0
 gif_ = 0
 ls_ = 0
@@ -185,7 +185,7 @@ for env in envs:
                 json.dump(model_dict, outfile,sort_keys=True, indent=4)
 
             #train model
-            subprocess.call("(cd "+code_location+" && python train4.py --m {})".format(json_path), shell=True) 
+            subprocess.call("(cd "+code_location+" && python make_dataset.py --m {})".format(json_path), shell=True) 
             print('')
 
     print_stuff()

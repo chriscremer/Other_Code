@@ -7,7 +7,7 @@ import numpy as np
 from os.path import expanduser
 home = expanduser("~")
 import time
-
+import os
 
 
 import torch
@@ -25,13 +25,14 @@ from load_data import load_mnist, load_cifar10
 from fully_connected_net import Net as FCN
 from conv_net import MNIST_ConvNet, CIFAR_ConvNet
 from resnet import ResNet18
+from PreActResNet import PreActResNet18, PreActResNet10
 
 
 
 
 def train(train_x, train_y, valid_x, valid_y):
 
-    epochs = 10
+    epochs = 1
     batch_size = 100
 
     train_x = torch.from_numpy(train_x).float().type(torch.FloatTensor).cuda()
@@ -50,6 +51,10 @@ def train(train_x, train_y, valid_x, valid_y):
     prev_accs_valid = deque(maxlen=10)
 
     start = time.time()
+
+    model.train()#for BN
+    
+
 
     for epoch in range(epochs):
 
@@ -73,7 +78,7 @@ def train(train_x, train_y, valid_x, valid_y):
                 train_batch_acc = target.eq(pred).float().mean()
                 prev_accs_train.append(train_batch_acc.data.cpu().numpy()[0])
 
-                
+                model.eval()
                 for batch_idx_valid, (data, target) in enumerate(valid_loader):
                     batch = Variable(data)#.type(model.dtype)
                     target = Variable(target).cuda()#.type(model.dtype)
@@ -83,6 +88,7 @@ def train(train_x, train_y, valid_x, valid_y):
                     valid_batch_acc = target.eq(pred).float().mean()
                     prev_accs_valid.append(valid_batch_acc.data.cpu().numpy()[0])
                     break
+                model.train()#for BN
 
                 batch_time = time.time() - start 
 
@@ -104,6 +110,12 @@ def train(train_x, train_y, valid_x, valid_y):
 
 if __name__ == "__main__":
 
+    load_ = 1
+    save_ = 1
+    save_file = home+'/Documents/tmp/model.pt'
+
+
+
     #Load data
 
     # train_x, train_y, valid_x, valid_y = load_mnist()
@@ -120,24 +132,44 @@ if __name__ == "__main__":
 
 
     #Init model
-
+    print ('Loading model')
     use_cuda = True# torch.cuda.is_available()
-    n_gpus = 2 #torch.cuda.device_count()
+    n_gpus = 1#2 #torch.cuda.device_count()
     if n_gpus < 2:
         os.environ['CUDA_VISIBLE_DEVICES'] = '1' #which gpu
 
-    # model = CIFAR_ConvNet()
-    model = ResNet18()
+    if load_:
+        loaded_state = torch.load(save_file)
+        model = loaded_state['model']
+        # model.load_params(path_to_load_variables=save_file)
+        print ('loaded model ' + save_file)
+
+    else:
+        # model = CIFAR_ConvNet()
+        # model = ResNet18()
+        # model = PreActResNet18()
+        model = PreActResNet10()
+
     model.cuda()
     model = torch.nn.DataParallel(model, device_ids=range(n_gpus))
 
-
-
-    optimizer = optim.SGD(model.parameters(), lr=.005, momentum=.9, weight_decay=5e-4)
-    criterion = nn.CrossEntropyLoss()
+    print (model)
+    print ()
 
     #Train model
+    optimizer = optim.SGD(model.parameters(), lr=.005, momentum=.9, weight_decay=5e-4)
+    criterion = nn.CrossEntropyLoss()
     train(train_x, train_y, valid_x, valid_y)
+
+
+    if save_:
+        state = {
+            'model': model.module if use_cuda else model,
+            'epoch': 1,
+        }
+        # torch.save(model.state_dict(), save_file)
+        torch.save(state, save_file)
+        print ('saved model ' + save_file)
 
 
 

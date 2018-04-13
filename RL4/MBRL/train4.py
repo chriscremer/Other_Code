@@ -56,10 +56,6 @@ import subprocess
 
 
 
-from discriminator import CNN_Discriminator
-from discrim_preds import discrim_predictions
-
-
 
 
 
@@ -155,21 +151,6 @@ def train(model_dict):
     model_dict['obs_shape']=obs_shape
     model_dict['shape_dim0']=shape_dim0
 
-    # print (envs.action_space)
-    # print (envs.action_space.shape)
-
-    # action_size = envs.action_space.shape[0]
-
-    # print (obs_shape)
-    # print(action_size)
-    # fasd
-    
-    # if action_size == 1:
-    #     action_size = 2
-
-    # model_dict['action_size'] = action_size
-
-    model_dict['action_size'] = envs.action_space.n
 
 
     # Create agent
@@ -197,41 +178,24 @@ def train(model_dict):
     if model_dict['load_params']:
         # agent.actor_critic = torch.load(os.path.join(args.load_path))
         # agent.actor_critic = torch.load(args.load_path).cuda()
-
-        if model_dict['load_params_implicit']:
-
-            # load_params_v2(home+'/Documents/tmp/confirm_implicit_works3/BreakoutNoFrameskip-v4/A2C_Implicit/seed0/', agent, 5500160, model_dict)
-
-
-        # load_params_v2(home+'/Documents/tmp/confirm_works_1_withsaving/PongNoFrameskip-v4/a2c/seed0/', agent, 8000160, model_dict)
+        
         # print ('loaded ', args.load_path)
 
-            if model_dict['load_number'] == 1:
-                # load_params_v2(home+'/Documents/tmp/confirm_works_1_withsaving/PongNoFrameskip-v4/a2c/seed0/', agent, 3000160, model_dict)
-                load_params_v2(home+'/Documents/tmp/confirm_implicit_works3/BreakoutNoFrameskip-v4/A2C_Implicit/seed0/', agent, 1000160, model_dict)
+        if model_dict['load_number'] == 3:
+            load_params_v2(home+'/Documents/tmp/confirm_works_1_withsaving/PongNoFrameskip-v4/a2c/seed0/', agent, 3000160, model_dict)
 
+        elif model_dict['load_number'] == 6:
+            load_params_v2(home+'/Documents/tmp/confirm_works_1_withsaving/PongNoFrameskip-v4/a2c/seed0/', agent, 6000160, model_dict)
+        elif model_dict['load_number'] == 9:
+            load_params_v2(home+'/Documents/tmp/confirm_works_1_withsaving/PongNoFrameskip-v4/a2c/seed0/', agent, 9000160, model_dict)
 
-            elif model_dict['load_number'] == 3:
-                # load_params_v2(home+'/Documents/tmp/confirm_works_1_withsaving/PongNoFrameskip-v4/a2c/seed0/', agent, 6000160, model_dict)
-                load_params_v2(home+'/Documents/tmp/confirm_implicit_works3/BreakoutNoFrameskip-v4/A2C_Implicit/seed0/', agent, 3000160, model_dict)
-
-            elif model_dict['load_number'] == 5:
-                # load_params_v2(home+'/Documents/tmp/confirm_works_1_withsaving/PongNoFrameskip-v4/a2c/seed0/', agent, 9000160, model_dict)
-                load_params_v2(home+'/Documents/tmp/confirm_implicit_works3/BreakoutNoFrameskip-v4/A2C_Implicit/seed0/', agent, 5000160, model_dict)
-
-
-            # else:
-            #     load_params_v2(home+'/Documents/tmp/confirm_works_1_withsaving/PongNoFrameskip-v4/a2c/seed0/', agent, 8000160, model_dict)
-            else:
-                PROBLEM
+        # else:
+        #     load_params_v2(home+'/Documents/tmp/confirm_works_1_withsaving/PongNoFrameskip-v4/a2c/seed0/', agent, 8000160, model_dict)
+        else:
+            PROBLEM
 
 
 
-
-    if model_dict['implicit']:
-
-        action_predictor = CNN_Discriminator(model_dict).cuda()
-        print ('init action_predictor')
 
 
 
@@ -287,39 +251,17 @@ def train(model_dict):
 
 
 
-        total_num_steps = (j + 1) * num_processes * num_steps
 
 
         #Optimize agent
-        if total_num_steps < 3e6:
-
-            
-            if model_dict['implicit']:
-                # fsd
-
-                discrim_errors = discrim_predictions(model_dict, agent.rollouts, action_predictor)
-                discrim_errors_reverse = discrim_predictions(model_dict, agent.rollouts, action_predictor, reverse=True)
-                #Optimize action_predictor
-                action_predictor.optimize(discrim_errors)
-                #Optimize agent
-                agent.update2(discrim_errors, discrim_errors_reverse)  #agent.update(j,num_updates)
-
-            else:
-
-                agent.no_update()
-
-        # #Old
-        else:
-            agent.update()  #agent.update(j,num_updates)
-
-
+        agent.update()  #agent.update(j,num_updates)
         agent.insert_first_state(agent.rollouts.states[-1])
 
 
         # print ('save_interval_num_updates', save_interval_num_updates)
         # print ('num_updates', num_updates)
         # print ('j', j)
-
+        total_num_steps = (j + 1) * num_processes * num_steps
         
         # if total_num_steps % save_interval == 0 and save_dir != "":
         if j % save_interval_num_updates == 0 and save_dir != "" and j != 0:
@@ -327,7 +269,7 @@ def train(model_dict):
             #Save model
             if save_params:
                 do_params(save_dir, agent, total_num_steps, model_dict)
-                save_params_v2(save_dir, agent, total_num_steps, model_dict)
+                # save_params_v2(save_dir, agent, total_num_steps, model_dict)
             #make video
             if vid_:
                 do_vid(envs_video, update_current_state, shape_dim0, dtype, agent, model_dict, total_num_steps)
