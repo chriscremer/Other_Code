@@ -25,6 +25,8 @@ class CNNPolicy(nn.Module):
         self.conv2 = nn.Conv2d(32, 64, 4, stride=2)
         self.conv3 = nn.Conv2d(64, 32, 3, stride=1)
 
+        self.act_func = F.leaky_relu # F.tanh ##  F.elu F.relu F.softplus
+
         self.linear1 = nn.Linear(32 * 7 * 7, 512)
 
         self.critic_linear = nn.Linear(512, 1)
@@ -36,7 +38,10 @@ class CNNPolicy(nn.Module):
             num_outputs = action_space.shape[0]
             self.dist = DiagGaussian(512, num_outputs)
         else:
-            raise NotImplementedError
+            # raise NotImplementedError
+            self.dist = Categorical(512, action_space)
+
+
 
         self.train()
         self.reset_parameters()
@@ -57,13 +62,13 @@ class CNNPolicy(nn.Module):
     def encode(self, inputs):
 
         x = self.conv1(inputs / 255.0)
-        x = F.relu(x)
+        x = self.act_func(x)
 
         x = self.conv2(x)
-        x = F.relu(x)
+        x = self.act_func(x)
 
         x = self.conv3(x)
-        x = F.relu(x)
+        x = self.act_func(x)
 
         x = x.view(-1, 32 * 7 * 7)
 
@@ -74,13 +79,13 @@ class CNNPolicy(nn.Module):
 
     def predict_for_action(self, inputs):
 
-        for_action = F.relu(inputs)
+        for_action = self.act_func(inputs)
 
         return for_action
 
     def predict_for_value(self, inputs):
 
-        x = F.relu(inputs)
+        x = self.act_func(inputs)
         for_value= self.critic_linear(x)
 
         return for_value
@@ -98,7 +103,31 @@ class CNNPolicy(nn.Module):
         x = self.encode(inputs)
         for_action = self.predict_for_action(x)
 
-        return self.dist.action_probs(for_action)
+        dist = self.dist.action_probs(for_action)
+
+        # print (torch.sum(torch.autograd.grad(torch.sum(torch.log(dist)), self.linear1.weight)[0]))  #nonzero
+        # print (torch.sum(torch.autograd.grad(torch.sum(torch.log(dist)), self.conv3.weight)[0]))  #nonzero
+        # print (torch.sum(torch.autograd.grad(torch.sum(torch.log(dist)), self.conv2.weight)[0]))     # ZERO
+        # print (torch.sum(torch.autograd.grad(torch.sum(torch.log(dist)), self.conv1.weight)[0]))      # ZERO 
+        # fdsa
+
+        return dist
+
+
+    def action_logdist(self, inputs):
+        x = self.encode(inputs)
+        for_action = self.predict_for_action(x)
+
+        dist = self.dist.action_logprobs(for_action)
+
+        # print (torch.sum(torch.autograd.grad(torch.sum(torch.log(dist)), self.linear1.weight)[0]))  #nonzero
+        # print (torch.sum(torch.autograd.grad(torch.sum(torch.log(dist)), self.conv3.weight)[0]))  #nonzero
+        # print (torch.sum(torch.autograd.grad(torch.sum(torch.log(dist)), self.conv2.weight)[0]))     # ZERO
+        # print (torch.sum(torch.autograd.grad(torch.sum(torch.log(dist)), self.conv1.weight)[0]))      # ZERO 
+        # fdsa
+
+        return dist
+
 
 
 

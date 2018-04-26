@@ -106,7 +106,7 @@ num_frames = 10e6 #6e6 #
 iters = 1
 seed_offset = 0
 noFrameSkip = True
-num_processes=32
+num_processes= 2
 
 save_interval=2e6 -1 #save model params and videos and gifs
 save_params = 0
@@ -116,6 +116,8 @@ ls_ = 0
 code_location = os.path.dirname(os.path.realpath(__file__))
 print(os.path.dirname(os.path.realpath(__file__)))
 #####################
+
+
 
 
 
