@@ -95,21 +95,21 @@ def print_stuff():
 
 # Experiment 
 ##################
-exp_name = 'RoadRunner_test'  # 'Asteroids_test'# # 'Skiing' # 'BattleZone' #'fetch'# 'freeway'# 'CarRacing_seeifwork' # 'multiple_seeds_of_policies' # 'breakout_2frames_leakyrelu2'
+exp_name = 'RoadRunner_colour_4'  # 'Asteroids_test'# # 'Skiing' # 'BattleZone' #'fetch'# 'freeway'# 'CarRacing_seeifwork' # 'multiple_seeds_of_policies' # 'breakout_2frames_leakyrelu2'
 envs = ['RoadRunner'] #['Asteroids'] # ['RoadRunner'] #['Skiing'] #['BattleZone'] #['FetchReach-v0'] #['Freeway'] #['Breakout'] #['Enduro'] #['Seaquest'] # , ,  #['Kangaroo'] ## #['Freeway'] ###,,,,, 'BeamRider', 'Alien', 
             # 'Amidar','Assault', 'Freeway',
             # 'MontezumaRevenge','Venture','Zaxxon','PrivateEye', 'Gopher']
 models_list = [ms.a2c_stack2]# [ms.a2c_load_6M, ms.a2c_load_9M] # [ms.a2c, ms.a2c_load_3M] #  #  #[ms.a2c_load]  #[ms.a2c_traj_action_mask] #  # #,   #[]  # # # # #[ms.a2c_with_var]  # #[ms.a2c_sgd]#  #[ms.a2c_list]  #  #[mf.a2c_dropout]  mf.ppo_linear] # [mf.ppo_v1]# [mf.a2c_long] 
 which_gpu = 1
 
-num_frames = 6e6 # 10e6 #6e6 #
+num_frames = 10e6 # 10e6 #6e6 #
 iters = 1
-seed_offset = 1
+seed_offset = 0
 noFrameSkip =  True
 num_processes= 32
 
 save_interval=2e6 -1 #save model params and videos and gifs
-save_params = 0
+save_params = 1
 vid_ = 0
 gif_ = 0
 ls_ = 0

@@ -155,24 +155,27 @@ def train(model_dict):
     model_dict['obs_shape']=obs_shape
     model_dict['shape_dim0']=shape_dim0
 
+    action_size = envs.action_space.n
+    model_dict['action_size']=action_size
+
 
 
     # Create agent
     if algo == 'a2c':
-        agent = a2c(envs, model_dict)
+        agent = a2c(model_dict)
         print ('init a2c agent')
-    elif algo == 'ppo':
-        agent = ppo(envs, model_dict)
-        print ('init ppo agent')
-    elif algo == 'a2c_minibatch':
-        agent = a2c_minibatch(envs, model_dict)
-        print ('init a2c_minibatch agent')
-    elif algo == 'a2c_list_rollout':
-        agent = a2c_list_rollout(envs, model_dict)
-        print ('init a2c_list_rollout agent')
-    elif algo == 'a2c_with_var':
-        agent = a2c_with_var(envs, model_dict)
-        print ('init a2c_with_var agent')
+    # elif algo == 'ppo':
+    #     agent = ppo(envs, model_dict)
+    #     print ('init ppo agent')
+    # elif algo == 'a2c_minibatch':
+    #     agent = a2c_minibatch(envs, model_dict)
+    #     print ('init a2c_minibatch agent')
+    # elif algo == 'a2c_list_rollout':
+    #     agent = a2c_list_rollout(envs, model_dict)
+    #     print ('init a2c_list_rollout agent')
+    # elif algo == 'a2c_with_var':
+    #     agent = a2c_with_var(envs, model_dict)
+    #     print ('init a2c_with_var agent')
     # elif algo == 'a2c_bin_mask':
     #     agent = a2c_with_var(envs, model_dict)
     #     print ('init a2c_with_var agent')
@@ -234,7 +237,7 @@ def train(model_dict):
 
             # Act, [P,1], [P], [P,1], [P]
             # value, action = agent.act(Variable(agent.rollouts.states[step], volatile=True))
-            value, action, action_log_probs, dist_entropy = agent.act(Variable(agent.rollouts.states[step]))#, volatile=True))
+            value, action, action_log_probs, dist_entropy = agent.act(Variable(agent.rollouts.states[step]/255.))#, volatile=True))
             # print (action_log_probs.size())
             # print (dist_entropy.size())
 

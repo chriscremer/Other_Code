@@ -19,7 +19,7 @@ def weights_init(m):
 
 
 class CNNPolicy(nn.Module):
-    def __init__(self, num_inputs, action_space):
+    def __init__(self, num_inputs, action_size):
         super(CNNPolicy, self).__init__()
         self.conv1 = nn.Conv2d(num_inputs, 32, 8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, 4, stride=2)
@@ -32,19 +32,33 @@ class CNNPolicy(nn.Module):
 
         self.act_func = F.leaky_relu # F.tanh ##  F.elu F.relu F.softplus
 
+        # print (num_inputs)
+        # fasd
 
-        self.linear1 = nn.Linear(32 * 7 * 7, 512)
+        if num_inputs == 6:
+            self.intermediate_size = 11264
+        else:
+            self.intermediate_size = 32*7*7
+
+
+
+        # self.linear1 = nn.Linear(32 * 7 * 7, 512)
+        self.linear1 = nn.Linear(self.intermediate_size, 512)
 
         self.critic_linear = nn.Linear(512, 1)
 
-        if action_space.__class__.__name__ == "Discrete":
-            num_outputs = action_space.n
-            self.dist = Categorical(512, num_outputs)
-        elif action_space.__class__.__name__ == "Box":
-            num_outputs = action_space.shape[0]
-            self.dist = DiagGaussian(512, num_outputs)
-        else:
-            raise NotImplementedError
+
+        num_outputs = action_size # action_space.n
+        self.dist = Categorical(512, num_outputs)
+
+        # if action_space.__class__.__name__ == "Discrete":
+        #     num_outputs = action_space.n
+        #     self.dist = Categorical(512, num_outputs)
+        # elif action_space.__class__.__name__ == "Box":
+        #     num_outputs = action_space.shape[0]
+        #     self.dist = DiagGaussian(512, num_outputs)
+        # else:
+        #     raise NotImplementedError
 
         self.train()
         self.reset_parameters()
@@ -64,7 +78,7 @@ class CNNPolicy(nn.Module):
 
     def encode(self, inputs):
 
-        x = self.conv1(inputs / 255.0)
+        x = self.conv1(inputs)# / 255.0)
         # x = self.conv1_bn(self.conv1(inputs / 255.0))
         # x = F.relu(x)
         # x = F.elu(x)
@@ -87,7 +101,7 @@ class CNNPolicy(nn.Module):
         x = self.act_func(x)
 
 
-        x = x.view(-1, 32 * 7 * 7)
+        x = x.view(-1, self.intermediate_size)
 
         x = self.linear1(x)
 
@@ -129,6 +143,16 @@ class CNNPolicy(nn.Module):
         for_action = self.predict_for_action(x)
 
         return self.dist.action_probs(for_action)
+
+
+
+
+    def action_logdist(self, inputs):
+        x = self.encode(inputs)
+        for_action = self.predict_for_action(x)
+        dist = self.dist.action_logprobs(for_action)
+        return dist
+
 
 
 

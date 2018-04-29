@@ -50,6 +50,14 @@ class Categorical(nn.Module):
         return probs
 
 
+    def action_logprobs(self, x):
+        x = self(x)
+
+        log_probs = F.log_softmax(x, dim=1)
+        # probs = F.softmax(x)
+
+        return log_probs
+
 
 
 

@@ -62,6 +62,22 @@ def load_params_v2(save_dir, agent, total_num_steps, model_dict):
 
 
 
+
+
+def load_params_v3(save_dir, agent, total_num_steps, model_dict):
+
+    save_path = os.path.join(save_dir, 'model_params3')
+    save_to=os.path.join(save_path, "model_params" + str(total_num_steps)+".pt")
+    # save_to=os.path.join(save_path, "model_params" + steps_sci_nota+".pt")
+    # torch.save(dict_copy, save_to)
+    # torch.save(agent.actor_critic.state_dict(), save_to)
+    agent.actor_critic.load_state_dict(torch.load(save_to))
+    print ('loaded', save_to)
+
+
+
+
+
 def save_params_v3(save_dir, agent, total_num_steps, model_dict):
 
     #saves all params in recommended way

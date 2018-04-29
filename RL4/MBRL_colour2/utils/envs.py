@@ -45,7 +45,11 @@ def make_env(env_id, seed, rank, log_dir):
             env = bench.Monitor(env, os.path.join(log_dir, str(rank)))
 
         if is_atari:
-            env = wrap_deepmind(env)
+
+            warp = False
+            env = wrap_deepmind(env, warp=warp)
+
+
             env = WrapPyTorch(env)
 
 
@@ -89,7 +93,10 @@ def make_env_basic(env_name):
         env = MaxAndSkipEnv(env, skip=4)
 
     if is_atari:
-        env = wrap_deepmind(env)
+
+        warp = False
+        env = wrap_deepmind(env, warp=warp)
+
         env = WrapPyTorch(env)
 
     # env = gym.wrappers.Monitor(env, save_dir+'/videos/', video_callable=lambda x: True, force=True)
@@ -127,13 +134,31 @@ def make_both_env_types(env_name):
 
 
 
+
+
+
+
+
 class WrapPyTorch(gym.ObservationWrapper):
     def __init__(self, env=None):
         super(WrapPyTorch, self).__init__(env)
-        self.observation_space = Box(0.0, 1.0, [1, 84, 84])
+        # self.observation_space = Box(0.0, 1.0, [1, 84, 84])
+
+        if env.observation_space.shape[2] == 3:
+            self.observation_space = Box(0.0, 1.0, [3, 210, 160])
+        else:
+            self.observation_space = Box(0.0, 1.0, [1, 84, 84])
+
 
     def _observation(self, observation):
         return observation.transpose(2, 0, 1)
+
+
+
+
+
+
+
 
 
 

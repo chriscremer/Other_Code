@@ -16,7 +16,7 @@ from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 import copy
 # from kfac import KFACOptimizer
 # from model import CNNPolicy, MLPPolicy, CNNPolicy_dropout, CNNPolicy2, CNNPolicy_dropout2, CNNPolicy_with_var
-from storage import RolloutStorage, RolloutStorage_list, RolloutStorage_with_var
+from storage import RolloutStorage #, RolloutStorage_list, RolloutStorage_with_var
 
 from actor_critic_networks import CNNPolicy #, CNNPolicy_trajectory_action_mask
 
@@ -29,7 +29,7 @@ from actor_critic_networks import CNNPolicy #, CNNPolicy_trajectory_action_mask
 
 class a2c(object):
 
-    def __init__(self, envs, hparams):
+    def __init__(self, hparams):
 
         self.use_gae = hparams['use_gae']
         self.gamma = hparams['gamma']
@@ -44,6 +44,9 @@ class a2c(object):
         self.opt = hparams['opt']
         self.grad_clip = hparams['grad_clip']
 
+        self.action_size = hparams['action_size']
+
+
 
 
         # Policy and Value network
@@ -57,16 +60,18 @@ class a2c(object):
         # else:
         #     self.actor_critic = MLPPolicy(self.obs_shape[0], envs.action_space)
 
-        if 'traj_action_mask' in hparams and hparams['traj_action_mask']:
-            self.actor_critic = CNNPolicy_trajectory_action_mask(self.obs_shape[0], envs.action_space)
-        else:
-            self.actor_critic = CNNPolicy(self.obs_shape[0], envs.action_space)
+        # if 'traj_action_mask' in hparams and hparams['traj_action_mask']:
+        #     self.actor_critic = CNNPolicy_trajectory_action_mask(self.obs_shape[0], envs.action_space)
+        # else:
+
+        # self.actor_critic = CNNPolicy(self.obs_shape[0], envs.action_space)
+        self.actor_critic = CNNPolicy(self.obs_shape[0], self.action_size)
 
         # #for batch norm
         # self.actor_critic.train() #self.actor_critic.eval()
 
         # Storing rollouts
-        self.rollouts = RolloutStorage(self.num_steps, self.num_processes, self.obs_shape, envs.action_space)
+        self.rollouts = RolloutStorage(self.num_steps, self.num_processes, self.obs_shape, self.action_size)
 
 
         if self.cuda:
@@ -91,13 +96,16 @@ class a2c(object):
         # else:
         #     action_shape = envs.action_space.shape[0]
         # self.action_shape = action_shape
-        self.action_shape = 1
-        # if __:
-        #     self.deterministic_action = 0
-        # else:
-        #     self.deterministic_action = 0
-        if hparams['gif_'] or hparams['ls_']:
-            self.rollouts_list = RolloutStorage_list()
+
+        # self.action_shape = 1
+
+
+        # # if __:
+        # #     self.deterministic_action = 0
+        # # else:
+        # #     self.deterministic_action = 0
+        # if hparams['gif_'] or hparams['ls_']:
+        #     self.rollouts_list = RolloutStorage_list()
 
         self.hparams = hparams
 
@@ -132,7 +140,7 @@ class a2c(object):
     def update(self):
         
 
-        next_value = self.actor_critic(Variable(self.rollouts.states[-1], volatile=True))[0].data
+        next_value = self.actor_critic(Variable(self.rollouts.states[-1] / 255., volatile=True))[0].data
 
         self.rollouts.compute_returns(next_value, self.use_gae, self.gamma, self.tau)
 
