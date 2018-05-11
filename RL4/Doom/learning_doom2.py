@@ -188,20 +188,20 @@ class Net(nn.Module):
         # self.conv1 = nn.Conv2d(1, 8, kernel_size=6, stride=3)
         # self.conv2 = nn.Conv2d(8, 8, kernel_size=3, stride=2)
 
-        self.conv1 = nn.Conv2d(n_channels, 32, 12, stride=8)
+        self.conv1 = nn.Conv2d(n_channels, 32, 12, stride=4)
         self.conv2 = nn.Conv2d(32, 64, 8, stride=4)
         self.conv3 = nn.Conv2d(64, 32, 3, stride=2)
 
         self.act_func = F.leaky_relu
 
-        self.intermediate_size = 1536
+        self.intermediate_size = 7488
 
         self.fc1 = nn.Linear(self.intermediate_size, 100)
         self.fc2 = nn.Linear(100, action_size)
 
         self.criterion = nn.MSELoss()
         # self.optimizer = torch.optim.SGD(self.parameters(), learning_rate)
-        self.optimizer = torch.optim.Adam(self.parameters(), learning_rate)
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate, weight_decay=.000001)
 
     def forward(self, x):
         x = self.act_func(self.conv1(x))
@@ -465,7 +465,7 @@ if __name__ == '__main__':
     # learning_rate = 0.00025
     learning_rate = 0.00001
     discount_factor = 0.99
-    epochs = 500
+    epochs = 501 # 2001
     learning_steps_per_epoch = 200# 200 # 500 # 50 #100 # 200 #0
     replay_memory_size = 1000 # 500 # 1000 #0
     play_steps = 500# 100 #0
@@ -485,18 +485,23 @@ if __name__ == '__main__':
 
     # model_savefile = "./model-doom.pth"
     save_path = home + '/Documents/tmp/Doom/'
-    model_loadfile = save_path + 'first_4.pth'
-    model_savefile = save_path + 'first_4.pth'
+    # model_loadfile = save_path + 'first_4.pth'
+    model_loadfile = save_path + 'training_3/DQN_params_999.pth'
+    model_savefile_pre = save_path + 'training_3/DQN_params_' #+str(epochs)+'.pth'
 
-    save_model = 0# 1#True
+    save_model = 0 # 1#True
     load_model = 1
     # skip_learning = False
     train_ = 0
     test_ = 0
-    gif_ = 1
-    make_gif_ =1
+    gif_ = 0
+    make_gif_ = 0 
+    gif_with_grad_ = 1
 
 
+
+    seed = 2
+    torch.cuda.manual_seed(seed)
 
     # Configuration file path
     # config_file_path = "../../scenarios/simpler_basic.cfg"
@@ -692,8 +697,9 @@ if __name__ == '__main__':
 
 
 
-            if save_model and ((epoch+1) %20)==0:
-                print("Saving the network weigths to:", model_savefile)
+            if save_model and ((epoch+1) %200)==0:
+                model_savefile = model_savefile_pre + str(epoch) + '.pth'
+                print("Saving the network weigths to:", model_savefile) 
                 torch.save(model, model_savefile)
 
             # print("Total elapsed time: %.2f minutes" % ((time() - time_start) / 60.0))
@@ -1001,8 +1007,8 @@ if __name__ == '__main__':
     if gif_with_grad_:
 
 
-        numb = 1
-        gif_dir = save_path + 'gif_and_grad'+str(numb)+'/'
+        numb = 4
+        gif_dir = save_path + 'gif_and_grad_29'+str(numb)+'/'
 
 
         if not os.path.exists(gif_dir):
@@ -1010,25 +1016,25 @@ if __name__ == '__main__':
             print ('Made dir', gif_dir) 
         else:
             print ('exists')
-            fasdf 
+            # fasdf 
 
         max_count = 1000
         count = 0
+        frame_count = 0
+        
 
-        cols = 1
+        cols = 2
         rows = 1
 
 
-        frames = []
+        # frames = []
 
         game.new_episode()
         while not game.is_episode_finished() and count<max_count:
 
-            print (count)
-
+            # print (count)
 
             frame = game.get_state().screen_buffer #[3,480,640] uint8
-            # f1 = np.copy(frame)
 
             if count %12==0:
                 state = preprocess(frame)
@@ -1036,72 +1042,55 @@ if __name__ == '__main__':
                 state = torch.from_numpy(state).cuda()
                 a = get_best_action(state) #scalar
 
-            # reward = game.make_action(actions[a], frame_repeat) #/12.
-            # game.set_action(actions[a])
-            # for _ in range(frame_repeat):
-                # game.set_action(actions[a])
-                # game.advance_action()
-
-            # reward = game.make_action(actions[a], 1)
-
-            # for _ in range(frame_repeat):
-
             reward = game.make_action(actions[a], 1)
-            # frame = game.get_state().screen_buffer
 
             if count %4==0:
+
+                #Get grad
+                x = Variable(torch.from_numpy(np.array([preprocess(frame)])).float(), requires_grad=True).cuda()
+                # print (x.size())  #[1,3,480,640]
+                q = model(x) #[1,A]
+                m, index = torch.max(q, 1)
+                val = q[:,index]
+                grad = torch.autograd.grad(val, x)[0]
+                grad = grad.data.cpu().numpy()[0] #for the first one in teh batch -> [2,84,84]
+                grad = np.abs(grad)  #[3,480,640]
+                # print (grad.shape)
+                grad = np.rollaxis(grad, 1, 0)
+                grad = np.rollaxis(grad, 2, 1)
+                grad = np.mean(grad, 2) #[480,640]
+
+
                 frame = np.rollaxis(frame, 1, 0)
                 frame = np.rollaxis(frame, 2, 1)
-                frames.append(frame)
+                # frames.append(frame)
 
-                # if game.is_episode_finished() :
-                #     break
+                plt_path = gif_dir+'frame'+str(frame_count)+'.png'
+                # fig = plt.figure(figsize=(3+cols,3+rows), facecolor='white', dpi=640*rows)
+                fig = plt.figure(figsize=(3+cols,3+rows), facecolor='white', dpi=150)
 
-            # reward = game.make_action(actions[a], 4) #/12.
-            # isterminal = game.is_episode_finished()
-            # frame = game.get_state().screen_buffer #[3,480,640] uint8
-
-            # frame = f1
-            # frame = game.get_state().screen_buffer 
-
-            # if count ==0 :
-                
+                #Plot Frame
+                ax = plt.subplot2grid((rows,cols), (0,0), frameon=False)
+                ax.imshow(frame) #, cmap='gray')
+                ax.set_xticks([])
+                ax.set_yticks([])
+                ax.text(0.4, 1.04, str(count), transform=ax.transAxes, family='serif', size=6)
 
 
-            # frame = np.rollaxis(frame, 1, 0)
-            # frame = np.rollaxis(frame, 2, 1)
-            # frames.append(frame)
-
-            # # aaa = np.copy(frame)
-            # # print (np.sum(frame) , frame.shape, frame.dtype)
-            # # print (frame)
-
-            # frames.append(frame)
-
-            # else:
-            #     frames.append(aaa)
-
-            # if np.sum(frame) == 0:
-            #     flfjads
+                #Plot Grad
+                ax = plt.subplot2grid((rows,cols), (0,1), frameon=False)
+                ax.imshow(grad, cmap='gray')
+                ax.set_xticks([])
+                ax.set_yticks([])
+                # ax.text(0.4, 1.04, 'Grad of Real', transform=ax.transAxes, family='serif', size=6)
 
 
+                plt.savefig(plt_path)
+                print ('saved viz',plt_path)
+                plt.close(fig)
 
-            # plt_path = gif_dir+'frame'+str(count)+'.png'
-            # fig = plt.figure(figsize=(3+cols,3+rows), facecolor='white', dpi=640*rows)
 
-            # ax = plt.subplot2grid((rows,cols), (0,0), frameon=False)
-
-            # frame = np.rollaxis(frame, 1, 0)
-            # frame = np.rollaxis(frame, 2, 1)
-
-            # ax.imshow(np.uint8(frame)) #, cmap='gray')
-            # ax.set_xticks([])
-            # ax.set_yticks([])
-            # ax.text(0.4, 1.04, str(count), transform=ax.transAxes, family='serif', size=6)
-
-            # plt.savefig(plt_path)
-            # print ('saved viz',plt_path)
-            # plt.close(fig)
+                frame_count+=1
 
             count+=1
 
@@ -1109,40 +1098,20 @@ if __name__ == '__main__':
 
         print ('game over', game.is_episode_finished() )
         print (count)
-        print (len(frames))
+        # print (len(frames))
 
-        gif_path_this = gif_dir+ 'first99'+str(numb)+'.gif'
-        imageio.mimsave(gif_path_this, frames)
+
+        print('Making Gif')
+        # frames_path = save_dir+'gif/'
+        images = []
+        for i in range(frame_count):
+            images.append(imageio.imread(gif_dir+'frame'+str(i)+'.png'))
+
+        gif_path_this = gif_dir+ 'gif_and_grad'+str(numb)+'.gif'
+        imageio.mimsave(gif_path_this, images)
         print ('made gif', gif_path_this)
         fds
 
-
-
-
-
-
-
-        #Plot grads
-        ax = plt.subplot2grid((rows,cols), (0,4), frameon=False)
-
-
-        x = Variable(torch.from_numpy(np.array([frame])).float(), requires_grad=True).cuda()
-        dist = policy.action_dist(x)
-        grad = torch.autograd.grad(torch.sum(dist[:,3]), x)[0]
-        grad = grad.data.cpu().numpy()[0] #for the first one in teh batch -> [2,84,84]
-
-        print (np.max(grad))
-        print (np.min(grad))
-
-        grad = np.abs(grad)
-
-        state1 = np.concatenate([grad[0], grad[1]] , axis=1)
-        # ax.imshow(state1, cmap='gray', norm=NoNorm())
-        ax.imshow(state1, cmap='gray')
-        ax.set_xticks([])
-        ax.set_yticks([])
-
-        ax.text(0.4, 1.04, 'Grad of Real', transform=ax.transAxes, family='serif', size=6)
 
 
 
