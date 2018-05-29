@@ -117,7 +117,7 @@ if make_:
 
             print (step_count*12, 'steps', step_count, 'frames', dataset_count, 'total')
 
-            fsdfa/
+            fsdfa
 
             dataset.append(tmp_traj)
             tmp_traj=[]

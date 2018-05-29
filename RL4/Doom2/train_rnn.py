@@ -341,7 +341,14 @@ if __name__ == '__main__':
     dataset = pickle.load( open( load_dataset_from, "rb" ) )
     print ('numb trajectories', len(dataset))
     # print ([len(x) for x in dataset])
-    print ('Avg len', np.mean([len(x) for x in dataset]), np.mean([len(x) for x in dataset])*12)
+    print ('Avg len', np.mean([len(x) for x in dataset])) #, np.mean([len(x) for x in dataset])*12)
+    print ('Max len', np.max([len(x) for x in dataset])) 
+    print ('Min len', np.min([len(x) for x in dataset])) 
+
+    dsffad
+
+
+
     # Make every into nupy arrays
     states_dataset = []
     actions_dataset = []
@@ -371,6 +378,9 @@ if __name__ == '__main__':
     print ('training set:', len(training_set))
     print ('validation set:', len(validation_set))
     print()
+
+
+    fdsa
     
 
 

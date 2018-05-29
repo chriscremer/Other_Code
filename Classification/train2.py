@@ -32,8 +32,8 @@ from PreActResNet import PreActResNet18, PreActResNet10
 
 def train(train_x, train_y, valid_x, valid_y):
 
-    epochs = 1
-    batch_size = 100
+    epochs = 30
+    batch_size = 32# 100
 
     train_x = torch.from_numpy(train_x).float().type(torch.FloatTensor).cuda()
     train_y = torch.from_numpy(train_y)
@@ -76,17 +76,18 @@ def train(train_x, train_y, valid_x, valid_y):
 
                 pred = torch.max(output, dim=1)[1]
                 train_batch_acc = target.eq(pred).float().mean()
-                prev_accs_train.append(train_batch_acc.data.cpu().numpy()[0])
+                # print (train_batch_acc.shape)
+                prev_accs_train.append(train_batch_acc.data.cpu().numpy()) #[0])
 
                 model.eval()
                 for batch_idx_valid, (data, target) in enumerate(valid_loader):
-                    batch = Variable(data)#.type(model.dtype)
-                    target = Variable(target).cuda()#.type(model.dtype)
+                    batch = Variable(data, requires_grad=False)#.type(model.dtype)
+                    target = Variable(target, requires_grad=False).cuda()#.type(model.dtype)
                     output = model.forward(batch)
                     loss_valid = criterion(output, target)
                     pred = torch.max(output, dim=1)[1]
                     valid_batch_acc = target.eq(pred).float().mean()
-                    prev_accs_valid.append(valid_batch_acc.data.cpu().numpy()[0])
+                    prev_accs_valid.append(valid_batch_acc.data.cpu().numpy()) #[0])
                     break
                 model.train()#for BN
 
@@ -95,11 +96,11 @@ def train(train_x, train_y, valid_x, valid_y):
                 print ('Epoch:{:3d}/{:3d}'.format(epoch, epochs),
                     'batch:{:4d}'.format(batch_idx),
                     'time:{:.3f}'.format(batch_time),
-                    '   Train loss:{:.3f}'.format(loss.data.cpu().numpy()[0]),
-                    'acc:{:.3f}'.format(train_batch_acc.data.cpu().numpy()[0]),
+                    '   Train loss:{:.3f}'.format(loss.data.cpu().numpy()), #[0]),
+                    'acc:{:.3f}'.format(train_batch_acc.data.cpu().numpy()), #[0]),
                     'avgacc:{:.3f}'.format(np.mean(prev_accs_train)),
-                    '  Valid loss:{:.3f}'.format(loss_valid.data.cpu().numpy()[0]),
-                    'acc:{:.3f}'.format(valid_batch_acc.data.cpu().numpy()[0]),
+                    '  Valid loss:{:.3f}'.format(loss_valid.data.cpu().numpy()), #[0]),
+                    'acc:{:.3f}'.format(valid_batch_acc.data.cpu().numpy()), #[0]),
                     'avgacc:{:.3f}'.format(np.mean(prev_accs_valid))
                     )
                 start = time.time()
@@ -110,8 +111,8 @@ def train(train_x, train_y, valid_x, valid_y):
 
 if __name__ == "__main__":
 
-    load_ = 1
-    save_ = 1
+    load_ = 0
+    save_ = 0
     save_file = home+'/Documents/tmp/model.pt'
 
 
@@ -136,7 +137,7 @@ if __name__ == "__main__":
     use_cuda = True# torch.cuda.is_available()
     n_gpus = 1#2 #torch.cuda.device_count()
     if n_gpus < 2:
-        os.environ['CUDA_VISIBLE_DEVICES'] = '1' #which gpu
+        os.environ['CUDA_VISIBLE_DEVICES'] = '0'# '1' #which gpu
 
     if load_:
         loaded_state = torch.load(save_file)
@@ -157,7 +158,8 @@ if __name__ == "__main__":
     print ()
 
     #Train model
-    optimizer = optim.SGD(model.parameters(), lr=.005, momentum=.9, weight_decay=5e-4)
+    # optimizer = optim.SGD(model.parameters(), lr=.005, momentum=.9, weight_decay=5e-4)
+    optimizer = optim.Adam(model.parameters(), lr=.0005, weight_decay=5e-4)
     criterion = nn.CrossEntropyLoss()
     train(train_x, train_y, valid_x, valid_y)
 
