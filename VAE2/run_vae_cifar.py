@@ -661,36 +661,10 @@ if __name__ == "__main__":
     parser.add_argument('--input_size', default=32, type=int)
     parser.add_argument('--x_enc_size', default=500, type=int)
     parser.add_argument('--z_size', default=50, type=int)
-
-    # parser.add_argument('--w_logpx', default=.05, type=float)
-    # parser.add_argument('--w_logpy', default=1000., type=float)
-    # parser.add_argument('--w_logqy', default=1., type=float)
-    # parser.add_argument('--max_beta', default=1., type=float)
-
-    parser.add_argument('--batch_size', default=20, type=int)
-    # parser.add_argument('--embed_size', default=100, type=int)
-
-    # parser.add_argument('--train_which_model', default='pxy', choices=['pxy', 'px', 'py'])
-
-    # parser.add_argument('--single', default=0, type=int)
-    # parser.add_argument('--singlev2', default=0, type=int)
-    # parser.add_argument('--multi', default=0, type=int)
-
-    # parser.add_argument('--flow_int', default=0, type=int)
-    # parser.add_argument('--joint_inf', default=0, type=int)
-
-
-    # parser.add_argument('--just_classifier', default=0, type=int)
-    # parser.add_argument('--train_classifier', default=0, type=int)
-    # parser.add_argument('--classifier_load_params_dir', default='', type=str)
-    # parser.add_argument('--classifier_load_step', default=0, type=int)
+    parser.add_argument('--batch_size', default=64, type=int)
 
     parser.add_argument('--params_load_dir', default='')
     parser.add_argument('--model_load_step', default=0, type=int)
-
-    # parser.add_argument('--quick_check', default=0, type=int)
-    # parser.add_argument('--quick_check_data', default='', type=str)
-
 
     parser.add_argument('--display_step', default=500, type=int)
     parser.add_argument('--trainingplot_steps', default=5000, type=int)
@@ -700,6 +674,12 @@ if __name__ == "__main__":
     parser.add_argument('--max_steps', default=400000, type=int)
 
 
+    # batch_size = 50
+    # display_step = 500
+    # save_steps = 50000
+    # max_steps = 300000
+    # viz_steps = 5000
+    # trainingplot_steps = 5000
 
     args = parser.parse_args()
     args_dict = vars(args) #convert to dict
@@ -885,15 +865,6 @@ if __name__ == "__main__":
 
     z_prior = torch.FloatTensor(10, args.z_size).normal_().cuda() 
 
-    batch_size = 50
-    display_step = 500
-    save_steps = 50000
-    max_steps = 300000
-    viz_steps = 5000
-    trainingplot_steps = 5000
-
-    load_step = args.model_load_step
-
     train_ = 1
     train_svhn_inf_net = 0
     eval_ = 0
@@ -902,9 +873,9 @@ if __name__ == "__main__":
         print ('Training')
         train(model=vae, train_x=train_x, train_y=train_y, valid_x=test_x, valid_y=test_y, 
                     save_dir=exp_dir, params_dir=params_dir, images_dir=images_dir,
-                    batch_size=batch_size, 
-                    max_steps=max_steps, display_step=display_step, save_steps=save_steps, viz_steps=viz_steps,
-                    trainingplot_steps=trainingplot_steps, load_step=load_step)
+                    batch_size=args.batch_size, 
+                    max_steps=args.max_steps, display_step=args.display_step, save_steps=args.save_params_step, viz_steps=args.viz_steps,
+                    trainingplot_steps=args.trainingplot_steps, load_step=args.model_load_step)
 
 
     # elif train_svhn_inf_net:
@@ -930,9 +901,9 @@ if __name__ == "__main__":
         print ('Eval')
         eval_model(model=vae, train_x=train_x, train_y=train_y, valid_x=test_x, valid_y=test_y, 
                     save_dir=exp_dir, params_dir=params_dir, images_dir=images_dir,
-                    batch_size=batch_size, 
-                    max_steps=max_steps, display_step=display_step, save_steps=save_steps, viz_steps=viz_steps,
-                    trainingplot_steps=trainingplot_steps, load_step=args.model_load_step)
+                    batch_size=agrs.batch_size, 
+                    max_steps=args.max_steps, display_step=args.display_step, save_steps=args.save_params_step, viz_steps=args.viz_steps,
+                    trainingplot_steps=args.trainingplot_steps, load_step=args.model_load_step)
 
     # model.save_params_v3(save_dir=params_dir, step=max_steps+args.model_load_step)
 
