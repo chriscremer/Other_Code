@@ -1,11 +1,13 @@
 
+import sys, os
+sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath('./VAE'))
 
-import numpy as np
-import _pickle as cPickle
 from os.path import expanduser
 home = expanduser("~")
 
-import os
+import numpy as np
+import _pickle as cPickle
 import argparse
 
 import matplotlib
@@ -646,25 +648,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
 
-
-    parser.add_argument('--data_dir', type=str, default=home+'/Documents/')
-
-    
-    parser.add_argument('--save_to_dir', type=str, default=home+'/Documents/')
     parser.add_argument('--exp_name', default='test', type=str)
+    parser.add_argument('--save_to_dir', type=str, default=home+'/Documents/')
+    parser.add_argument('--data_dir', type=str, default=home+'/Documents/')
     # parser.add_argument('--data_dir', type=str, required=True)
-    
-
+    parser.add_argument('--which_gpu', default='0', type=str)
 
     # parser.add_argument('--feature_dim', default='3,112,112')
     # parser.add_argument('--num_train_samples', default=None, type=int)
     # parser.add_argument('--num_val_samples', default=None, type=int)
 
-    parser.add_argument('--which_gpu', default='0', type=str)
-
     parser.add_argument('--input_size', default=32, type=int)
     parser.add_argument('--x_enc_size', default=500, type=int)
-    # parser.add_argument('--y_enc_size', default=200, type=int)
     parser.add_argument('--z_size', default=50, type=int)
 
     # parser.add_argument('--w_logpx', default=.05, type=float)
@@ -759,7 +754,8 @@ if __name__ == "__main__":
 
 
     print ('Loading CIFAR')
-    file_ = home+'/Documents/cifar-10-batches-py/data_batch_'
+    # file_ = home+'/Documents/cifar-10-batches-py/data_batch_'
+    file_ = args.data_dir + '/cifar-10-batches-py/data_batch_'
 
     for i in range(1,6):
         file__ = file_ + str(i)
@@ -771,7 +767,7 @@ if __name__ == "__main__":
             train_x = np.concatenate([train_x, b1['data']], axis=0)
             train_y = np.concatenate([train_y, b1['labels']], axis=0)
 
-    file__ = home+'/Documents/cifar-10-batches-py/test_batch'
+    file__ = args.data_dir + '/cifar-10-batches-py/test_batch'
     b1 = unpickle(file__)
     test_x = b1['data']
     test_y = b1['labels']
@@ -825,7 +821,7 @@ if __name__ == "__main__":
 
     print ('SVHN')
     import scipy.io
-    mat = scipy.io.loadmat(home + '/Documents/SVHN/test_32x32.mat')
+    mat = scipy.io.loadmat(args.data_dir + '/SVHN/test_32x32.mat')
 
     # print (mat['X'].shape)
     # print (mat['y'].shape)
