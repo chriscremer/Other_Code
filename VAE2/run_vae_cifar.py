@@ -27,9 +27,11 @@ import torch.optim as optim
 
 # from scipy.misc import toimage
 
-from vae import VAE
-from inference_net import Inference_Net
+# from vae import VAE
+# from inference_net import Inference_Net
 
+from vae_grid import VAE
+from inference_net_grid import Inference_Net
 
 def unpickle(file):
 
@@ -82,7 +84,11 @@ def LL_to_BPD(LL):
 def train(model, train_x, train_y, valid_x, valid_y, 
                 save_dir, params_dir, images_dir,
                 batch_size, 
-                max_steps, display_step, save_steps, viz_steps, trainingplot_steps, load_step):
+                max_steps, display_step, save_steps, viz_steps, 
+                trainingplot_steps, load_step,
+                start_storing_data_step,
+                warmup_steps,
+                continue_training):
 
     # random.seed( 0 )
     
@@ -107,9 +113,13 @@ def train(model, train_x, train_y, valid_x, valid_y,
 
     # load_step = 0
     max_beta = 1.
-    warmup_steps = 20000. 
+
+    if not continue_training:
+        load_step = 0
+
+    # warmup_steps = 20000. 
     
-    limit_numb = 1000
+    # limit_numb = start_storing_data_step
 
 
     step = 0
@@ -176,7 +186,7 @@ def train(model, train_x, train_y, valid_x, valid_y,
                 # model.train()
 
 
-                if step > limit_numb:
+                if step > start_storing_data_step:
 
                     all_dict['all_steps'].append(step+load_step)
                     all_dict['all_warmup'].append(warmup)
@@ -219,7 +229,7 @@ def train(model, train_x, train_y, valid_x, valid_y,
                     sample_prior = model.sample_prior(z=z_prior)
                 model.train()
 
-                vizualize(images_dir, step, train_real=train_x[:10], train_recon=train_recon,
+                vizualize(images_dir, step+load_step, train_real=train_x[:10], train_recon=train_recon,
                                             valid_real=valid_x[:10], valid_recon=valid_recon,
                                             svhn_real=svhn[:10], svhn_recon=svhn_recon,
                                             prior_samps=sample_prior)
@@ -643,6 +653,7 @@ def vizualize(images_dir, step, train_real, train_recon,
 
 
 
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -672,6 +683,10 @@ if __name__ == "__main__":
     parser.add_argument('--start_storing_data_step', default=2001, type=int)
     parser.add_argument('--save_params_step', default=50000, type=int)
     parser.add_argument('--max_steps', default=400000, type=int)
+    parser.add_argument('--warmup_steps', default=20000, type=int)
+
+    parser.add_argument('--continue_training', default=0, type=int)
+
 
 
     # batch_size = 50
@@ -687,7 +702,8 @@ if __name__ == "__main__":
     os.environ['CUDA_VISIBLE_DEVICES'] = args.which_gpu #  '0' #'1' #
 
 
-    print (args.exp_name, '\n')
+    print ('Exp:', args.exp_name)
+    print ('gpu:', args.which_gpu, '\n')
 
 
 
@@ -874,8 +890,12 @@ if __name__ == "__main__":
         train(model=vae, train_x=train_x, train_y=train_y, valid_x=test_x, valid_y=test_y, 
                     save_dir=exp_dir, params_dir=params_dir, images_dir=images_dir,
                     batch_size=args.batch_size, 
-                    max_steps=args.max_steps, display_step=args.display_step, save_steps=args.save_params_step, viz_steps=args.viz_steps,
-                    trainingplot_steps=args.trainingplot_steps, load_step=args.model_load_step)
+                    max_steps=args.max_steps, display_step=args.display_step, 
+                    save_steps=args.save_params_step, viz_steps=args.viz_steps,
+                    trainingplot_steps=args.trainingplot_steps, load_step=args.model_load_step,
+                    start_storing_data_step=args.start_storing_data_step,
+                    warmup_steps=args.warmup_steps,
+                    continue_training=args.continue_training)
 
 
     # elif train_svhn_inf_net:
@@ -902,12 +922,17 @@ if __name__ == "__main__":
         eval_model(model=vae, train_x=train_x, train_y=train_y, valid_x=test_x, valid_y=test_y, 
                     save_dir=exp_dir, params_dir=params_dir, images_dir=images_dir,
                     batch_size=agrs.batch_size, 
-                    max_steps=args.max_steps, display_step=args.display_step, save_steps=args.save_params_step, viz_steps=args.viz_steps,
-                    trainingplot_steps=args.trainingplot_steps, load_step=args.model_load_step)
+                    max_steps=args.max_steps, display_step=args.display_step, 
+                    save_steps=args.save_params_step, viz_steps=args.viz_steps,
+                    trainingplot_steps=args.trainingplot_steps, load_step=args.model_load_step,
+                    start_storing_data_step=args.start_storing_data_step,
+                    warmup_steps=args.warmup_steps,
+                    continue_training=args.continue_training)
 
     # model.save_params_v3(save_dir=params_dir, step=max_steps+args.model_load_step)
 
     print ('Done.')
+
 
 
 
