@@ -53,7 +53,11 @@ class VAE(nn.Module):
         #                 + list(self.qzx_bn1.parameters()) + list(self.qzx_fc2.parameters())
         #                 + list(self.qzx_fc3.parameters()) ]
 
-        self.prior = Flow1_grid([6,8,8])
+        self.prior = Flow1_grid(z_shape=[6,8,8], n_flows=5)
+
+        # print (self.prior)
+
+        # fsd
 
 
         # # p(x|z) p(y|z)
@@ -238,8 +242,13 @@ class VAE(nn.Module):
         # if z is None:
         #   z = torch.FloatTensor(B, self.z_size).normal_().cuda() * std
 
-        eps = torch.FloatTensor(B,6,8,8).normal_().cuda() #[B,Z]
-        z = eps
+        # eps = torch.FloatTensor(B,6,8,8).normal_().cuda() #[B,Z]
+        # z = eps
+        # print (z.shape)
+        # fafa
+        B = z.shape[0]
+        z=z.view(B,6,8,8)
+        z = self.prior.sample(shape=z.shape, eps=z)
 
         # z_dec = self.z_to_dec(z)
         x_hat = self.image_decoder(z)

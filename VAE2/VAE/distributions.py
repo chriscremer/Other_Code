@@ -479,153 +479,83 @@ class Flow1_Cond(nn.Module):
 
 
 
-class ResidualBlock(nn.Module):
+class ConvBlock(nn.Module):
     def __init__(self, in_features):
-        super(ResidualBlock, self).__init__()
+        super(ConvBlock, self).__init__()
 
-        conv_block = [  nn.ReflectionPad2d(1),
+        self.f = nn.Sequential(nn.ReflectionPad2d(1),
                         nn.Conv2d(in_features, in_features, 3),
                         nn.InstanceNorm2d(in_features),
                         nn.ReLU(inplace=True),
                         nn.ReflectionPad2d(1),
-                        nn.Conv2d(in_features, in_features, 3),
-                        nn.InstanceNorm2d(in_features)  ]
-
-        self.conv_block = nn.Sequential(*conv_block)
+                        nn.Conv2d(in_features, in_features, 3))
 
     def forward(self, x):
-        return x + self.conv_block(x)
+        return self.f(x)
 
 
 
 class Flow1_grid(nn.Module):
 
-    def __init__(self, z_shape):#, mean, logvar):
+    def __init__(self, z_shape, n_flows=2):#, mean, logvar):
         #mean,logvar: [B,Z]
         super(Flow1_grid, self).__init__()
 
-        self.z_shape = z_shape #[C,H,W]
-        self.n_channels = z_shape[0]
-        half_channels = self.n_channels  /2
+        # z_shape = z_shape #[C,H,W]
+        n_channels = z_shape[0]
+        half_channels = n_channels //2
+        self.n_flows = n_flows
 
+        self.flows = {}
+        count = 0
+        for i in range(n_flows):
 
-        # # Residual blocks
-        # for _ in range(n_residual_blocks):
-        #     model += [ResidualBlock(in_features=self.n_channels)]
+            self.flows[str(i)] = {}
 
-        self.f1 = nn.Sequential(nn.ReflectionPad2d(1),
-                        nn.Conv2d(half_channels, half_channels, 3),
-                        nn.InstanceNorm2d(half_channels),
-                        nn.ReLU(inplace=True),
-                        nn.ReflectionPad2d(1),
-                        nn.Conv2d(half_channels, half_channels, 3))
-        
+            perm = np.random.permutation(n_channels)
+            f1_mu = ConvBlock(half_channels)
+            f1_sig = ConvBlock(half_channels)
+            f2_mu = ConvBlock(half_channels)
+            f2_sig = ConvBlock(half_channels)
+            
+            self.flows[str(i)]['perm'] = perm
+            self.flows[str(i)]['inv_perm'] = np.argsort(perm)
+            self.flows[str(i)]['f1_mu'] = f1_mu
+            self.flows[str(i)]['f1_sig'] = f1_sig
+            self.flows[str(i)]['f2_mu'] = f2_mu
+            self.flows[str(i)]['f2_sig'] = f2_sig
 
-
-    # def norm_flow(self, params, z1, z2):
-    #     # print (z.size())
-    #     h = torch.tanh(params[0][0](z1))
-    #     mew_ = params[0][1](h)
-    #     # sig_ = F.sigmoid(params[0][2](h)+5.) #[PB,Z]
-    #     sig_ = torch.sigmoid(params[0][2](h)) #[PB,Z]
-
-    #     z2 = z2*sig_ + mew_
-    #     logdet = torch.sum(torch.log(sig_), 1)
-
-
-    #     h = torch.tanh(params[1][0](z2))
-    #     mew_ = params[1][1](h)
-    #     # sig_ = F.sigmoid(params[1][2](h)+5.) #[PB,Z]
-    #     sig_ = torch.sigmoid(params[1][2](h)) #[PB,Z]
-    #     z1 = z1*sig_ + mew_
-    #     logdet2 = torch.sum(torch.log(sig_), 1)
-
-    #     #[PB]
-    #     logdet = logdet + logdet2
-    #     #[PB,Z], [PB]
-    #     return z1, z2, logdet
+            self.add_module(str(count), f1_mu)
+            count+=1
+            self.add_module(str(count), f1_sig)
+            count+=1
+            self.add_module(str(count), f2_mu)
+            count+=1
+            self.add_module(str(count), f2_sig)
+            count+=1
 
 
 
 
+    def sample(self, shape, eps=None):
 
-    def sample(self, shape):
-
-        # self.B = mean.size()[0]
-        # gaus = Gaussian(self.z_size)
-
-        # q(z0)
-        # z, logqz0 = gaus.sample(mean, logvar, k)
         C = shape[1]
-        eps = torch.FloatTensor(shape).normal_().cuda() #[B,C,H,W]
+        if eps is None:
+            eps = torch.FloatTensor(shape).normal_().cuda() #[B,C,H,W]
 
-        z1 = eps[:,:C/2]
-        z2 = eps[:,C/2:]
+        f = self.flows
 
-        z1 = z1 + self.f1(z2)
+        z = eps
+        for i in range(self.n_flows):
+            z = z[:,f[str(i)]['perm']]
+            z1 = eps[:,:C//2]
+            z2 = eps[:,C//2:]
+            z1 = z1*torch.sigmoid(f[str(i)]['f1_sig'](z2)) + f[str(i)]['f1_mu'](z2)
+            z2 = z2*torch.sigmoid(f[str(i)]['f2_sig'](z1)) + f[str(i)]['f2_mu'](z1)
+            z = torch.cat([z1,z2],1)
 
-        z = torch.cat([z1,z2],1)
+        return z
 
-        # z = eps.mul(torch.exp(.5*logvar)) + mean  #[P,B,Z]
-        # logqz0 = lognormal(z, mean, logvar) #[P,B]
-
-
-
-        # #[PB,Z]
-        # # z = z.view(-1,self.z_size)
-        # # v = v.view(-1,self.z_size)
-
-        # #Split z  [PB,Z/2]
-        # z1 = z.narrow(1, 0, self.z_half_size)
-        # z2 = z.narrow(1, self.z_half_size, self.z_half_size) 
-
-        # #Transform
-        # logdetsum = 0.
-        # for i in range(self.n_flows):
-
-        #     params = self.flow_params[i]
-
-        #     # z, v, logdet = self.norm_flow([self.flow_params[i]],z,v)
-        #     z1, z2, logdet = self.norm_flow(params,z1,z2)
-        #     logdetsum += logdet
-
-        # logdetsum = logdetsum.view(self.B)
-
-        # #Put z back together  [PB,Z]
-        # z = torch.cat([z1,z2],1)
-
-        # # z = z.view(self.B, self.z_size)
-
-
-        # logqz = logqz0-logdetsum
-
-        # logpz = lognormal(z, torch.zeros(self.B, self.z_size).cuda(), 
-        #                     torch.zeros(self.B, self.z_size).cuda())
-
-        return z#, logpz
-
-
-
-
-
-    # def norm_flow_reverse(self, params, z1, z2):
-
-    #     h = torch.tanh(params[1][0](z2))
-    #     mew_ = params[1][1](h)
-    #     sig_ = torch.sigmoid(params[1][2](h)) #[PB,Z]
-    #     z1 = (z1 - mew_) / sig_
-    #     logdet2 = torch.sum(torch.log(sig_), 1)
-
-    #     h = torch.tanh(params[0][0](z1))
-    #     mew_ = params[0][1](h)
-    #     sig_ = torch.sigmoid(params[0][2](h)) #[PB,Z]
-    #     z2 = (z2 - mew_) / sig_
-    #     logdet = torch.sum(torch.log(sig_), 1)
-        
-    #     #[PB]
-    #     logdet = logdet + logdet2
-    #     #[PB,Z], [PB]
-    #     return z1, z2, logdet
 
 
 
@@ -640,33 +570,38 @@ class Flow1_grid(nn.Module):
         # z1 = z.narrow(1, 0, self.z_half_size)
         # z2 = z.narrow(1, self.z_half_size, self.z_half_size) 
         B = z.shape[0]
-        z1 = eps[:,:C/2]
-        z2 = eps[:,C/2:]
-        z1 = z1 - self.f1(z2)
-        z = torch.cat([z1,z2],1)
+        C = z.shape[1]
+
+
+        f = self.flows
+
+        logdet = 0.
+        reverse_ = list(range(self.n_flows))[::-1]
+        for i in reverse_:
+            z1 = z[:,:C//2]
+            z2 = z[:,C//2:]
+            sig1 = torch.sigmoid(f[str(i)]['f2_sig'](z1))
+            sig2 = torch.sigmoid(f[str(i)]['f1_sig'](z2))
+            mu1 = f[str(i)]['f2_mu'](z1)
+            mu2 = f[str(i)]['f1_mu'](z2)
+            z2 = (z2 - mu1) / sig1
+            z1 = (z1 - mu2) / sig2
+            z = torch.cat([z1,z2],1)
+            z = z[:,f[str(i)]['inv_perm']]
+
+            sig1 = sig1.view(B, -1)
+            sig2 = sig2.view(B, -1)
+            logdet += torch.sum(torch.log(sig1), 1)
+            logdet += torch.sum(torch.log(sig2), 1)
+
+        
 
         flat_z = z.view(B, -1)
-        logpz = lognormal(flat_z, torch.zeros(B, self.z_size).cuda(), 
-                            torch.zeros(B, self.z_size).cuda()) #[B]
+        logpz = lognormal(flat_z, torch.zeros(B, 384).cuda(), 
+                            torch.zeros(B, 384).cuda()) #[B]
 
-        # #Reverse Transform
-        # logdetsum = 0.
-        # reverse_ = list(range(self.n_flows))[::-1]
-        # for i in reverse_:
+        logpz = logpz - logdet
 
-        #     params = self.flow_params[i]
-
-        #     # z, v, logdet = self.norm_flow([self.flow_params[i]],z,v)
-        #     z1, z2, logdet = self.norm_flow_reverse(params,z1,z2)
-        #     logdetsum += logdet
-
-        # logdetsum = logdetsum.view(B)
-
-
-        # z0 = torch.cat([z1,z2],1)
-        # logqz0 = lognormal(z0, mu, logvar)
-
-        # logqz = logqz0-logdetsum
 
         return logpz 
 

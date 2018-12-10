@@ -136,6 +136,7 @@ def train(model, train_x, train_y, valid_x, valid_y,
             # print (torch.max(batch + torch.FloatTensor(batch.shape).uniform_(0., 1./256.)))
             # fasdf
 
+
             model.optimizer_x.zero_grad()
             outputs = model.forward(x=batch.cuda(), warmup=warmup) 
             loss = -outputs['welbo']
@@ -143,7 +144,14 @@ def train(model, train_x, train_y, valid_x, valid_y,
             model.optimizer_x.step()
             model.scheduler_x.step()
 
-            if step % 2 ==0:
+
+            # #just a test
+            # svhn_outputs = model.forward(x=get_batch(svhn, batch_size).cuda(), warmup=1., inf_net=infnet_svhn) 
+            # loss2 = svhn_outputs['welbo']
+            # loss = loss + loss2*.1
+
+            # if step % 2 ==0:
+            if step % 1 ==0:
 
                 infnet_valid.optimizer_x.zero_grad()
                 valid_outputs = model.forward(x=get_batch(valid_x, batch_size).cuda(), warmup=1., inf_net=infnet_valid) 
@@ -159,6 +167,7 @@ def train(model, train_x, train_y, valid_x, valid_y,
                 infnet_svhn.optimizer_x.step()
                 infnet_svhn.scheduler_x.step()
 
+            # outputs = svhn_outputs
 
 
             step +=1
