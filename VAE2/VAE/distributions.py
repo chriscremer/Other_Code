@@ -479,6 +479,29 @@ class Flow1_Cond(nn.Module):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class ConvBlock(nn.Module):
     def __init__(self, in_features):
         super(ConvBlock, self).__init__()
@@ -604,6 +627,174 @@ class Flow1_grid(nn.Module):
 
 
         return logpz 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# class ConvBlock(nn.Module):
+#     def __init__(self, in_features):
+#         super(ConvBlock, self).__init__()
+
+#         self.f = nn.Sequential(nn.ReflectionPad2d(1),
+#                         nn.Conv2d(in_features, in_features, 3),
+#                         nn.InstanceNorm2d(in_features),
+#                         nn.ReLU(inplace=True),
+#                         nn.ReflectionPad2d(1),
+#                         nn.Conv2d(in_features, in_features, 3))
+
+#     def forward(self, x):
+#         return self.f(x)
+
+
+
+# class Flow1_grid_cond(nn.Module):
+
+#     def __init__(self, z_shape, n_flows=2):#, mean, logvar):
+#         #mean,logvar: [B,Z]
+#         super(Flow1_grid_cond, self).__init__()
+
+#         # z_shape = z_shape #[C,H,W]
+#         n_channels = z_shape[0]
+#         half_channels = n_channels //2
+#         self.n_flows = n_flows
+
+#         self.flows = {}
+#         count = 0
+#         for i in range(n_flows):
+
+#             self.flows[str(i)] = {}
+
+#             perm = np.random.permutation(n_channels)
+#             f1_mu = ConvBlock(half_channels)
+#             f1_sig = ConvBlock(half_channels)
+#             f2_mu = ConvBlock(half_channels)
+#             f2_sig = ConvBlock(half_channels)
+            
+#             self.flows[str(i)]['perm'] = perm
+#             self.flows[str(i)]['inv_perm'] = np.argsort(perm)
+#             self.flows[str(i)]['f1_mu'] = f1_mu
+#             self.flows[str(i)]['f1_sig'] = f1_sig
+#             self.flows[str(i)]['f2_mu'] = f2_mu
+#             self.flows[str(i)]['f2_sig'] = f2_sig
+
+#             self.add_module(str(count), f1_mu)
+#             count+=1
+#             self.add_module(str(count), f1_sig)
+#             count+=1
+#             self.add_module(str(count), f2_mu)
+#             count+=1
+#             self.add_module(str(count), f2_sig)
+#             count+=1
+
+
+
+
+#     def sample(self, shape, eps=None):
+
+#         C = shape[1]
+#         if eps is None:
+#             eps = torch.FloatTensor(shape).normal_().cuda() #[B,C,H,W]
+
+#         f = self.flows
+
+#         z = eps
+#         for i in range(self.n_flows):
+#             z = z[:,f[str(i)]['perm']]
+#             z1 = eps[:,:C//2]
+#             z2 = eps[:,C//2:]
+#             z1 = z1*torch.sigmoid(f[str(i)]['f1_sig'](z2)) + f[str(i)]['f1_mu'](z2)
+#             z2 = z2*torch.sigmoid(f[str(i)]['f2_sig'](z1)) + f[str(i)]['f2_mu'](z1)
+#             z = torch.cat([z1,z2],1)
+
+#         return z
+
+
+
+
+
+#     def logprob(self, z):
+ 
+#         B = z.shape[0]
+#         C = z.shape[1]
+
+#         f = self.flows
+
+#         logdet = 0.
+#         reverse_ = list(range(self.n_flows))[::-1]
+#         for i in reverse_:
+#             z1 = z[:,:C//2]
+#             z2 = z[:,C//2:]
+#             sig1 = torch.sigmoid(f[str(i)]['f2_sig'](z1))
+#             sig2 = torch.sigmoid(f[str(i)]['f1_sig'](z2))
+#             mu1 = f[str(i)]['f2_mu'](z1)
+#             mu2 = f[str(i)]['f1_mu'](z2)
+#             z2 = (z2 - mu1) / sig1
+#             z1 = (z1 - mu2) / sig2
+#             z = torch.cat([z1,z2],1)
+#             z = z[:,f[str(i)]['inv_perm']]
+
+#             sig1 = sig1.view(B, -1)
+#             sig2 = sig2.view(B, -1)
+#             logdet += torch.sum(torch.log(sig1), 1)
+#             logdet += torch.sum(torch.log(sig2), 1)
+
+        
+
+#         flat_z = z.view(B, -1)
+#         logpz = lognormal(flat_z, torch.zeros(B, 384).cuda(), 
+#                             torch.zeros(B, 384).cuda()) #[B]
+
+#         logpz = logpz - logdet
+
+
+#         return logpz 
+
+
+
+
+
+
+
+
+
+
+
 
 
 
