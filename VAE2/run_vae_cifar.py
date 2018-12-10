@@ -683,6 +683,11 @@ if __name__ == "__main__":
     parser.add_argument('--z_size', default=50, type=int)
     parser.add_argument('--batch_size', default=64, type=int)
 
+    parser.add_argument('--enc_res_blocks', default=3, type=int)
+    parser.add_argument('--dec_res_blocks', default=3, type=int)
+    parser.add_argument('--n_prior_flows', default=5, type=int)
+
+
     parser.add_argument('--params_load_dir', default='')
     parser.add_argument('--model_load_step', default=0, type=int)
 
