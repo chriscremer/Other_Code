@@ -9,6 +9,9 @@ home = expanduser("~")
 import numpy as np
 import _pickle as cPickle
 import argparse
+import time
+import subprocess
+import json
 
 import matplotlib
 matplotlib.use('Agg')
@@ -83,6 +86,13 @@ def LL_to_BPD(LL):
 
 
 
+
+
+
+
+
+
+
 def train(model, train_x, train_y, valid_x, valid_y, 
                 save_dir, params_dir, images_dir,
                 batch_size, 
@@ -113,17 +123,12 @@ def train(model, train_x, train_y, valid_x, valid_y,
     train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
     # optimizer = optim.Adam(model.parameters(), lr=.0001)
 
-    # load_step = 0
     max_beta = 1.
 
     if not continue_training:
         load_step = 0
 
-    # warmup_steps = 20000. 
-    
-    # limit_numb = start_storing_data_step
-
-
+    start_time = time.time()
     step = 0
     # for epoch in range(1, epochs + 1):
     while step < max_steps:
@@ -177,7 +182,7 @@ def train(model, train_x, train_y, valid_x, valid_y,
             if step%display_step==0:
                 print (
                     'S:{:5d}'.format(step),
-                    # 'T:{:.2f}'.format(T),
+                    'T:{:.2f}'.format(time.time() - start_time),
                     'BPD:{:.4f}'.format(LL_to_BPD(outputs['elbo'].data.item())),
                     'welbo:{:.4f}'.format(outputs['welbo'].data.item()),
                     'elbo:{:.4f}'.format(outputs['elbo'].data.item()),
@@ -189,6 +194,9 @@ def train(model, train_x, train_y, valid_x, valid_y,
                     'lqz_v:{:.4f}'.format(valid_outputs['logqz'].data.item()),
                     'warmup:{:.4f}'.format(warmup),
                     )
+
+                start_time = time.time()
+
 
                 # model.eval()
                 # with torch.no_grad():
@@ -726,6 +734,7 @@ if __name__ == "__main__":
     exp_dir = args.save_to_dir + args.exp_name + '/'
     params_dir = exp_dir + 'params/'
     images_dir = exp_dir + 'images/'
+    code_dir = exp_dir + 'code/'
 
     if not os.path.exists(exp_dir):
         os.makedirs(exp_dir)
@@ -742,8 +751,21 @@ if __name__ == "__main__":
         os.makedirs(images_dir)
         print ('Made dir', images_dir) 
 
+    if not os.path.exists(code_dir):
+        os.makedirs(code_dir)
+        print ('Made dir', code_dir) 
 
+    #Save args and code
+    json_path = exp_dir+'args_dict.json'
+    with open(json_path, 'w') as outfile:
+        json.dump(args_dict, outfile, sort_keys=True, indent=4)
 
+    # subprocess.call("(cd "+code_location+" && python train_explore_exploit.py --m {})".format(json_path), shell=True) 
+    # subprocess.call("(cp -r .  "+code_dir+")", shell=True) 
+    # subprocess.call("(cp -r `ls | grep -v __pycache__` "+code_dir+")", shell=True) 
+    # subprocess.call("(rsync -r . "+code_dir+" )", shell=True)
+    subprocess.call("(rsync -r --exclude=__pycache__/ . "+code_dir+" )", shell=True)
+    print('copied')
 
 
 

@@ -574,11 +574,15 @@ class Flow1_grid(nn.Module):
             z = z[:,f[str(i)]['perm']]
             z1 = eps[:,:C//2]
             z2 = eps[:,C//2:]
-            sig1 = torch.sigmoid(f[str(i)]['f2_sig'](z1))
+
             sig2 = torch.sigmoid(f[str(i)]['f1_sig'](z2))
-            mu1 = f[str(i)]['f2_mu'](z1)
             mu2 = f[str(i)]['f1_mu'](z2)
+
             z1 = z1*sig2 + mu2
+
+            mu1 = f[str(i)]['f2_mu'](z1)
+            sig1 = torch.sigmoid(f[str(i)]['f2_sig'](z1))
+
             z2 = z2*sig1 + mu1
             z = torch.cat([z1,z2],1)
 
@@ -606,11 +610,15 @@ class Flow1_grid(nn.Module):
             z1 = z[:,:C//2]
             z2 = z[:,C//2:]
             sig1 = torch.sigmoid(f[str(i)]['f2_sig'](z1))
-            sig2 = torch.sigmoid(f[str(i)]['f1_sig'](z2))
             mu1 = f[str(i)]['f2_mu'](z1)
-            mu2 = f[str(i)]['f1_mu'](z2)
+
             z2 = (z2 - mu1) / sig1
+
+            sig2 = torch.sigmoid(f[str(i)]['f1_sig'](z2))
+            mu2 = f[str(i)]['f1_mu'](z2)
+
             z1 = (z1 - mu2) / sig2
+            
             z = torch.cat([z1,z2],1)
             z = z[:,f[str(i)]['inv_perm']]
 
@@ -622,9 +630,9 @@ class Flow1_grid(nn.Module):
         
 
         flat_z = z.view(B, -1)
-        logpz = lognormal(flat_z, torch.zeros(B, 384).cuda(), torch.zeros(B, 384).cuda()) #[B]
+        logpz0 = lognormal(flat_z, torch.zeros(B, 384).cuda(), torch.zeros(B, 384).cuda()) #[B]
 
-        logpz = logpz + logdet
+        logpz = logpz0 - logdet
 
 
         return logpz 
