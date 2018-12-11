@@ -15,7 +15,7 @@ from enc_dec_32_full import Encoder, Decoder
 from distributions import lognormal, Flow1 #Normal,  #, IAF_flow
 from torch.distributions import Beta
 
-
+from distributions import Flow1_grid_cond, Gauss
 
 
 class Inference_Net(nn.Module):
@@ -96,6 +96,9 @@ class Inference_Q(nn.Module):
         # q(z|x)
         self.image_encoder2 = Encoder(input_nc=3, image_encoding_size=self.x_enc_size, n_residual_blocks=self.enc_res_blocks, input_size=self.input_size)
 
+        # self.dist = Flow1_grid_cond(z_shape=[6,8,8], n_flows=3)
+        self.dist = Gauss(z_shape=[6,8,8])
+
         self.optimizer_x = optim.Adam(self.image_encoder2.parameters(), lr=lr, weight_decay=.0000001)
         self.scheduler_x = lr_scheduler.StepLR(self.optimizer_x, step_size=1, gamma=0.999995)
 
@@ -114,11 +117,15 @@ class Inference_Q(nn.Module):
 
         mu, logvar = self.inference_net(x)
 
-        B = mu.shape[0]
-        eps = torch.FloatTensor(B,6,8,8).normal_().cuda() #[B,Z]
-        z = eps.mul(torch.exp(.5*logvar)) + mu  #[B,Z]
-        flat_z = z.view(B, -1)
-        logqz = lognormal(flat_z, mu.view(B, -1).detach(), logvar.view(B, -1).detach())
+        z, logqz = self.dist.sample(mu, logvar)
+
+        # B = mu.shape[0]
+        # eps = torch.FloatTensor(B,6,8,8).normal_().cuda() #[B,Z]
+
+        # z = eps.mul(torch.exp(.5*logvar)) + mu  #[B,Z]
+
+        # flat_z = z.view(B, -1)
+        # logqz = lognormal(flat_z, mu.view(B, -1).detach(), logvar.view(B, -1).detach())
 
         return z, logqz
 

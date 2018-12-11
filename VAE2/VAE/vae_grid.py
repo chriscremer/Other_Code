@@ -22,7 +22,7 @@ from enc_dec_32_full import Encoder, Decoder
 from distributions import lognormal, Flow1, Flow1_grid #Normal,  #, IAF_flow
 from torch.distributions import Beta
 
-from inference_net_grid import 
+from inference_net_grid import Inference_Q
 
 
 class VAE(nn.Module):
@@ -40,7 +40,7 @@ class VAE(nn.Module):
 
         # q(z|x)
         # self.image_encoder2 = Encoder(input_nc=3, image_encoding_size=self.x_enc_size, n_residual_blocks=self.enc_res_blocks, input_size=self.input_size)
-        self.q = Encoder(input_nc=3, image_encoding_size=self.x_enc_size, n_residual_blocks=self.enc_res_blocks, input_size=self.input_size)
+        self.q = Inference_Q(kwargs)
 
         # p(z)
         self.prior = Flow1_grid(z_shape=[6,8,8], n_flows=self.n_prior_flows)
@@ -49,8 +49,7 @@ class VAE(nn.Module):
         self.image_decoder = Decoder(z_size=self.x_enc_size, output_nc=3, n_residual_blocks=self.dec_res_blocks, output_size=self.input_size)
 
 
-        decode0_params = [list(self.image_encoder2.parameters()) 
-                            + list(self.image_decoder.parameters()) + list(self.prior.parameters())]  
+        decode0_params = [list(self.q.parameters()) + list(self.image_decoder.parameters()) + list(self.prior.parameters())]  
         self.optimizer_x = optim.Adam(decode0_params[0], lr=lr, weight_decay=.0000001)
         self.scheduler_x = lr_scheduler.StepLR(self.optimizer_x, step_size=1, gamma=0.999995)
 
@@ -72,19 +71,19 @@ class VAE(nn.Module):
 
 
 
-    def sample(self, mu, logvar, k=1):
+    # def sample(self, mu, logvar, k=1):
 
-        B = mu.shape[0]
-        eps = torch.FloatTensor(B,6,8,8).normal_().cuda() #[B,Z]
-        z = eps.mul(torch.exp(.5*logvar)) + mu  #[B,Z]
+    #     B = mu.shape[0]
+    #     eps = torch.FloatTensor(B,6,8,8).normal_().cuda() #[B,Z]
+    #     z = eps.mul(torch.exp(.5*logvar)) + mu  #[B,Z]
         
-        # logpz = lognormal(flat_z, torch.zeros(B, self.z_size).cuda(), 
-        #                     torch.zeros(B, self.z_size).cuda()) #[B]
-        # logpz = self.prior.logprob(z)
+    #     # logpz = lognormal(flat_z, torch.zeros(B, self.z_size).cuda(), 
+    #     #                     torch.zeros(B, self.z_size).cuda()) #[B]
+    #     # logpz = self.prior.logprob(z)
         
-        flat_z = z.view(B, -1)
-        logqz = lognormal(flat_z, mu.view(B, -1).detach(), logvar.view(B, -1).detach())
-        return z, logqz
+    #     flat_z = z.view(B, -1)
+    #     logqz = lognormal(flat_z, mu.view(B, -1).detach(), logvar.view(B, -1).detach())
+    #     return z, logqz
 
 
 
@@ -94,20 +93,14 @@ class VAE(nn.Module):
         outputs = {}
 
         if inf_net is None:
-            mu, logvar = self.inference_net(x)
+            # mu, logvar = self.inference_net(x)
+            z, logqz = self.q.sample(x) 
         else:
-            mu, logvar = inf_net.inference_net(x)   
-
-        z, logqz = self.sample(mu, logvar)
-
-         
-
-        z, logqz = self.q.sample(mu, logvar) 
-
+            # mu, logvar = inf_net.inference_net(x)   
+            z, logqz = inf_net.sample(x) 
 
 
         logpz = self.prior.logprob(z)
-
 
         # Decode Image
         x_hat = self.image_decoder(z)
@@ -118,7 +111,6 @@ class VAE(nn.Module):
         logpx = beta.log_prob(x_noise) #[120,3,112,112]  # add uniform noise here
         B = z.shape[0]
         logpx = torch.sum(logpx.view(B, -1),1) # [PB]  * self.w_logpx
-        # logpx = logpx * self.w_logpx
 
         log_ws = logpx + logpz - logqz
 
@@ -130,17 +122,7 @@ class VAE(nn.Module):
         outputs['z'] = z
         outputs['logpz'] = torch.mean(logpz)
         outputs['logqz'] = torch.mean(logqz)
-        outputs['logvar'] = logvar
-
-        # print (outputs['elbo'], outputs['welbo'], outputs['logpz'], outputs['logqz'])
-        # fafs
-
-
-        # if generate:
-        #     # word_preds, sampled_words = self.text_generator.teacher_force(z_dec, generate=generate, embeder=self.encoder_embed)
-        #     # if dec_type == 2:
-        #     alpha = torch.sigmoid(self.image_decoder(z_dec))
-        #     return outputs, alpha #, word_preds, sampled_words
+        # outputs['logvar'] = logvar
 
         return outputs
 

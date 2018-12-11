@@ -31,7 +31,9 @@ import torch.optim as optim
 # from inference_net import Inference_Net
 
 from vae_grid import VAE
-from inference_net_grid import Inference_Net
+
+# from inference_net_grid import Inference_Net
+from inference_net_grid import Inference_Q
 
 def unpickle(file):
 
@@ -861,7 +863,8 @@ if __name__ == "__main__":
 
 
     print ('\nInit inf net svhn')
-    infnet_svhn = Inference_Net(args_dict)
+    # infnet_svhn = Inference_Net(args_dict)
+    infnet_svhn = Inference_Q(args_dict)
     infnet_svhn.cuda()
     if args.model_load_step>0:
         infnet_svhn.load_params_v3(save_dir=args.params_load_dir, step=args.model_load_step, name='svhn')
@@ -871,7 +874,8 @@ if __name__ == "__main__":
 
 
     print ('\nInit inf net validaiton')
-    infnet_valid = Inference_Net(args_dict)
+    # infnet_valid = Inference_Net(args_dict)
+    infnet_valid = Inference_Q(args_dict)
     infnet_valid.cuda()
     if args.model_load_step>0:
         infnet_valid.load_params_v3(save_dir=args.params_load_dir, step=args.model_load_step, name='valid')
