@@ -571,7 +571,7 @@ class Flow1_grid(nn.Module):
         logdet = 0.
         z = eps
         for i in range(self.n_flows):
-            z = z[:,f[str(i)]['perm']]
+            # z = z[:,f[str(i)]['perm']]
             z1 = eps[:,:C//2]
             z2 = eps[:,C//2:]
 
@@ -620,7 +620,7 @@ class Flow1_grid(nn.Module):
             z1 = (z1 - mu2) / sig2
             
             z = torch.cat([z1,z2],1)
-            z = z[:,f[str(i)]['inv_perm']]
+            # z = z[:,f[str(i)]['inv_perm']]
 
             sig1 = sig1.view(B, -1)
             sig2 = sig2.view(B, -1)

@@ -1,10 +1,13 @@
 
+from os.path import expanduser
+home = expanduser("~")
+
+
 import sys, os
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('./VAE'))
 
-from os.path import expanduser
-home = expanduser("~")
+# sys.path.insert(0, os.path.abspath(home+'/.local/lib/python3.5/site-packages'))
 
 import numpy as np
 import _pickle as cPickle
@@ -12,6 +15,8 @@ import argparse
 import time
 import subprocess
 import json
+
+
 
 import matplotlib
 matplotlib.use('Agg')
@@ -38,12 +43,26 @@ from vae_grid import VAE
 # from inference_net_grid import Inference_Net
 from inference_net_grid import Inference_Q
 
+# fdsfas
+
+print (sys.path)
+
+# fdsaf
+
 def unpickle(file):
 
     with open(file, 'rb') as fo:
         dict = cPickle.load(fo, encoding='latin1')
     return dict
 
+def myprint(text):
+    if to_stdout ==1:
+        print(text)
+    else:
+        with open(write_to_file, "a") as f:
+            for t in text:
+                f.write(t + ' ')
+            f.write('\n')
 
 def smooth_list(x, window_len=5, window='flat'):
     if len(x) < window_len:
@@ -60,10 +79,6 @@ def logmeanexp(elbo):
     max_ = torch.max(elbo, 0)[0] #[B]
     elbo = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
     return elbo
-
-
-
-
 
 
 def get_batch(data, batch_size):
@@ -180,7 +195,7 @@ def train(model, train_x, train_y, valid_x, valid_y,
             step +=1
 
             if step%display_step==0:
-                print (
+                myprint( (
                     'S:{:5d}'.format(step),
                     'T:{:.2f}'.format(time.time() - start_time),
                     'BPD:{:.4f}'.format(LL_to_BPD(outputs['elbo'].data.item())),
@@ -193,7 +208,7 @@ def train(model, train_x, train_y, valid_x, valid_y,
                     'lpz_v:{:.4f}'.format(valid_outputs['logpz'].data.item()),
                     'lqz_v:{:.4f}'.format(valid_outputs['logqz'].data.item()),
                     'warmup:{:.4f}'.format(warmup),
-                    )
+                    ))
 
                 start_time = time.time()
 
@@ -710,6 +725,9 @@ if __name__ == "__main__":
     parser.add_argument('--warmup_steps', default=20000, type=int)
 
     parser.add_argument('--continue_training', default=0, type=int)
+    parser.add_argument('--to_stdout', default=1, type=int)
+
+
 
 
 
@@ -724,7 +742,6 @@ if __name__ == "__main__":
     args_dict = vars(args) #convert to dict
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.which_gpu #  '0' #'1' #
-
 
     print ('Exp:', args.exp_name)
     print ('gpu:', args.which_gpu, '\n')
@@ -768,6 +785,9 @@ if __name__ == "__main__":
     print('copied')
 
 
+    to_stdout = args.to_stdout
+    if not to_stdout:
+        write_to_file = exp_dir+'exp_stdout.txt'
 
 
 
