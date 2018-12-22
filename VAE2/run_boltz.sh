@@ -1,14 +1,86 @@
 
 
-
-
-/home/ccremer/anaconda3/bin/python run_vae_cifar.py --exp_name "test" \
-								--z_size 200 \
+/home/ccremer/anaconda3/bin/python run_vae_cifar.py --exp_name "vae_test_smaller_decoder" \
+								--z_size 384 --batch_size 64 \
+								--enc_res_blocks 3 --dec_res_blocks 3  --n_prior_flows 5 \
 								--which_gpu '0' \
 								--data_dir "$HOME/Documents/" \
 								--save_to_dir "$HOME/Documents/VAE2_exps/" \
-								# --params_load_dir "$HOME/Documents/train_withmultipleinfnets/params/" \
-								# --model_load_step 250000 
+								--display_step 500 --start_storing_data_step 2001 \
+								--viz_steps 5000  --trainingplot_steps 5000 \
+								--save_params_step 50000 --max_steps 400000 \
+								--warmup_steps 20000 --continue_training 0 \
+
+
+
+
+# /home/ccremer/anaconda3/bin/python run_vae_cifar.py --exp_name "vae_test_q_flow" \
+# 								--z_size 384 --batch_size 64 \
+# 								--enc_res_blocks 3 --dec_res_blocks 10  --n_prior_flows 5 \
+# 								--which_gpu '1' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/VAE2_exps/" \
+# 								--display_step 500 --start_storing_data_step 2001 \
+# 								--viz_steps 5000  --trainingplot_steps 5000 \
+# 								--save_params_step 50000 --max_steps 400000 \
+# 								--warmup_steps 20000 --continue_training 0 \
+
+
+
+
+# /home/ccremer/anaconda3/bin/python run_vae_cifar.py --exp_name "vae_test_larger_dec" \
+# 								--z_size 384 --batch_size 64 \
+# 								--enc_res_blocks 3 --dec_res_blocks 10  --n_prior_flows 5 \
+# 								--which_gpu '0' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/VAE2_exps/" \
+# 								--display_step 500 --start_storing_data_step 2001 \
+# 								--viz_steps 5000  --trainingplot_steps 5000 \
+# 								--save_params_step 50000 --max_steps 400000 \
+# 								--warmup_steps 20000 --continue_training 0 \
+
+
+
+# /home/ccremer/anaconda3/bin/python run_vae_cifar.py --exp_name "vae_test_grid_withz" \
+# 								--z_size 384 --batch_size 64 \
+# 								--which_gpu '0' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/VAE2_exps/" \
+# 								--display_step 500 --start_storing_data_step 2001 \
+# 								--viz_steps 5000  --trainingplot_steps 5000 \
+# 								--save_params_step 50000 --max_steps 400000 \
+# 								--warmup_steps 20000 --continue_training 0 \
+# 								# --params_load_dir "$HOME/Documents/VAE2_exps/vae_z500_encdec32/params/" \
+# 								# --model_load_step 50000 
+
+
+
+
+# /home/ccremer/anaconda3/bin/python run_vae_cifar.py --exp_name "vae_z500_encdec32_longwarmup" \
+# 								--z_size 500 --batch_size 64 \
+# 								--which_gpu '0' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/VAE2_exps/" \
+# 								--display_step 500 --start_storing_data_step 2001 \
+# 								--viz_steps 5000  --trainingplot_steps 5000 \
+# 								--save_params_step 50000 --max_steps 400000 \
+# 								--warmup_steps 200000 --continue_training 0 \
+# 								# --params_load_dir "$HOME/Documents/VAE2_exps/vae_z500_encdec32/params/" \
+# 								# --model_load_step 50000 
+
+
+
+
+# /home/ccremer/anaconda3/bin/python run_vae_cifar.py --exp_name "vae_z500" \
+# 								--z_size 500 --batch_size 64 \
+# 								--which_gpu '0' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/VAE2_exps/" \
+# 								--display_step 500 --start_storing_data_step 2001 \
+# 								--viz_steps 5000  --trainingplot_steps 5000 \
+# 								--save_params_step 50000 --max_steps 400000 
+# 								# --params_load_dir "$HOME/Documents/train_withmultipleinfnets/params/" \
+# 								# --model_load_step 250000 
 
 
 

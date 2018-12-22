@@ -16,7 +16,8 @@ from torch.optim import lr_scheduler
 
 
 
-from encoder_decoder import Encoder, Decoder
+# from encoder_decoder import Encoder, Decoder
+from encoder_decoder_32 import Encoder, Decoder
 from distributions import lognormal, Flow1 #Normal,  #, IAF_flow
 from torch.distributions import Beta
 
@@ -55,13 +56,13 @@ class VAE(nn.Module):
 
 
         # p(x|z) p(y|z)
-        self.z_to_enc_fc1 = nn.Linear(self.z_size, self.linear_hidden_size)
-        self.z_to_enc_bn1 = nn.BatchNorm1d(self.linear_hidden_size)
-        self.z_to_enc_fc2 = nn.Linear(self.linear_hidden_size, self.linear_hidden_size)
-        self.z_to_enc_fc3 = nn.Linear(self.linear_hidden_size, self.linear_hidden_size)
-        self.z_to_enc_fc4 = nn.Linear(self.linear_hidden_size, self.linear_hidden_size)
-        self.z_to_enc_bn2 = nn.BatchNorm1d(self.linear_hidden_size)
-        self.z_to_enc_fc5 = nn.Linear(self.linear_hidden_size, self.linear_hidden_size)
+        self.z_to_enc_fc1 = nn.Linear(self.z_size, self.x_enc_size)
+        self.z_to_enc_bn1 = nn.BatchNorm1d(self.x_enc_size)
+        self.z_to_enc_fc2 = nn.Linear(self.x_enc_size, self.x_enc_size)
+        self.z_to_enc_fc3 = nn.Linear(self.x_enc_size, self.x_enc_size)
+        self.z_to_enc_fc4 = nn.Linear(self.x_enc_size, self.x_enc_size)
+        self.z_to_enc_bn2 = nn.BatchNorm1d(self.x_enc_size)
+        self.z_to_enc_fc5 = nn.Linear(self.x_enc_size, self.x_enc_size)
 
         z_to_enc_params = [list(self.z_to_enc_fc1.parameters())  + list(self.z_to_enc_bn1.parameters()) 
                         + list(self.z_to_enc_fc2.parameters()) + list(self.z_to_enc_fc3.parameters()) 
@@ -124,20 +125,20 @@ class VAE(nn.Module):
 
 
 
-    def z_to_enc(self, z):
+    def z_to_dec(self, z):
 
-        b = z.shape[0]
-        padded_input = torch.cat([z,torch.zeros(b, self.linear_hidden_size - self.z_size).cuda()], 1)
+        # b = z.shape[0]
+        # padded_input = torch.cat([z,torch.zeros(b, self.linear_hidden_size - self.z_size).cuda()], 1)
 
         out = self.act_func(self.z_to_enc_bn1(self.z_to_enc_fc1(z)))
         out = self.z_to_enc_fc2(out)
-        padded_input = out + padded_input
+        z = out + z
 
-        out = self.act_func(self.z_to_enc_bn2(self.z_to_enc_fc3(padded_input)))
+        out = self.act_func(self.z_to_enc_bn2(self.z_to_enc_fc3(z)))
         out = self.z_to_enc_fc4(out)
-        padded_input = out + padded_input
+        z = out + z
 
-        z_dec = self.z_to_enc_fc5(padded_input)
+        z_dec = self.z_to_enc_fc5(z)
         return z_dec
 
 
@@ -176,7 +177,7 @@ class VAE(nn.Module):
 
         z, logpz, logqz = self.sample(mu, logvar) 
 
-        z_dec = self.z_to_enc(z)
+        z_dec = self.z_to_dec(z)
 
         B = z_dec.shape[0]
 
@@ -226,7 +227,7 @@ class VAE(nn.Module):
         if z is None:
         	z = torch.FloatTensor(B, self.z_size).normal_().cuda() * std
 
-        z_dec = self.z_to_enc(z)
+        z_dec = self.z_to_dec(z)
         x_hat = self.image_decoder(z_dec)
         x_samp = torch.sigmoid(x_hat)
         # y_hat, sampled_words = self.text_generator.teacher_force(z_dec, generate=True, embeder=self.encoder_embed)

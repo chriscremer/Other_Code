@@ -9,6 +9,9 @@ home = expanduser("~")
 import numpy as np
 import _pickle as cPickle
 import argparse
+import time
+import subprocess
+import json
 
 import matplotlib
 matplotlib.use('Agg')
@@ -27,9 +30,13 @@ import torch.optim as optim
 
 # from scipy.misc import toimage
 
-from vae import VAE
-from inference_net import Inference_Net
+# from vae import VAE
+# from inference_net import Inference_Net
 
+from vae_grid import VAE
+
+# from inference_net_grid import Inference_Net
+from inference_net_grid import Inference_Q
 
 def unpickle(file):
 
@@ -79,10 +86,21 @@ def LL_to_BPD(LL):
 
 
 
+
+
+
+
+
+
+
 def train(model, train_x, train_y, valid_x, valid_y, 
                 save_dir, params_dir, images_dir,
                 batch_size, 
-                max_steps, display_step, save_steps, viz_steps, trainingplot_steps, load_step):
+                max_steps, display_step, save_steps, viz_steps, 
+                trainingplot_steps, load_step,
+                start_storing_data_step,
+                warmup_steps,
+                continue_training):
 
     # random.seed( 0 )
     
@@ -105,13 +123,12 @@ def train(model, train_x, train_y, valid_x, valid_y,
     train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
     # optimizer = optim.Adam(model.parameters(), lr=.0001)
 
-    # load_step = 0
     max_beta = 1.
-    warmup_steps = 20000. 
-    
-    limit_numb = 1000
 
+    if not continue_training:
+        load_step = 0
 
+    start_time = time.time()
     step = 0
     # for epoch in range(1, epochs + 1):
     while step < max_steps:
@@ -126,6 +143,7 @@ def train(model, train_x, train_y, valid_x, valid_y,
             # print (torch.max(batch + torch.FloatTensor(batch.shape).uniform_(0., 1./256.)))
             # fasdf
 
+
             model.optimizer_x.zero_grad()
             outputs = model.forward(x=batch.cuda(), warmup=warmup) 
             loss = -outputs['welbo']
@@ -133,7 +151,14 @@ def train(model, train_x, train_y, valid_x, valid_y,
             model.optimizer_x.step()
             model.scheduler_x.step()
 
-            if step % 2 ==0:
+
+            # #just a test
+            # svhn_outputs = model.forward(x=get_batch(svhn, batch_size).cuda(), warmup=1., inf_net=infnet_svhn) 
+            # loss2 = svhn_outputs['welbo']
+            # loss = loss + loss2*.1
+
+            # if step % 2 ==0:
+            if step % 1 ==0:
 
                 infnet_valid.optimizer_x.zero_grad()
                 valid_outputs = model.forward(x=get_batch(valid_x, batch_size).cuda(), warmup=1., inf_net=infnet_valid) 
@@ -149,6 +174,7 @@ def train(model, train_x, train_y, valid_x, valid_y,
                 infnet_svhn.optimizer_x.step()
                 infnet_svhn.scheduler_x.step()
 
+            # outputs = svhn_outputs
 
 
             step +=1
@@ -156,7 +182,7 @@ def train(model, train_x, train_y, valid_x, valid_y,
             if step%display_step==0:
                 print (
                     'S:{:5d}'.format(step),
-                    # 'T:{:.2f}'.format(T),
+                    'T:{:.2f}'.format(time.time() - start_time),
                     'BPD:{:.4f}'.format(LL_to_BPD(outputs['elbo'].data.item())),
                     'welbo:{:.4f}'.format(outputs['welbo'].data.item()),
                     'elbo:{:.4f}'.format(outputs['elbo'].data.item()),
@@ -169,6 +195,9 @@ def train(model, train_x, train_y, valid_x, valid_y,
                     'warmup:{:.4f}'.format(warmup),
                     )
 
+                start_time = time.time()
+
+
                 # model.eval()
                 # with torch.no_grad():
                 #     valid_outputs = model.forward(x=valid_x[:50].cuda(), warmup=1., inf_net=infnet_valid)
@@ -176,7 +205,7 @@ def train(model, train_x, train_y, valid_x, valid_y,
                 # model.train()
 
 
-                if step > limit_numb:
+                if step > start_storing_data_step:
 
                     all_dict['all_steps'].append(step+load_step)
                     all_dict['all_warmup'].append(warmup)
@@ -219,7 +248,7 @@ def train(model, train_x, train_y, valid_x, valid_y,
                     sample_prior = model.sample_prior(z=z_prior)
                 model.train()
 
-                vizualize(images_dir, step, train_real=train_x[:10], train_recon=train_recon,
+                vizualize(images_dir, step+load_step, train_real=train_x[:10], train_recon=train_recon,
                                             valid_real=valid_x[:10], valid_recon=valid_recon,
                                             svhn_real=svhn[:10], svhn_recon=svhn_recon,
                                             prior_samps=sample_prior)
@@ -643,6 +672,7 @@ def vizualize(images_dir, step, train_real, train_recon,
 
 
 
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -661,36 +691,15 @@ if __name__ == "__main__":
     parser.add_argument('--input_size', default=32, type=int)
     parser.add_argument('--x_enc_size', default=500, type=int)
     parser.add_argument('--z_size', default=50, type=int)
+    parser.add_argument('--batch_size', default=64, type=int)
 
-    # parser.add_argument('--w_logpx', default=.05, type=float)
-    # parser.add_argument('--w_logpy', default=1000., type=float)
-    # parser.add_argument('--w_logqy', default=1., type=float)
-    # parser.add_argument('--max_beta', default=1., type=float)
+    parser.add_argument('--enc_res_blocks', default=3, type=int)
+    parser.add_argument('--dec_res_blocks', default=3, type=int)
+    parser.add_argument('--n_prior_flows', default=5, type=int)
 
-    parser.add_argument('--batch_size', default=20, type=int)
-    # parser.add_argument('--embed_size', default=100, type=int)
-
-    # parser.add_argument('--train_which_model', default='pxy', choices=['pxy', 'px', 'py'])
-
-    # parser.add_argument('--single', default=0, type=int)
-    # parser.add_argument('--singlev2', default=0, type=int)
-    # parser.add_argument('--multi', default=0, type=int)
-
-    # parser.add_argument('--flow_int', default=0, type=int)
-    # parser.add_argument('--joint_inf', default=0, type=int)
-
-
-    # parser.add_argument('--just_classifier', default=0, type=int)
-    # parser.add_argument('--train_classifier', default=0, type=int)
-    # parser.add_argument('--classifier_load_params_dir', default='', type=str)
-    # parser.add_argument('--classifier_load_step', default=0, type=int)
 
     parser.add_argument('--params_load_dir', default='')
     parser.add_argument('--model_load_step', default=0, type=int)
-
-    # parser.add_argument('--quick_check', default=0, type=int)
-    # parser.add_argument('--quick_check_data', default='', type=str)
-
 
     parser.add_argument('--display_step', default=500, type=int)
     parser.add_argument('--trainingplot_steps', default=5000, type=int)
@@ -698,8 +707,18 @@ if __name__ == "__main__":
     parser.add_argument('--start_storing_data_step', default=2001, type=int)
     parser.add_argument('--save_params_step', default=50000, type=int)
     parser.add_argument('--max_steps', default=400000, type=int)
+    parser.add_argument('--warmup_steps', default=20000, type=int)
+
+    parser.add_argument('--continue_training', default=0, type=int)
 
 
+
+    # batch_size = 50
+    # display_step = 500
+    # save_steps = 50000
+    # max_steps = 300000
+    # viz_steps = 5000
+    # trainingplot_steps = 5000
 
     args = parser.parse_args()
     args_dict = vars(args) #convert to dict
@@ -707,13 +726,15 @@ if __name__ == "__main__":
     os.environ['CUDA_VISIBLE_DEVICES'] = args.which_gpu #  '0' #'1' #
 
 
-    print (args.exp_name, '\n')
+    print ('Exp:', args.exp_name)
+    print ('gpu:', args.which_gpu, '\n')
 
 
 
     exp_dir = args.save_to_dir + args.exp_name + '/'
     params_dir = exp_dir + 'params/'
     images_dir = exp_dir + 'images/'
+    code_dir = exp_dir + 'code/'
 
     if not os.path.exists(exp_dir):
         os.makedirs(exp_dir)
@@ -730,8 +751,21 @@ if __name__ == "__main__":
         os.makedirs(images_dir)
         print ('Made dir', images_dir) 
 
+    if not os.path.exists(code_dir):
+        os.makedirs(code_dir)
+        print ('Made dir', code_dir) 
 
+    #Save args and code
+    json_path = exp_dir+'args_dict.json'
+    with open(json_path, 'w') as outfile:
+        json.dump(args_dict, outfile, sort_keys=True, indent=4)
 
+    # subprocess.call("(cd "+code_location+" && python train_explore_exploit.py --m {})".format(json_path), shell=True) 
+    # subprocess.call("(cp -r .  "+code_dir+")", shell=True) 
+    # subprocess.call("(cp -r `ls | grep -v __pycache__` "+code_dir+")", shell=True) 
+    # subprocess.call("(rsync -r . "+code_dir+" )", shell=True)
+    subprocess.call("(rsync -r --exclude=__pycache__/ . "+code_dir+" )", shell=True)
+    print('copied')
 
 
 
@@ -851,7 +885,8 @@ if __name__ == "__main__":
 
 
     print ('\nInit inf net svhn')
-    infnet_svhn = Inference_Net(args_dict)
+    # infnet_svhn = Inference_Net(args_dict)
+    infnet_svhn = Inference_Q(args_dict)
     infnet_svhn.cuda()
     if args.model_load_step>0:
         infnet_svhn.load_params_v3(save_dir=args.params_load_dir, step=args.model_load_step, name='svhn')
@@ -861,7 +896,8 @@ if __name__ == "__main__":
 
 
     print ('\nInit inf net validaiton')
-    infnet_valid = Inference_Net(args_dict)
+    # infnet_valid = Inference_Net(args_dict)
+    infnet_valid = Inference_Q(args_dict)
     infnet_valid.cuda()
     if args.model_load_step>0:
         infnet_valid.load_params_v3(save_dir=args.params_load_dir, step=args.model_load_step, name='valid')
@@ -885,15 +921,6 @@ if __name__ == "__main__":
 
     z_prior = torch.FloatTensor(10, args.z_size).normal_().cuda() 
 
-    batch_size = 50
-    display_step = 500
-    save_steps = 50000
-    max_steps = 300000
-    viz_steps = 5000
-    trainingplot_steps = 5000
-
-    load_step = args.model_load_step
-
     train_ = 1
     train_svhn_inf_net = 0
     eval_ = 0
@@ -902,9 +929,13 @@ if __name__ == "__main__":
         print ('Training')
         train(model=vae, train_x=train_x, train_y=train_y, valid_x=test_x, valid_y=test_y, 
                     save_dir=exp_dir, params_dir=params_dir, images_dir=images_dir,
-                    batch_size=batch_size, 
-                    max_steps=max_steps, display_step=display_step, save_steps=save_steps, viz_steps=viz_steps,
-                    trainingplot_steps=trainingplot_steps, load_step=load_step)
+                    batch_size=args.batch_size, 
+                    max_steps=args.max_steps, display_step=args.display_step, 
+                    save_steps=args.save_params_step, viz_steps=args.viz_steps,
+                    trainingplot_steps=args.trainingplot_steps, load_step=args.model_load_step,
+                    start_storing_data_step=args.start_storing_data_step,
+                    warmup_steps=args.warmup_steps,
+                    continue_training=args.continue_training)
 
 
     # elif train_svhn_inf_net:
@@ -930,13 +961,18 @@ if __name__ == "__main__":
         print ('Eval')
         eval_model(model=vae, train_x=train_x, train_y=train_y, valid_x=test_x, valid_y=test_y, 
                     save_dir=exp_dir, params_dir=params_dir, images_dir=images_dir,
-                    batch_size=batch_size, 
-                    max_steps=max_steps, display_step=display_step, save_steps=save_steps, viz_steps=viz_steps,
-                    trainingplot_steps=trainingplot_steps, load_step=args.model_load_step)
+                    batch_size=agrs.batch_size, 
+                    max_steps=args.max_steps, display_step=args.display_step, 
+                    save_steps=args.save_params_step, viz_steps=args.viz_steps,
+                    trainingplot_steps=args.trainingplot_steps, load_step=args.model_load_step,
+                    start_storing_data_step=args.start_storing_data_step,
+                    warmup_steps=args.warmup_steps,
+                    continue_training=args.continue_training)
 
     # model.save_params_v3(save_dir=params_dir, step=max_steps+args.model_load_step)
 
     print ('Done.')
+
 
 
 
