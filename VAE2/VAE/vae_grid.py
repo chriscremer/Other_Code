@@ -6,6 +6,7 @@
 
 
 
+
 import os
 
 import torch
@@ -22,7 +23,7 @@ from enc_dec_32_full import Encoder, Decoder
 from distributions import lognormal, Flow1, Flow1_grid #Normal,  #, IAF_flow
 from torch.distributions import Beta
 
-from inference_net_grid import Inference_Q
+from inference_net_grid import Inference_Q, Inference_Q_flow
 
 
 class VAE(nn.Module):
@@ -40,7 +41,9 @@ class VAE(nn.Module):
 
         # q(z|x)
         # self.image_encoder2 = Encoder(input_nc=3, image_encoding_size=self.x_enc_size, n_residual_blocks=self.enc_res_blocks, input_size=self.input_size)
-        self.q = Inference_Q(kwargs)
+        # self.q = Inference_Q(kwargs)
+        self.q = Inference_Q_flow(kwargs)
+
 
         # p(z)
         self.prior = Flow1_grid(z_shape=[6,8,8], n_flows=self.n_prior_flows)

@@ -45,7 +45,7 @@ from inference_net_grid import Inference_Q
 
 # fdsfas
 
-print (sys.path)
+# print (sys.path)
 
 # fdsaf
 
@@ -55,13 +55,27 @@ def unpickle(file):
         dict = cPickle.load(fo, encoding='latin1')
     return dict
 
-def myprint(text):
-    if to_stdout ==1:
-        print(text)
-    else:
+def myprint(list_):
+    newtext =''
+    for i in range(len(list_)):
+        newtext += list_[i] + ' '
+    print(newtext)
+
+    if save_output:        
         with open(write_to_file, "a") as f:
-            for t in text:
+            for t in list_:
                 f.write(t + ' ')
+            f.write('\n')
+
+def myprint_t(text):
+    # newtext =''
+    # for i in range(len(text)):
+    #     newtext += text[i] + ' '
+    print(text)
+
+    if save_output:        
+        with open(write_to_file, "a") as f:
+            f.write(str(text))
             f.write('\n')
 
 def smooth_list(x, window_len=5, window='flat'):
@@ -192,11 +206,12 @@ def train(model, train_x, train_y, valid_x, valid_y,
             # outputs = svhn_outputs
 
 
+
             step +=1
 
             if step%display_step==0:
                 myprint( (
-                    'S:{:5d}'.format(step),
+                    'S:{:5d}'.format(step+load_step),
                     'T:{:.2f}'.format(time.time() - start_time),
                     'BPD:{:.4f}'.format(LL_to_BPD(outputs['elbo'].data.item())),
                     'welbo:{:.4f}'.format(outputs['welbo'].data.item()),
@@ -674,6 +689,46 @@ def vizualize(images_dir, step, train_real, train_recon,
 
 
 
+def test_flow(model, train_x, train_y, valid_x, valid_y, 
+                save_dir, params_dir, images_dir,
+                batch_size, 
+                max_steps, display_step, save_steps, viz_steps, 
+                trainingplot_steps, load_step,
+                start_storing_data_step,
+                warmup_steps,
+                continue_training):
+    step=load_step+1
+    model.eval()
+    with torch.no_grad():
+        train_recon = model.forward(x=train_x[:10].cuda(), warmup=1.)['x_recon']
+        valid_recon = model.forward(x=valid_x[:10].cuda(), warmup=1., inf_net=infnet_valid)['x_recon']
+        svhn_recon = model.forward(x=svhn[:10].cuda(), warmup=1., inf_net=infnet_svhn)['x_recon']
+        sample_prior = model.sample_prior(z=z_prior)
+    model.train()
+
+    vizualize(images_dir, step+load_step, train_real=train_x[:10], train_recon=train_recon,
+                                valid_real=valid_x[:10], valid_recon=valid_recon,
+                                svhn_real=svhn[:10], svhn_recon=svhn_recon,
+                                prior_samps=sample_prior)
+
+
+    # encode , reverse flow, flow, decode , viz
+
+    z, logqz = model.q.sample(train_x[:10].cuda()) 
+
+    z, logdet = model.prior.reverse_flow(z)
+
+    z = model.prior.forward_flow(z=z)
+
+    x_hat = torch.sigmoid(model.image_decoder(z))
+
+    vizualize(images_dir, step+load_step+1, train_real=train_x[:10], train_recon=train_recon,
+                                valid_real=x_hat, valid_recon=valid_recon,
+                                svhn_real=svhn[:10], svhn_recon=svhn_recon,
+                                prior_samps=sample_prior)
+
+
+
 
 
 
@@ -725,7 +780,7 @@ if __name__ == "__main__":
     parser.add_argument('--warmup_steps', default=20000, type=int)
 
     parser.add_argument('--continue_training', default=0, type=int)
-    parser.add_argument('--to_stdout', default=1, type=int)
+    parser.add_argument('--save_output', default=1, type=int)
 
 
 
@@ -741,7 +796,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     args_dict = vars(args) #convert to dict
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.which_gpu #  '0' #'1' #
 
     print ('Exp:', args.exp_name)
     print ('gpu:', args.which_gpu, '\n')
@@ -782,17 +836,22 @@ if __name__ == "__main__":
     # subprocess.call("(cp -r `ls | grep -v __pycache__` "+code_dir+")", shell=True) 
     # subprocess.call("(rsync -r . "+code_dir+" )", shell=True)
     subprocess.call("(rsync -r --exclude=__pycache__/ . "+code_dir+" )", shell=True)
-    print('copied')
+    # print('copied')
 
 
-    to_stdout = args.to_stdout
-    if not to_stdout:
+
+
+
+
+    save_output = args.save_output
+    if save_output:
         write_to_file = exp_dir+'exp_stdout.txt'
 
 
-
-
-
+    myprint_t (torch.cuda.device_count())
+    # os.environ['CUDA_VISIBLE_DEVICES'] = args.which_gpu #  '0' #'1' #
+    # myprint_t (torch.cuda.device_count())
+    # fadsa
 
 
 
@@ -801,7 +860,6 @@ if __name__ == "__main__":
 
 
     
-
 
 
 
@@ -895,12 +953,16 @@ if __name__ == "__main__":
 
     print ('\nInit VAE')
     vae = VAE(args_dict)
+
+    vae = nn.DataParallel(vae)
+
     vae.cuda()
     if args.model_load_step>0:
         vae.load_params_v3(save_dir=args.params_load_dir, step=args.model_load_step)
     # print(vae)
     # fdsa
     print ('VAE Initilized\n')
+
 
 
 
@@ -915,6 +977,7 @@ if __name__ == "__main__":
     print ('inf net Initilized\n')
 
 
+
     print ('\nInit inf net validaiton')
     # infnet_valid = Inference_Net(args_dict)
     infnet_valid = Inference_Q(args_dict)
@@ -924,6 +987,7 @@ if __name__ == "__main__":
     # print(vae)
     # fdsa
     print ('inf net Initilized\n')
+
 
 
 
@@ -939,10 +1003,13 @@ if __name__ == "__main__":
     # path_to_save_variables = ''
     # epochs = 200
 
+
+    # fadsf
+
     z_prior = torch.FloatTensor(10, args.z_size).normal_().cuda() 
 
     train_ = 1
-    train_svhn_inf_net = 0
+    # train_svhn_inf_net = 0
     eval_ = 0
 
     if train_:
@@ -979,15 +1046,27 @@ if __name__ == "__main__":
 
     elif eval_:
         print ('Eval')
-        eval_model(model=vae, train_x=train_x, train_y=train_y, valid_x=test_x, valid_y=test_y, 
+
+        test_flow(model=vae, train_x=train_x, train_y=train_y, valid_x=test_x, valid_y=test_y, 
                     save_dir=exp_dir, params_dir=params_dir, images_dir=images_dir,
-                    batch_size=agrs.batch_size, 
+                    batch_size=args.batch_size, 
                     max_steps=args.max_steps, display_step=args.display_step, 
                     save_steps=args.save_params_step, viz_steps=args.viz_steps,
                     trainingplot_steps=args.trainingplot_steps, load_step=args.model_load_step,
                     start_storing_data_step=args.start_storing_data_step,
                     warmup_steps=args.warmup_steps,
                     continue_training=args.continue_training)
+
+        # fafsad
+        # eval_model(model=vae, train_x=train_x, train_y=train_y, valid_x=test_x, valid_y=test_y, 
+        #             save_dir=exp_dir, params_dir=params_dir, images_dir=images_dir,
+        #             batch_size=agrs.batch_size, 
+        #             max_steps=args.max_steps, display_step=args.display_step, 
+        #             save_steps=args.save_params_step, viz_steps=args.viz_steps,
+        #             trainingplot_steps=args.trainingplot_steps, load_step=args.model_load_step,
+        #             start_storing_data_step=args.start_storing_data_step,
+        #             warmup_steps=args.warmup_steps,
+        #             continue_training=args.continue_training)
 
     # model.save_params_v3(save_dir=params_dir, step=max_steps+args.model_load_step)
 

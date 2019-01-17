@@ -144,3 +144,56 @@ class Decoder(nn.Module):
 
 
 
+
+
+
+
+
+
+
+
+
+
+class Encoder_extra_output(nn.Module):
+    def __init__(self, input_nc, image_encoding_size, n_residual_blocks=3, input_size=112):
+        super(Encoder_extra_output, self).__init__()
+
+
+        # Initial convolution block       
+        model = [   nn.ReflectionPad2d(3),
+                    nn.Conv2d(input_nc, 64, 7),
+                    nn.InstanceNorm2d(64),
+                    nn.ReLU(inplace=True) ]
+
+        # Downsampling
+        in_features = 64
+        out_features = in_features*2
+        for i in range(2):
+            # if i ==1 :
+            #     out_features = out_features*2
+            model += [  nn.Conv2d(in_features, out_features, 3, stride=2, padding=1),
+                        nn.InstanceNorm2d(out_features),
+                        nn.ReLU(inplace=True) ]
+            in_features = out_features
+            out_features = in_features*2
+            # image_dim = image_dim / 2
+
+        # Residual blocks
+        for _ in range(n_residual_blocks):
+            model += [ResidualBlock(in_features)]
+
+        feats = 6*3 # mean and logvar + extra for conditional flow
+        model.append(nn.Conv2d(256, feats, 3, stride=1, padding=1)) #[20*28*28]
+
+        self.model = nn.Sequential(*model)
+
+    def forward(self, x):
+
+        return self.model(x)
+
+
+
+
+
+
+
