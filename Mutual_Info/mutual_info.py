@@ -26,7 +26,7 @@ def get_p(MI, D):
 
 print(get_MI(p=.9, D=2))
 print(get_p(MI=10, D=20))
-fsdf
+
 
 
 
@@ -58,23 +58,52 @@ samp = rv.rvs(size=1000)
 print (samp.shape)
 plt.scatter(samp[:,0], samp[:,1], alpha=.3, s=5)
 
-
-
-
-
-
 ax.axis('equal')
-plt.show()
-fsadssa
 
 
-plt_path = home+'/Downloads/plt.png'
+
+
+# plt.show()
+# fsadssa
+
+
+# plt_path = home+'/Downloads/plt.png'
+plt_path = home+'/Documents/Mutual_Info/plt.png'
 plt.savefig(plt_path)
 print ('saved training plot', plt_path)
 plt.close()
 
 
+fsadfs
 
+
+
+
+
+
+import torch.nn as nn
+import torch.nn.functional as F
+
+class ResidualBlock(nn.Module):
+    def __init__(self, in_features):
+        super(ResidualBlock, self).__init__()
+
+        conv_block = [  nn.ReflectionPad2d(1),
+                        nn.Conv2d(in_features, in_features, 3),
+                        nn.InstanceNorm2d(in_features),
+                        nn.ReLU(inplace=True),
+                        nn.ReflectionPad2d(1),
+                        nn.Conv2d(in_features, in_features, 3),
+                        nn.InstanceNorm2d(in_features)  ]
+
+        self.conv_block = nn.Sequential(*conv_block)
+
+    def forward(self, x):
+        return x + self.conv_block(x)
+
+
+
+fsdfasd
 
 
 

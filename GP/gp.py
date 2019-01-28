@@ -8,8 +8,8 @@ import matplotlib.pyplot as pl
 
 
 # This is the true unknown function we are trying to approximate
-f = lambda x: np.sin(0.9*x).flatten() + 10
-#f = lambda x: (0.25*(x**2)).flatten()
+f = lambda x: 2*np.sin(0.9*x).flatten() + 5
+# f = lambda x: (0.25*(x**2)).flatten()
 
 
 # Define the kernel
@@ -21,13 +21,16 @@ def kernel(a, b):
 
 N = 10         # number of training points.
 n = 50         # number of test points.
-s = 0.00005    # noise variance.
+train_noise = 0.5    # noise variance.
 s_ = 10.
 
 # Sample some input points and noisy versions of the function evaluated at
 # these points. 
 X = np.random.uniform(-5, 5, size=(N,1))
-y = f(X) + s*np.random.randn(N)
+y = f(X) + train_noise*np.random.randn(N)
+
+# X_real = np.linspace(-5, 5, 50).reshape(-1,1)
+# y_real = f(X_real)
 
 K = kernel(X, X)
 L = np.linalg.cholesky(K + s_*np.eye(N))
@@ -42,38 +45,39 @@ mu = np.dot(Lk.T, np.linalg.solve(L, y))
 # compute the variance at our test points.
 K_ = kernel(Xtest, Xtest)
 s2 = np.diag(K_) - np.sum(Lk**2, axis=0)
-s = np.sqrt(s2)
+test_std = np.sqrt(s2)
 
 
 # PLOTS:
 pl.figure(1)
 pl.clf()
 pl.plot(X, y, 'r+', ms=20)
+# pl.plot(X_real, y_real)
 pl.plot(Xtest, f(Xtest), 'b-')
-pl.gca().fill_between(Xtest.flat, mu-3*s, mu+3*s, color="#dddddd")
-pl.plot(Xtest, mu, 'r--', lw=2)
-pl.savefig('predictive.png', bbox_inches='tight')
+# pl.gca().fill_between(Xtest.flat, mu-3*test_std, mu+3*test_std, color="#dddddd")
+# pl.plot(Xtest, mu, 'r--', lw=2)
+# pl.savefig('predictive.png', bbox_inches='tight')
 pl.title('Mean predictions plus 3 st.deviations')
 pl.axis([-5, 5, -20, 20])
 
-# draw samples from the prior at our test points.
-L = np.linalg.cholesky(K_ + 1e-6*np.eye(n))
-f_prior = np.dot(L, np.random.normal(size=(n,10)))
-pl.figure(2)
-pl.clf()
-pl.plot(Xtest, f_prior)
-pl.title('Ten samples from the GP prior')
-pl.axis([-5, 5, -20, 20])
-pl.savefig('prior.png', bbox_inches='tight')
+# # draw samples from the prior at our test points.
+# L = np.linalg.cholesky(K_ + 1e-6*np.eye(n))
+# f_prior = np.dot(L, np.random.normal(size=(n,10)))
+# pl.figure(2)
+# pl.clf()
+# pl.plot(Xtest, f_prior)
+# pl.title('Ten samples from the GP prior')
+# pl.axis([-5, 5, -20, 20])
+# pl.savefig('prior.png', bbox_inches='tight')
 
-# draw samples from the posterior at our test points.
-L = np.linalg.cholesky(K_ + 1e-6*np.eye(n) - np.dot(Lk.T, Lk))
-f_post = mu.reshape(-1,1) + np.dot(L, np.random.normal(size=(n,10)))
-pl.figure(3)
-pl.clf()
-pl.plot(Xtest, f_post)
-pl.title('Ten samples from the GP posterior')
-pl.axis([-5, 5, -20, 20])
-pl.savefig('post.png', bbox_inches='tight')
+# # draw samples from the posterior at our test points.
+# L = np.linalg.cholesky(K_ + 1e-6*np.eye(n) - np.dot(Lk.T, Lk))
+# f_post = mu.reshape(-1,1) + np.dot(L, np.random.normal(size=(n,10)))
+# pl.figure(3)
+# pl.clf()
+# pl.plot(Xtest, f_post)
+# pl.title('Ten samples from the GP posterior')
+# pl.axis([-5, 5, -20, 20])
+# pl.savefig('post.png', bbox_inches='tight')
 
 pl.show()

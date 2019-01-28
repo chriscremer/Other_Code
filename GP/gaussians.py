@@ -69,7 +69,7 @@ for i in range(len(covs)):
 
     ax1 = plt.subplot2grid((1,9), (0,i))#, colspan=3)
 
-    print covs[i]
+    print (covs[i])
     
     cov = np.array([[1.,covs[i]],[covs[i],1.]])
     rv = mvn(mean, cov)
