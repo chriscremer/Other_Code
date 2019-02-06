@@ -486,6 +486,18 @@ if __name__ == "__main__":
 
 
 
+    name_file = home+'/Documents/Grad_Estimators/plot_cat.png'
+
+    # name_file = home+'/Downloads/grads_estimators_SF_Baseline_LAX_fixed_MoG.pdf'
+    plt.savefig(name_file)
+    print ('Saved fig', name_file)
+
+    print ('Done.')
+    fasdf
+
+
+
+
 
 
     plt.tight_layout()
@@ -1584,7 +1596,7 @@ if __name__ == "__main__":
     # plt.savefig(name_file)
     # print ('Saved fig', name_file)
 
-    print ('Done.')
+    # print ('Done.')
 
 
 

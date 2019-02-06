@@ -555,8 +555,10 @@ if __name__ == "__main__":
         log_q_avg.backward()
 
         # print(q_x.mean.grad, q_x.logvar.grad)
-        mean_grads_10MC_SF.append(q_x.mean.grad.data.numpy()[0]*log_qp_avg.data.numpy()[0])
-        logvar_grads_10MC_SF.append(q_x.logvar.grad.data.numpy()[0]*log_qp_avg.data.numpy()[0])
+        # print (q_x.mean.grad.data.numpy()[0].shape)
+        # print (log_qp_avg.data.numpy().shape)
+        mean_grads_10MC_SF.append(q_x.mean.grad.data.numpy()[0]*log_qp_avg.data.numpy())
+        logvar_grads_10MC_SF.append(q_x.logvar.grad.data.numpy()[0]*log_qp_avg.data.numpy())
         # mean_grads_10MC_SF.append(q_x.mean.grad.data.numpy()[0])
         # logvar_grads_10MC_SF.append(q_x.logvar.grad.data.numpy()[0])
 
@@ -594,8 +596,8 @@ if __name__ == "__main__":
         log_q_avg.backward()
 
         # print(q_x.mean.grad, q_x.logvar.grad)
-        mean_grads_10MC_SF_Base.append(q_x.mean.grad.data.numpy()[0]*log_qp_avg.data.numpy()[0])
-        logvar_grads_10MC_SF_Base.append(q_x.logvar.grad.data.numpy()[0]*log_qp_avg.data.numpy()[0])
+        mean_grads_10MC_SF_Base.append(q_x.mean.grad.data.numpy()[0]*log_qp_avg.data.numpy())
+        logvar_grads_10MC_SF_Base.append(q_x.logvar.grad.data.numpy()[0]*log_qp_avg.data.numpy())
         # mean_grads_10MC_SF.append(q_x.mean.grad.data.numpy()[0])
         # logvar_grads_10MC_SF.append(q_x.logvar.grad.data.numpy()[0])
 
@@ -651,8 +653,8 @@ if __name__ == "__main__":
         # print(q_x.mean.grad, q_x.logvar.grad)
         # print (aa)
         # fsd
-        mean_grads_LAX.append(q_x.mean.grad.data.numpy()[0]*log_qp_avg.data.numpy()[0] + aa)
-        logvar_grads_LAX.append(q_x.logvar.grad.data.numpy()[0]*log_qp_avg.data.numpy()[0] + bb)
+        mean_grads_LAX.append(q_x.mean.grad.data.numpy()[0]*log_qp_avg.data.numpy() + aa)
+        logvar_grads_LAX.append(q_x.logvar.grad.data.numpy()[0]*log_qp_avg.data.numpy() + bb)
 
         q_x.mean.grad.data.zero_()
         q_x.logvar.grad.data.zero_()
@@ -888,9 +890,9 @@ if __name__ == "__main__":
     # plt.show()
 
 
-    # # name_file = home+'/Documents/tmp/plot.pdf'
+    name_file = home+'/Documents/tmp/plot.pdf'
 
-    name_file = home+'/Downloads/grads_estimators_SF_Baseline_LAX_fixed_MoG.pdf'
+    # name_file = home+'/Downloads/grads_estimators_SF_Baseline_LAX_fixed_MoG.pdf'
     plt.savefig(name_file)
     print ('Saved fig', name_file)
 
