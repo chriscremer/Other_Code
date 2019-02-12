@@ -26,17 +26,17 @@ def H(x):
 
 def Hpy(x):
     if x > .5:
-        return torch.tensor([1])
+        return torch.tensor([1]).float()
     else:
-        return torch.tensor([0])
+        return torch.tensor([0]).float()
 
 
 
-n= 10000
+n= 50000
 theta = .3
 bern_param = torch.tensor([theta], requires_grad=True)
 dist = RelaxedBernoulli(torch.Tensor([1.]), bern_param)
-val=.499
+val=.4
 f = lambda x: (x-val)**2
 
 print ('Value:', val)
@@ -47,32 +47,160 @@ print()
 
 
 
-print ('SimpLAX NN')
-net = NN()
 
-train_ = 1
-if train_:
-    net.train(func=f, dist=dist, save_dir=home+'/Downloads/tmmpp/')
-    print ('Done training\n')
-else:
-    net.load_params_v3(save_dir=home+'/Downloads/tmmpp/', step=17285, name='') #.499
-    # net.load_params_v3(save_dir=home+'/Downloads/tmmpp/', step=102710, name='') #.4
+# print ('SimpLAX NN')
+# net = NN()
+
+# train_ = 1
+# if train_:
+#     net.train(func=f, dist=dist, save_dir=home+'/Downloads/tmmpp/')
+#     print ('Done training\n')
+# else:
+#     net.load_params_v3(save_dir=home+'/Downloads/tmmpp/', step=17285, name='') #.499
+#     # net.load_params_v3(save_dir=home+'/Downloads/tmmpp/', step=102710, name='') #.4
+# print()
+
+
+
+# print ('Relax NN')
+# net_relax = NN2()
+
+# train_ = 1
+# if train_:
+#     net_relax.train(func=f, dist=dist, save_dir=home+'/Downloads/tmmpp/', bern_param=bern_param)
+#     print ('Done training\n')
+# # fada
+# else:
+#     # net_relax.load_params_v3(save_dir=home+'/Downloads/tmmpp/', step=30551, name='') #.499
+#     net_relax.load_params_v3(save_dir=home+'/Downloads/tmmpp/', step=125423, name='') #.4
+# print()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+dist = Bernoulli(bern_param)
+
+
+samps = []
+grads = []
+for i in range(n):
+    samp = dist.sample()
+
+    logprob = dist.log_prob(samp)
+    logprobgrad = torch.autograd.grad(outputs=logprob, inputs=(bern_param), retain_graph=True)[0]
+
+    samps.append(samp.numpy())
+    grads.append(f(samp.numpy()) * logprobgrad.numpy())
+
+print ('Grad Estimator: REINFORCE')
+print ('Avg samp', np.mean(samps))
+print ('Grad mean', np.mean(grads))
+print ('Grad std', np.std(grads))
 print()
 
 
 
-print ('Relax NN')
-net_relax = NN2()
 
-train_ = 1
-if train_:
-    net_relax.train(func=f, dist=dist, save_dir=home+'/Downloads/tmmpp/', bern_param=bern_param)
-    print ('Done training\n')
-# fada
-else:
-    # net_relax.load_params_v3(save_dir=home+'/Downloads/tmmpp/', step=30551, name='') #.499
-    net_relax.load_params_v3(save_dir=home+'/Downloads/tmmpp/', step=125423, name='') #.4
-print()
+
+
+
+
+
+
+
+dist_bern = Bernoulli(bern_param)
+dist = RelaxedBernoulli(torch.Tensor([1.]), bern_param)
+
+samps = []
+grads = []
+eta = 1.
+difs = []
+for i in range(n):
+    z = dist.rsample()
+    # print ('z',z)
+
+    b = Hpy(z)
+    #p(z|b)
+    if b ==0:
+        v= np.random.rand()*(1-bern_param)
+    else:
+        v = np.random.rand()*bern_param+(1-bern_param)
+    z_tilde = torch.log(bern_param/(1-bern_param)) + torch.log(v/(1-v))
+    z_tilde = torch.sigmoid(z_tilde)
+
+    logprob = dist_bern.log_prob(b)
+    logprobgrad = torch.autograd.grad(outputs=logprob, inputs=(bern_param), retain_graph=True)[0]
+
+    # print (z_tilde)
+    # print (z)
+    # fdsf
+    
+    pred = f(z_tilde).float()
+    logprobgrad_2 = torch.autograd.grad(outputs=pred, inputs=(bern_param), retain_graph=True)[0]
+
+    pred3 = f(z).float()
+    logprobgrad_3 = torch.autograd.grad(outputs=pred3, inputs=(bern_param), retain_graph=True)[0]
+
+    grad = (f(b) - eta*pred) * logprobgrad - eta*logprobgrad_2 + logprobgrad_3
+
+    dif = (f(b) - eta*pred).detach().numpy()
+
+    difs.append((dif)**2)
+    samps.append(b)
+    grads.append(grad.detach().numpy())
+
+print ('Grad Estimator: REBAR')
+print ('Avg samp', np.mean(samps))
+print ('Grad mean', np.mean(grads))
+print ('Grad std', np.std(grads))
+print ('Avg dif', np.mean(difs))
+
+print ()
+
+
+fsadfds
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -209,33 +337,6 @@ print ()
 
 
 
-
-
-
-
-
-
-
-
-dist = Bernoulli(bern_param)
-
-
-samps = []
-grads = []
-for i in range(n):
-    samp = dist.sample()
-
-    logprob = dist.log_prob(samp)
-    logprobgrad = torch.autograd.grad(outputs=logprob, inputs=(bern_param), retain_graph=True)[0]
-
-    samps.append(samp.numpy())
-    grads.append(f(samp.numpy()) * logprobgrad.numpy())
-
-print ('Grad Estimator: REINFORCE')
-print ('Avg samp', np.mean(samps))
-print ('Grad mean', np.mean(grads))
-print ('Grad std', np.std(grads))
-print()
 
 
 
