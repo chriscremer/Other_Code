@@ -150,7 +150,8 @@ class VAE(nn.Module):
             theta = logit_to_prob(logits)
             v = torch.rand(z.shape[0], z.shape[1]).cuda()
             v_prime = v * (b - 1.) * (theta - 1.) + b * (v * theta + 1. - theta)
-            z_tilde = logits.detach() + torch.log(v_prime) - torch.log1p(-v_prime)
+            # z_tilde = logits.detach() + torch.log(v_prime) - torch.log1p(-v_prime)
+            z_tilde = logits + torch.log(v_prime) - torch.log1p(-v_prime)
             z_tilde = torch.sigmoid(z_tilde)
 
             # Control Variate
@@ -200,7 +201,7 @@ class VAE(nn.Module):
             theta = logit_to_prob(logits)
             v = torch.rand(z.shape[0], z.shape[1]).cuda()
             v_prime = v * (b - 1.) * (theta - 1.) + b * (v * theta + 1. - theta)
-            z_tilde = logits.detach() + torch.log(v_prime) - torch.log1p(-v_prime)
+            z_tilde = logits + torch.log(v_prime) - torch.log1p(-v_prime)
             z_tilde = torch.sigmoid(z_tilde)
 
             # Control Variate
@@ -215,9 +216,13 @@ class VAE(nn.Module):
             logqb = torch.sum(logqb,1)
 
             Adv = (fhard - c_ztilde).detach()
+
+            # print (Adv.shape, logqb.shape)
             cost1 = Adv * logqb
 
             # Unbiased gradient of fhard/elbo
+            # print (cost1.shape, c_z.shape, c_ztilde.shape)
+            # fsdf
             cost_all = cost1 + c_z - c_ztilde#+ logpx_b
 
             # Surrogate loss
