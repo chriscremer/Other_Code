@@ -89,7 +89,7 @@ def my_logprob_nosigmoid(theta, y, temp=1.):
     logprob = np.log(temp) + diff - 2 * np.log(np.exp(diff)+1) 
     return logprob
 
-n= 1000 #10000
+n= 5000 #10000
 print ('n:', n)
 print ()
 
@@ -97,7 +97,9 @@ print ()
 thetas = np.linspace(.001,.03, 20)
 
 reinforce_grad_means = []
+reinforce_grad_stds = []
 pz_grad_means = []
+pz_grad_stds = []
 for theta in thetas:
     
 
@@ -135,6 +137,8 @@ for theta in thetas:
     print()
 
     reinforce_grad_means.append(np.mean(grads))
+    reinforce_grad_stds.append(np.std(grads))
+
 
 
 
@@ -187,6 +191,7 @@ for theta in thetas:
     print ()
 
     pz_grad_means.append(np.mean(grads))
+    pz_grad_stds.append(np.std(grads))
 
 
 print (thetas)
@@ -194,9 +199,14 @@ print (reinforce_grad_means)
 print (pz_grad_means)
 
 
+reinforce_grad_means = np.array(reinforce_grad_means)
+pz_grad_means = np.array(pz_grad_means)
+reinforce_grad_stds = np.array(reinforce_grad_stds)
+pz_grad_stds = np.array(pz_grad_stds)
 
-rows = 1
-cols = 1
+
+rows = 2
+cols = 2
 fig = plt.figure(figsize=(10+cols,4+rows), facecolor='white') #, dpi=150)
 
 col =0
@@ -204,10 +214,60 @@ row = 0
 ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
 
 ax.plot(thetas, reinforce_grad_means, label='reinforce')
-ax.plot(thetas, pz_grad_means, label='reinforce p(z)')
+plt.gca().fill_between(thetas.flat, 
+        reinforce_grad_means-reinforce_grad_stds, reinforce_grad_means+reinforce_grad_stds, color="#dddddd")
+ax.set_ylim(bottom=-5, top=5)
 ax.plot(thetas, np.ones(len(thetas))*dif, label='expected')
-
 ax.legend()
+
+
+col =0
+row = 1
+ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+
+ax.plot(thetas, pz_grad_means, label='reinforce p(z)')
+plt.gca().fill_between(thetas.flat, 
+        pz_grad_means-pz_grad_stds, pz_grad_means+pz_grad_stds, color="#dddddd")
+
+ax.plot(thetas, np.ones(len(thetas))*dif, label='expected')
+ax.set_ylim(bottom=-5, top=5)
+ax.legend()
+
+
+
+col =1
+row = 0
+ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+
+ax.plot(thetas, reinforce_grad_means, label='reinforce')
+plt.gca().fill_between(thetas.flat, 
+        reinforce_grad_means-reinforce_grad_stds, reinforce_grad_means+reinforce_grad_stds, color="#dddddd")
+ax.set_ylim(bottom=-70, top=70)
+ax.plot(thetas, np.ones(len(thetas))*dif, label='expected')
+ax.legend()
+
+
+col =1
+row = 1
+ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+
+ax.plot(thetas, pz_grad_means, label='reinforce p(z)')
+plt.gca().fill_between(thetas.flat, 
+        pz_grad_means-pz_grad_stds, pz_grad_means+pz_grad_stds, color="#dddddd")
+
+ax.plot(thetas, np.ones(len(thetas))*dif, label='expected')
+ax.set_ylim(bottom=-70, top=70)
+ax.legend()
+
+
+
+
+
+
+
+
+
+
 
 save_dir = home+'/Documents/Grad_Estimators/new/'
 plt_path = save_dir+'is_grad_dependent_2.png'

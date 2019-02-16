@@ -38,18 +38,29 @@ class NN(nn.Module):
         #   nn.ReLU(),
         #   nn.Linear(h_size,self.output_size)
         # )
+
+        # self.net = nn.Sequential(
+        #   nn.Linear(self.input_size,h_size),
+        #   # nn.Tanh(),
+        #   # nn.Linear(h_size,h_size),
+        #   nn.Tanh(),
+        #   nn.Linear(h_size,self.output_size),
+        #   # nn.Tanh(),
+        #   # nn.Linear(h_size,self.output_size)
+        # )
+
         self.net = nn.Sequential(
           nn.Linear(self.input_size,h_size),
           # nn.Tanh(),
           # nn.Linear(h_size,h_size),
-          nn.Tanh(),
-          nn.Linear(h_size,self.output_size),
-          # nn.Tanh(),
-          # nn.Linear(h_size,self.output_size)
+          nn.LeakyReLU(),
+          nn.Linear(h_size,h_size),
+          nn.LeakyReLU(),
+          nn.Linear(h_size,self.output_size)
         )
 
         # self.optimizer = optim.Adam(self.parameters(), lr=.01)
-        self.optimizer = optim.Adam(self.parameters(), lr=.0004)
+        # self.optimizer = optim.Adam(self.parameters(), lr=.0004)
 
 
 
@@ -97,9 +108,9 @@ class ResidualBlock(nn.Module):
 
         conv_block = [  
                         nn.Linear(in_features, in_features),
-                        # nn.BatchNorm1d(in_features),
+                        nn.LayerNorm(in_features),
                         nn.LeakyReLU(inplace=True),
-                        # nn.ReflectionPad2d(1),
+                        nn.LayerNorm(in_features),
                         nn.Linear(in_features, in_features),]
                         # nn.BatchNorm1d(in_features)]
 
