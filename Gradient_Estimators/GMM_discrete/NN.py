@@ -107,11 +107,13 @@ class ResidualBlock(nn.Module):
         super(ResidualBlock, self).__init__()
 
         conv_block = [  
+                        nn.LeakyReLU(inplace=True),
                         nn.Linear(in_features, in_features),
                         nn.LayerNorm(in_features),
                         nn.LeakyReLU(inplace=True),
-                        nn.LayerNorm(in_features),
-                        nn.Linear(in_features, in_features),]
+                        nn.Linear(in_features, in_features),
+                        # nn.LayerNorm(in_features),
+                        ]
                         # nn.BatchNorm1d(in_features)]
 
         self.conv_block = nn.Sequential(*conv_block)
@@ -122,7 +124,7 @@ class ResidualBlock(nn.Module):
 
 
 class NN3(nn.Module):
-    def __init__(self, input_size, output_size, seed=1):
+    def __init__(self, input_size, output_size, seed=1, n_residual_blocks=3):
         super(NN3, self).__init__()
 
         torch.manual_seed(seed)
@@ -151,7 +153,7 @@ class NN3(nn.Module):
         self.first_layer = nn.Linear(self.input_size,h_size)
         self.last_layer = nn.Linear(h_size,self.output_size)
 
-        n_residual_blocks = 3
+        # n_residual_blocks = 5
         model = []
         # Residual blocks
         for _ in range(n_residual_blocks):
@@ -160,11 +162,17 @@ class NN3(nn.Module):
 
     def net(self, x):
 
-        out = F.leaky_relu(self.first_layer(x))
+        # out = F.leaky_relu(self.first_layer(x))
+        out = self.first_layer(x)
         out = self.part3(out)
         out = self.last_layer(out)
 
         return out
+
+
+
+
+
 
 
 

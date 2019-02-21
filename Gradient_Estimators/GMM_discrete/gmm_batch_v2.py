@@ -33,7 +33,7 @@ from NN import NN3
 
 
 
-exp_name = 'anothertry'
+exp_name = 'optimize_single_datapoint'
 save_dir = home+'/Documents/Grad_Estimators/GMM/'
 
 
@@ -110,24 +110,12 @@ def sample_true2():
     # print (samp)
     return samp,cluster
 
-
-def copmute_logpx(x):
-
-    probs_sum = 0
-    for i in range(len(x)):
-        x_i = x[i].view(1,1)
-        logpx = logprob_givenmixtureeweights(x_i, needsoftmax_mixtureweight)
-        probs_sum += logpx
-    return logpx / len(x)
-
-
-
 def logprob_givenmixtureeweights(x, needsoftmax_mixtureweight):
 
     mixture_weights = torch.softmax(needsoftmax_mixtureweight, dim=0)
     probs_sum = 0# = []
     for c in range(n_components):
-        m = Normal(torch.tensor([c*10.]).float().cuda(), torch.tensor([5.0]).float().cuda())
+        m = Normal(torch.tensor([c*10.]).float(), torch.tensor([5.0]).float())
         # for x in xs:
         component_i = torch.exp(m.log_prob(x))* mixture_weights[c] #.numpy()
         # probs.append(probs)
@@ -137,104 +125,46 @@ def logprob_givenmixtureeweights(x, needsoftmax_mixtureweight):
 
 def L2_mixtureweights(w1,w2):
     dif = w1-w2
-    # print (w1)
-    # print (w2)
-    # print (dif)
-    # ffasd
     return np.sqrt(np.sum(dif**2))
 
-
-def KL_mixutreweights(p,q):
-    p += .0000001
-    kl = np.sum(q*np.log(q/p))
-    return kl
-
-
-
 def inference_error():
-
-    error_sum = 0
-    kl_sum = 0
-    n=10
-    for i in range(n):
-
-        # if x is None:
-        x = sample_true(1).cuda() 
-        trueposterior = true_posterior(x, needsoftmax_mixtureweight).view(n_components)
-
-        logits = encoder.net(x)
-        probs = torch.softmax(logits/100., dim=1).view(n_components)
-
-        error = L2_mixtureweights(trueposterior.data.cpu().numpy(),probs.data.cpu().numpy())
-        kl = KL_mixutreweights(trueposterior.data.cpu().numpy(), probs.data.cpu().numpy())
-
-        error_sum+=error
-        kl_sum += kl
-    
-    return error_sum/n, kl_sum/n
-    # fsdfa
-
-
-
-def true_posterior(x, needsoftmax_mixtureweight):
-
-    mixture_weights = torch.softmax(needsoftmax_mixtureweight, dim=0)
-    probs_ = []
-    for c in range(n_components):
-        m = Normal(torch.tensor([c*10.]).float().cuda(), torch.tensor([5.0]).float().cuda())
-        component_i = torch.exp(m.log_prob(x))* mixture_weights[c] #.numpy()
-        # print(component_i.shape)
-        # fsdf
-        probs_.append(component_i[0])
-    probs_ = torch.stack(probs_)
-    probs_ = probs_ / torch.sum(probs_)
-    # print (probs_.shape)
-    # fdssdfd
-    # logprob = torch.log(probs_sum)
-    return probs_
-
-
-def compute_kl_batch(x,probs):
-
-    # print (x.shape) #[B,1]
-    # print (probs.shape) #[B,C]
-
-    #get true posterior 
-    true_posts = []
-    for i in range(len(x)):
-        x_i = x[i].view(1,1)
-        trueposterior = true_posterior(x_i, needsoftmax_mixtureweight).view(n_components)
-        # print (trueposterior.shape) #[C]
-        # print (trueposterior)
-        # fsdf
-        true_posts.append(trueposterior)
-    true_posts = torch.stack(true_posts)
-    # print (true_posts.shape)
-
-    true_posts += .0000001
-    kl = torch.sum(probs*torch.log(probs/true_posts), dim=1)
-    kl = torch.mean(kl)
-    # print (kl.shape)
-    
-    # fasdfa
-    return kl
-
-
-
-def plot_posteriors(name=''):
 
     x = sample_true(1).cuda() 
     trueposterior = true_posterior(x, needsoftmax_mixtureweight).view(n_components)
 
+
+
     logits = encoder.net(x)
-    probs = torch.softmax(logits/100., dim=1).view(n_components)
+    probs = torch.softmax(logits, dim=1).view(n_components)
+
+
+    # print(trueposterior)
+    # print (probs)
+    # print ((trueposterior-probs)**2)
+    # print()
+
+    # print (trueposterior.shape)
+    # print (probs.shape)
+    # print (L2_mixtureweights(trueposterior.data.cpu().numpy(),probs.data.cpu().numpy()))
+    return L2_mixtureweights(trueposterior.data.cpu().numpy(),probs.data.cpu().numpy())
+    # fsdfa
+
+
+def plot_posteriors(x=None, name=''):
+
+    if x is None:
+        x = sample_true(1).cuda() 
+    else:
+        x = x[0].view(1,1)
+
+
+    trueposterior = true_posterior(x, needsoftmax_mixtureweight).view(n_components)
+
+    logits = encoder.net(x)
+    probs = torch.softmax(logits, dim=1).view(n_components)
 
     trueposterior = trueposterior.data.cpu().numpy()
     qz = probs.data.cpu().numpy()
-
-    error = L2_mixtureweights(trueposterior,qz)
-    kl = KL_mixutreweights(p=trueposterior, q=qz)
-
 
     rows = 1
     cols = 1
@@ -250,11 +180,10 @@ def plot_posteriors(name=''):
     # ax.bar(np.array(range(len(q_b)))+width+width, q_b, width=width)
     ax.legend()
     ax.grid(True, alpha=.3)
-    ax.set_title(str(error) + ' kl:' + str(kl))
-    ax.set_ylim(0.,1.)
+    ax.set_title(str(x))
 
     # save_dir = home+'/Documents/Grad_Estimators/GMM/'
-    plt_path = exp_dir+'posteriors'+name+'.png'
+    plt_path = exp_dir+'posteriors' + name+'.png'
     plt.savefig(plt_path)
     print ('saved training plot', plt_path)
     plt.close()
@@ -295,9 +224,6 @@ def logprob_undercomponent(x, component, needsoftmax_mixtureweight, cuda=False):
     # print (mixture_weights[component])
     # print (torch.log(mixture_weights[component]).shape)
     # fdsasa
-    # print (logpx_given_z.shape)
-    # print (logpz.shape)
-    # fsdfas
     logprob = logpx_given_z + logpz
     # print (logprob.shape)
     # fsfd
@@ -308,6 +234,22 @@ def logprob_undercomponent(x, component, needsoftmax_mixtureweight, cuda=False):
 
 
 
+def true_posterior(x, needsoftmax_mixtureweight):
+
+    mixture_weights = torch.softmax(needsoftmax_mixtureweight, dim=0)
+    probs_ = []
+    for c in range(n_components):
+        m = Normal(torch.tensor([c*10.]).float().cuda(), torch.tensor([5.0]).float().cuda())
+        component_i = torch.exp(m.log_prob(x))* mixture_weights[c] #.numpy()
+        # print(component_i.shape)
+        # fsdf
+        probs_.append(component_i[0])
+    probs_ = torch.stack(probs_)
+    probs_ = probs_ / torch.sum(probs_)
+    # print (probs_.shape)
+    # fdssdfd
+    # logprob = torch.log(probs_sum)
+    return probs_
 
 
 
@@ -334,10 +276,9 @@ def check_nan(x):
 
 def plot_curve(steps, thetaloss, infloss, surrloss, grad_reinforce_list, grad_reparam_list,
                 f_list,
-                logpxz_list, logprob_cluster_list,
-                inf_losses_kl, kl_losses_2, logpx_list):
+                logpxz_list, logprob_cluster_list):
 
-    rows = 10
+    rows = 7
     cols = 1
     fig = plt.figure(figsize=(8+cols,8+rows), facecolor='white') #, dpi=150)
 
@@ -346,28 +287,24 @@ def plot_curve(steps, thetaloss, infloss, surrloss, grad_reinforce_list, grad_re
     ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
 
     ax.plot(steps,thetaloss, label='theta loss')
-    # ax.legend()
+    ax.legend()
     ax.grid(True, alpha=.3)
-    ax.set_ylabel('theta loss')
 
     col =0
     row = 1
     ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
 
     ax.plot(steps,infloss, label='inference loss')
-    # ax.legend()  
+    ax.legend()  
     ax.grid(True, alpha=.3) 
-    ax.set_ylabel('inference loss')
-
 
     col =0
     row = 2
     ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
 
     ax.plot(steps,surrloss, label='surrogate loss')   
-    # ax.legend()
+    ax.legend()
     ax.grid(True, alpha=.3)
-    ax.set_ylabel('surrogate loss')
 
 
     col =0
@@ -411,35 +348,6 @@ def plot_curve(steps, thetaloss, infloss, surrloss, grad_reinforce_list, grad_re
     ax.set_ylabel('logprob_cluster')
 
 
-    col =0
-    row = 7
-    ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
-
-    ax.plot(steps,inf_losses_kl, label='inference loss KL')
-    # ax.legend()  
-    ax.grid(True, alpha=.3) 
-    ax.set_ylabel('KL')
-
-    col =0
-    row = 8
-    ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
-
-    ax.plot(steps,kl_losses_2, label='inference loss KL')
-    # ax.legend()  
-    ax.grid(True, alpha=.3) 
-    ax.set_ylabel('KL 2')
-
-    col =0
-    row = 9
-    ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
-
-    ax.plot(steps,logpx_list, label='inference loss KL')
-    # ax.legend()  
-    ax.grid(True, alpha=.3) 
-    ax.set_ylabel('logpx_list')
-
-
-
 
     # save_dir = home+'/Documents/Grad_Estimators/GMM/'
     plt_path = exp_dir+'gmm_curveplot.png'
@@ -461,7 +369,7 @@ def show_surr_preds():
 
         x = sample_true(1).cuda() #.view(1,1)
         logits = encoder.net(x)
-        probs = torch.softmax(logits/100., dim=1)
+        probs = torch.softmax(logits, dim=1)
         cat = RelaxedOneHotCategorical(probs=probs, temperature=torch.tensor([1.]).cuda())
         cluster_S = cat.rsample()
         cluster_H = H(cluster_S)
@@ -478,7 +386,7 @@ def show_surr_preds():
         xz = torch.cat([z,x], dim=1) 
 
         logpxz = logprob_undercomponent(x, component=cluster_H, needsoftmax_mixtureweight=needsoftmax_mixtureweight, cuda=True)
-        f = logpxz #- logprob_cluster
+        f = logpxz - logprob_cluster
 
         surr_pred = surrogate.net(xz)
         surr_pred = surr_pred.data.cpu().numpy()
@@ -503,8 +411,13 @@ def show_surr_preds():
 
 
 
-def plot_dist():
+def plot_dist(x=None):
 
+    if x is None:
+        x1 = sample_true(1).cuda() 
+    else:
+        x1 = x[0].cpu().numpy()#.view(1,1)
+        # print (x)
 
     mixture_weights = torch.softmax(needsoftmax_mixtureweight, dim=0)
 
@@ -537,13 +450,16 @@ def plot_dist():
 
     ax.plot(xs, sum_, label='')
 
+    # print (x)
+    ax.plot([x1,x1+.001],[0.,.002])
+    # fasda
+
     # save_dir = home+'/Documents/Grad_Estimators/GMM/'
     plt_path = exp_dir+'gmm_plot_dist.png'
     plt.savefig(plt_path)
     print ('saved training plot', plt_path)
     plt.close()
     
-
 
 
 
@@ -570,7 +486,7 @@ if simplax:
 
         x = sample_true(batch_size).cuda() #.view(1,1)
         logits = encoder.net(x)
-        probs = torch.softmax(logits/100., dim=1)
+        probs = torch.softmax(logits, dim=1)
         cat = RelaxedOneHotCategorical(probs=probs, temperature=torch.tensor([temp]).cuda())
         cluster_S = cat.rsample()
         cluster_H = H(cluster_S)
@@ -580,7 +496,7 @@ if simplax:
         check_nan(logprob_cluster)
 
         logpxz = logprob_undercomponent(x, component=cluster_H, needsoftmax_mixtureweight=needsoftmax_mixtureweight, cuda=True)
-        f = logpxz # - logprob_cluster
+        f = logpxz - logprob_cluster
 
         surr_input = torch.cat([cluster_S, x], dim=1) #[B,21]
         surr_pred = surrogate.net(surr_input)
@@ -600,17 +516,15 @@ if simplax:
     # optim_net = torch.optim.Adam(encoder.parameters(), lr=.0004)
     # optim_surr = torch.optim.Adam(surrogate.parameters(), lr=.004)
     optim = torch.optim.Adam([needsoftmax_mixtureweight], lr=.0001)
-    optim_net = torch.optim.Adam(encoder.parameters(), lr=.0001)
+    optim_net = torch.optim.Adam(encoder.parameters(), lr=.001)
     optim_surr = torch.optim.Adam(surrogate.parameters(), lr=.005)
     temp = 1.
-    batch_size = 100
+    batch_size = 1 #00
     n_steps = 300000
-    surrugate_steps = 0#5000
-    k = 1
+    surrugate_steps = 1#00
+    k = 10000
     L2_losses = []
     inf_losses = []
-    inf_losses_kl = []
-    kl_losses_2 = []
     surr_losses = []
     steps_list =[]
     grad_reparam_list =[]
@@ -618,42 +532,76 @@ if simplax:
     f_list = []
     logpxz_list = []
     logprob_cluster_list = []
-    logpx_list = []
     # logprob_cluster_list = []
 
-    for ii in range(surrugate_steps):
-        surr_loss = get_loss()
-        optim_surr.zero_grad()
-        surr_loss.backward()
-        optim_surr.step()
-        if ii%1000==0:
-            print (ii, surr_loss)
+    x = sample_true(batch_size).cuda() #.view(1,1)
 
-
+    counts = np.zeros(n_components)
     for step in range(n_steps):
 
-        x = sample_true(batch_size).cuda() #.view(1,1)
+        for ii in range(surrugate_steps):
+            surr_loss = get_loss()
+            optim_surr.zero_grad()
+            surr_loss.backward()
+            optim_surr.step()
+
+        # x = sample_true(batch_size).cuda() #.view(1,1)
         logits = encoder.net(x)
-        probs = torch.softmax(logits/100., dim=1)
-        # print (probs)
-        # fsdafsa
+        probs = torch.softmax(logits, dim=1)
+
+        probs2 = probs.cpu().data.numpy()[0]
+        print()
+        for iii in range(len(probs2)):
+            print(str(iii)+':'+str(probs2[iii]), end =" ")
+        print ()
+
+        # print (probs.shape)
+        print (probs)
+        # fsdf
         cat = RelaxedOneHotCategorical(probs=probs, temperature=torch.tensor([temp]).cuda())
 
         net_loss = 0
         loss = 0
         surr_loss = 0
+        grads = 0
         for jj in range(k):
 
             cluster_S = cat.rsample()
+            # print (cluster_S.shape)
+            # dfsafd
+
+            # cluster_onehot = torch.zeros(n_components).cuda()
+            # cluster_onehot[jj%20] =1.
+            # cluster_S = torch.softmax(cluster_onehot, dim=0).view(1,20)
+
+            # print (cluster_onehot)
+            # logprob_cluster = cat.log_prob(cluster_onehot.detach()).view(batch_size,1)
+            # print (logprob_cluster)
+            # fsdfasd
+
+
             cluster_H = H(cluster_S)
+            
+            comp = cluster_H.cpu().numpy()[0]
+            # print (comp)
+            counts[comp] +=1
+            # fsfsa
+            # print (x, 'samp', cluster_H)
             # cluster_onehot = torch.zeros(n_components)
             # cluster_onehot[cluster_H] = 1.
+
+
+
+
             logprob_cluster = cat.log_prob(cluster_S.detach()).view(batch_size,1)
             check_nan(logprob_cluster)
 
             logpxz = logprob_undercomponent(x, component=cluster_H, needsoftmax_mixtureweight=needsoftmax_mixtureweight, cuda=True)
             f = logpxz #- logprob_cluster
-            # print (f)
+            # print (jj%20, f, logprob_cluster)
+            print ()
+            print ('H:', comp, 'f', f, )
+            print ('logq', logprob_cluster)
 
             surr_input = torch.cat([cluster_S, x], dim=1) #[B,21]
             surr_pred = surrogate.net(surr_input)
@@ -662,21 +610,68 @@ if simplax:
             # print (surr_pred.shape)
             # print (logprob_cluster.shape)
             # fsadfsa
-            surr_loss_1 = torch.mean(torch.abs(f.detach()-surr_pred))
-            # if surr_loss_1 > 1.:
-            net_loss += - torch.mean((f.detach()) * logprob_cluster - logprob_cluster)
-            fsfas
-            # else:
-            #     net_loss += - torch.mean((f.detach()-surr_pred.detach()) * logprob_cluster + surr_pred - logprob_cluster)
+            # net_loss = - torch.mean((f.detach()-surr_pred.detach()) * logprob_cluster + surr_pred)
+            net_loss = - torch.mean((f.detach()) * logprob_cluster)
+            loss = - torch.mean(f)
+            surr_loss = torch.mean(torch.abs(f.detach()-surr_pred))
 
-            loss += - torch.mean(f)
-            surr_loss += surr_loss_1
+            grad = torch.autograd.grad(outputs=net_loss, inputs=(probs), retain_graph=True)[0]
+            grad = grad.cpu().numpy()[0]
+
+
+            optim_net.zero_grad()
+            net_loss.backward(retain_graph=True)
+            optim_net.step()
+
+            logits11 = encoder.net(x)
+            probs11 = torch.softmax(logits11, dim=1)
+            print ('probs', probs11)
+            # print('cluster_S', cluster_S)
+            print ('grad:', grad)
+            # print ()
+            # print()
+
+
+
+            cat22 = RelaxedOneHotCategorical(probs=probs11, temperature=torch.tensor([temp]).cuda())
+            print ('logprob post', cat22.log_prob(cluster_S.detach()).view(batch_size,1))
+            print ()
+            print()
+
+            if jj ==2:
+                ffasd
+
+            grads += grad
+
+
+            # if jj%100==0:
+
+            #     print ()
+            #     print (jj)
+            #     print (counts)
+            #     for iii in range(len(grads)):
+            #         print(str(iii)+':'+str(grads[iii]//jj), end =" ")
+            #     # print ()
+
+            
 
         net_loss = net_loss/ k
         loss = loss / k
         surr_loss = surr_loss/ k
 
 
+        plot_posteriors(x=x,name=str(step))
+
+
+        grad = torch.autograd.grad(outputs=net_loss, inputs=(probs), retain_graph=True)[0]
+        grad = grad.cpu().numpy()[0]
+        for iii in range(len(grad)):
+            print(str(iii)+':'+str(grad[iii]), end =" ")
+        print ()
+        plot_posteriors(x=x,name=str(step))
+
+
+        fdadsd
 
         # if step %2==0:
         #     optim.zero_grad()
@@ -691,17 +686,18 @@ if simplax:
         surr_loss.backward(retain_graph=True)
         optim_surr.step()
 
-        # print (torch.mean(f).cpu().data.numpy())
-        # plot_posteriors(name=str(step))
-        # fsdf
-
-        # kl_batch = compute_kl_batch(x,probs)
-
 
         if step%500==0:
             print (step, 'f:', torch.mean(f).cpu().data.numpy(), 'surr_loss:', surr_loss.cpu().data.detach().numpy(), 
                             'theta dif:', L2_mixtureweights(true_mixture_weights,torch.softmax(
                                         needsoftmax_mixtureweight, dim=0).cpu().data.detach().numpy()))
+            
+            # print (x[0])
+            # fsf
+            # plot_posteriors(x=x,name=str(step))
+            plot_dist(x=x)
+
+
             if step %5000==0:
                 print (torch.softmax(needsoftmax_mixtureweight, dim=0).cpu().data.detach().numpy()) 
                 # test_samp, test_cluster = sample_true2() 
@@ -714,15 +710,10 @@ if simplax:
                 steps_list.append(step)
                 surr_losses.append(surr_loss.cpu().data.detach().numpy())
 
-                inf_error, kl_error = inference_error()
+                inf_error = inference_error()
                 inf_losses.append(inf_error)
-                inf_losses_kl.append(kl_error)
 
-                kl_batch = compute_kl_batch(x,probs)
-                kl_losses_2.append(kl_batch)
 
-                logpx = copmute_logpx(x)
-                logpx_list.append(logpx)
 
                 f_list.append(torch.mean(f).cpu().data.detach().numpy())
                 logpxz_list.append(torch.mean(logpxz).cpu().data.detach().numpy())
@@ -760,20 +751,17 @@ if simplax:
 
 
 
-            if len(surr_losses) > 3  and step %1000==0:
+            if len(surr_losses) > 3  and step %5000==0:
                 plot_curve(steps=steps_list,  thetaloss=L2_losses, 
                             infloss=inf_losses, surrloss=surr_losses,
                             grad_reinforce_list=grad_reinforce_list, 
                             grad_reparam_list=grad_reparam_list,
                             f_list=f_list, logpxz_list=logpxz_list,
-                            logprob_cluster_list=logprob_cluster_list,
-                            inf_losses_kl=inf_losses_kl,
-                            kl_losses_2=kl_losses_2,
-                            logpx_list=logpx_list)
+                            logprob_cluster_list=logprob_cluster_list)
 
 
-                plot_posteriors()
-                plot_dist()
+                # plot_posteriors(x)
+                # plot_dist()
                 show_surr_preds()
                 
 
@@ -801,6 +789,9 @@ if simplax:
     with open( exp_dir+"data_simplax.p", "wb" ) as f:
         pickle.dump(data_dict, f)
     print ('saved data')
+
+
+
 
 
 
@@ -943,6 +934,9 @@ if reinforce:
     with open( exp_dir+"data_reinforce.p", "wb" ) as f:
         pickle.dump(data_dict, f)
     print ('saved data')
+
+
+
 
 
 
