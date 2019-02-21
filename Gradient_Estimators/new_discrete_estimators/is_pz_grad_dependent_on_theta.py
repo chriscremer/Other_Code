@@ -44,13 +44,18 @@ def logit_to_prob(logit):
 
 
 
-val= .4
-f = lambda x: (x-val)**2
+# val= .4
+# f = lambda x: (x-val)**2
+def f(x):
+    if x==0:
+        return 0.
+    else:
+        return 1.
 # f = lambda x: x
 dif = f(1)-f(0)
 
 print ()
-print ('Value:', val)
+# print ('Value:', val)
 print (f(0))
 print (f(1))
 print ('so dif in f(1) and f(0) is', dif)
@@ -75,6 +80,7 @@ def my_logprob_v3(y):
 
 def my_logprob_v4(y):
     return np.log((theta - theta**2)/ (-2*theta*y + theta + y)**2)
+    
 def my_logprob_v4_grad(y):
     return (y-theta) / ((theta-1)*theta*((2*theta-1)*y-theta))
 
@@ -93,8 +99,9 @@ n= 5000 #10000
 print ('n:', n)
 print ()
 
-# thetas = np.linspace(.001,.999, 20)
-thetas = np.linspace(.001,.03, 20)
+thetas = np.linspace(.001,.999, 20)
+# thetas = np.linspace(.001,.03, 20)
+# thetas = np.linspace(.97,.999, 12)
 
 reinforce_grad_means = []
 reinforce_grad_stds = []

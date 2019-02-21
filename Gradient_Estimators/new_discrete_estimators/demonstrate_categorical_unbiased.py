@@ -42,14 +42,15 @@ def H(soft):
 #     return torch.sigmoid(logit)
 
 def f(x):
-    rewards = [1.,0.,0.]
-    rewards = torch.tensor(rewards)
+    rewards = np.zeros(n_cats)
+    rewards[0] = 1.
+    rewards = torch.tensor(rewards).float()
     # print (x, rewards)
     return torch.dot(x,rewards)
 
 
-n= 10000 #10000
-n_cats = 3
+n= 500000 #10000
+n_cats = 20
 # theta = .01 #.99 #.1 #95 #.3 #.9 #.05 #.3
 # bern_param = torch.tensor([theta], requires_grad=True)
 # val= .4
@@ -201,7 +202,7 @@ temp = 1.
 
 
 # needsoftmax_mixtureweight = torch.randn(n_cats, requires_grad=True)
-needsoftmax_mixtureweight = torch.tensor([1.,1.,1.], requires_grad=True)
+needsoftmax_mixtureweight = torch.tensor(np.ones(n_cats), requires_grad=True)
 # needsoftmax_mixtureweight = torch.randn(n_cats, requires_grad=True)
 weights = torch.softmax(needsoftmax_mixtureweight, dim=0)
 
@@ -262,7 +263,7 @@ print()
 
 
 # needsoftmax_mixtureweight = torch.randn(n_cats, requires_grad=True)
-needsoftmax_mixtureweight = torch.tensor([1.,1.,1.], requires_grad=True)
+needsoftmax_mixtureweight = torch.tensor(np.ones(n_cats), requires_grad=True).float()
 # needsoftmax_mixtureweight = torch.randn(n_cats, requires_grad=True)
 weights = torch.softmax(needsoftmax_mixtureweight, dim=0)
 
@@ -273,7 +274,7 @@ cat = RelaxedOneHotCategorical(probs=weights, temperature=torch.tensor([1.]))#.c
 # dist = Bernoulli(bern_param)
 # samps = []
 avg_samp = torch.zeros(n_cats)
-grads = []
+gradspz = []
 logprobgrads = []
 for i in range(n):
     # samp = dist.sample()
@@ -291,10 +292,10 @@ for i in range(n):
     # fdfas
     avg_samp += one_hot
     # samps.append(one_hot.numpy())
-    grads.append( (f(one_hot) * logprobgrad).numpy())
+    gradspz.append( (f(one_hot) * logprobgrad).numpy())
     logprobgrads.append(logprobgrad.numpy())
 
-grads = np.array(grads)
+gradspz = np.array(gradspz)
 logprobgrads = np.array(logprobgrads)
 # print (grads.shape, logprobgrads.shape)
 
@@ -303,13 +304,17 @@ logprobgrads = np.array(logprobgrads)
 print ('Grad Estimator: REINFORCE p(z)')
 print ()
 print ('Avg samp', avg_samp/n)
-print ('Grad mean', np.mean(grads, axis=0))
-print ('Grad std', np.std(grads, axis=0))
+print ('Grad mean', np.mean(gradspz, axis=0))
+print ('Grad std', np.std(gradspz, axis=0))
 print ('Avg logprobgrad', np.mean(logprobgrads, axis=0))
 print ('Std logprobgrad', np.std(logprobgrads, axis=0))
 print()
 
-
+print ('Dif')
+# dif = np.mean(grads, axis=0) - np.mean(grads, axis=0)
+# for i in range(len(dif)):
+#     print (i, dif[i])
+print (np.mean(gradspz, axis=0) - np.mean(grads, axis=0))
 
 fadsfd
 
