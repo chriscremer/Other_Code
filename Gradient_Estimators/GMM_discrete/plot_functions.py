@@ -61,13 +61,13 @@ def logprob_givenmixtureeweights(x, needsoftmax_mixtureweight):
     logprob = torch.log(probs_sum)
     return logprob
 
-def L2_mixtureweights(w1,w2):
-    dif = w1-w2
-    # print (w1)
-    # print (w2)
-    # print (dif)
-    # ffasd
-    return np.sqrt(np.sum(dif**2))
+# def L2_mixtureweights(w1,w2):
+#     dif = w1-w2
+#     # print (w1)
+#     # print (w2)
+#     # print (dif)
+#     # ffasd
+#     return np.sqrt(np.sum(dif**2))
 
 
 def KL_mixutreweights(p,q):
@@ -236,128 +236,154 @@ def inference_error(needsoftmax_mixtureweight):
 
 
 
+def plot_curve2(data_dict, exp_dir):
 
-
-
-
-
-
-
-
-def plot_curve(steps, thetaloss, infloss, surrloss, grad_reinforce_list, grad_reparam_list,
-                f_list,
-                logpxz_list, logprob_cluster_list,
-                inf_losses_kl, kl_losses_2, logpx_list):
-
-    rows = 10
+    rows = len(data_dict) - 1
     cols = 1
     fig = plt.figure(figsize=(8+cols,8+rows), facecolor='white') #, dpi=150)
 
-    col =0
-    row = 0
-    ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+    steps = data_dict['steps']
+    col=0
+    row=0
+    for k,v in data_dict.items():
+        if k == 'steps':
+            continue
 
-    ax.plot(steps,thetaloss, label='theta loss')
-    # ax.legend()
-    ax.grid(True, alpha=.3)
-    ax.set_ylabel('theta loss')
+        ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
 
-    col =0
-    row = 1
-    ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+        ax.plot(steps, v, label=v[-1])
+        ax.legend()
+        ax.grid(True, alpha=.3)
+        ax.set_ylabel(k)
 
-    ax.plot(steps,infloss, label='inference loss')
-    # ax.legend()  
-    ax.grid(True, alpha=.3) 
-    ax.set_ylabel('inference loss')
-
-
-    col =0
-    row = 2
-    ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
-
-    ax.plot(steps,surrloss, label='surrogate loss')   
-    # ax.legend()
-    ax.grid(True, alpha=.3)
-    ax.set_ylabel('surrogate loss')
-
-
-    col =0
-    row = 3
-    ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
-
-    ax.plot(steps,grad_reinforce_list, label='reinforce')   
-    ax.plot(steps,grad_reparam_list, label='reparam')   
-    ax.legend()
-    ax.grid(True, alpha=.3)
-    ax.set_ylim(0., 40.)
-
-
-    col =0
-    row = 4
-    ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
-
-    ax.plot(steps,f_list)   
-    # ax.legend()
-    ax.grid(True, alpha=.3)
-    ax.set_ylabel('f/ELBO')
-
-
-    col =0
-    row = 5
-    ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
-
-    ax.plot(steps,logpxz_list) 
-    # ax.legend()
-    ax.grid(True, alpha=.3)
-    ax.set_ylabel('logpxz')
-
-
-    col =0
-    row = 6
-    ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
-
-    ax.plot(steps,logprob_cluster_list)   
-    # ax.legend()
-    ax.grid(True, alpha=.3)
-    ax.set_ylabel('logprob_cluster')
-
-
-    col =0
-    row = 7
-    ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
-
-    ax.plot(steps,inf_losses_kl, label='inference loss KL')
-    # ax.legend()  
-    ax.grid(True, alpha=.3) 
-    ax.set_ylabel('KL')
-
-    col =0
-    row = 8
-    ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
-
-    ax.plot(steps,kl_losses_2, label='inference loss KL')
-    # ax.legend()  
-    ax.grid(True, alpha=.3) 
-    ax.set_ylabel('KL 2')
-
-    col =0
-    row = 9
-    ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
-
-    ax.plot(steps,logpx_list, label='inference loss KL')
-    # ax.legend()  
-    ax.grid(True, alpha=.3) 
-    ax.set_ylabel('logpx_list')
-
-
-
+        row+=1
 
     # save_dir = home+'/Documents/Grad_Estimators/GMM/'
     plt_path = exp_dir+'gmm_curveplot.png'
     plt.savefig(plt_path)
     print ('saved training plot', plt_path)
     plt.close()
+
+
+
+
+
+
+
+# def plot_curve(steps, thetaloss, infloss, surrloss, grad_reinforce_list, grad_reparam_list,
+#                 f_list,
+#                 logpxz_list, logprob_cluster_list,
+#                 inf_losses_kl, kl_losses_2, logpx_list):
+
+#     rows = 10
+#     cols = 1
+#     fig = plt.figure(figsize=(8+cols,8+rows), facecolor='white') #, dpi=150)
+
+#     col =0
+#     row = 0
+#     ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+
+#     ax.plot(steps,thetaloss, label='theta loss')
+#     # ax.legend()
+#     ax.grid(True, alpha=.3)
+#     ax.set_ylabel('theta loss')
+
+#     col =0
+#     row = 1
+#     ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+
+#     ax.plot(steps,infloss, label='inference loss')
+#     # ax.legend()  
+#     ax.grid(True, alpha=.3) 
+#     ax.set_ylabel('inference loss')
+
+
+#     col =0
+#     row = 2
+#     ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+
+#     ax.plot(steps,surrloss, label='surrogate loss')   
+#     # ax.legend()
+#     ax.grid(True, alpha=.3)
+#     ax.set_ylabel('surrogate loss')
+
+
+#     col =0
+#     row = 3
+#     ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+
+#     ax.plot(steps,grad_reinforce_list, label='reinforce')   
+#     ax.plot(steps,grad_reparam_list, label='reparam')   
+#     ax.legend()
+#     ax.grid(True, alpha=.3)
+#     ax.set_ylim(0., 40.)
+
+
+#     col =0
+#     row = 4
+#     ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+
+#     ax.plot(steps,f_list)   
+#     # ax.legend()
+#     ax.grid(True, alpha=.3)
+#     ax.set_ylabel('f/ELBO')
+
+
+#     col =0
+#     row = 5
+#     ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+
+#     ax.plot(steps,logpxz_list) 
+#     # ax.legend()
+#     ax.grid(True, alpha=.3)
+#     ax.set_ylabel('logpxz')
+
+
+#     col =0
+#     row = 6
+#     ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+
+#     ax.plot(steps,logprob_cluster_list)   
+#     # ax.legend()
+#     ax.grid(True, alpha=.3)
+#     ax.set_ylabel('logprob_cluster')
+
+
+#     col =0
+#     row = 7
+#     ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+
+#     ax.plot(steps,inf_losses_kl, label='inference loss KL')
+#     # ax.legend()  
+#     ax.grid(True, alpha=.3) 
+#     ax.set_ylabel('KL')
+
+#     col =0
+#     row = 8
+#     ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+
+#     ax.plot(steps,kl_losses_2, label='inference loss KL')
+#     # ax.legend()  
+#     ax.grid(True, alpha=.3) 
+#     ax.set_ylabel('KL 2')
+
+#     col =0
+#     row = 9
+#     ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+
+#     ax.plot(steps,logpx_list, label='inference loss KL')
+#     # ax.legend()  
+#     ax.grid(True, alpha=.3) 
+#     ax.set_ylabel('logpx_list')
+
+
+
+
+#     # save_dir = home+'/Documents/Grad_Estimators/GMM/'
+#     plt_path = exp_dir+'gmm_curveplot.png'
+#     plt.savefig(plt_path)
+#     print ('saved training plot', plt_path)
+#     plt.close()
 
 
 
@@ -438,43 +464,85 @@ def show_surr_preds():
 
 
 
-def plot_posteriors(needsoftmax_mixtureweight, name=''):
+# def plot_posteriors(needsoftmax_mixtureweight, name=''):
 
-    x = sample_true(1).cuda() 
-    trueposterior = true_posterior(x, needsoftmax_mixtureweight).view(n_components)
+#     x = sample_true(1).cuda() 
+#     trueposterior = true_posterior(x, needsoftmax_mixtureweight).view(n_components)
 
-    logits = encoder.net(x)
-    probs = torch.softmax(logits, dim=1).view(n_components)
+#     logits = encoder.net(x)
+#     probs = torch.softmax(logits, dim=1).view(n_components)
 
-    trueposterior = trueposterior.data.cpu().numpy()
-    qz = probs.data.cpu().numpy()
+#     trueposterior = trueposterior.data.cpu().numpy()
+#     qz = probs.data.cpu().numpy()
 
-    error = L2_mixtureweights(trueposterior,qz)
-    kl = KL_mixutreweights(p=trueposterior, q=qz)
+#     error = L2_mixtureweights(trueposterior,qz)
+#     kl = KL_mixutreweights(p=trueposterior, q=qz)
 
 
-    rows = 1
+#     rows = 1
+#     cols = 1
+#     fig = plt.figure(figsize=(8+cols,8+rows), facecolor='white') #, dpi=150)
+
+#     col =0
+#     row = 0
+#     ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+
+#     width = .3
+#     ax.bar(range(len(qz)), trueposterior, width=width, label='True')
+#     ax.bar(np.array(range(len(qz)))+width, qz, width=width, label='q')
+#     # ax.bar(np.array(range(len(q_b)))+width+width, q_b, width=width)
+#     ax.legend()
+#     ax.grid(True, alpha=.3)
+#     ax.set_title(str(error) + ' kl:' + str(kl))
+#     ax.set_ylim(0.,1.)
+
+#     # save_dir = home+'/Documents/Grad_Estimators/GMM/'
+#     plt_path = exp_dir+'posteriors'+name+'.png'
+#     plt.savefig(plt_path)
+#     print ('saved training plot', plt_path)
+#     plt.close()
+    
+
+def L2_error(w1,w2):
+    dif = w1-w2
+    return np.sqrt(np.sum(dif**2))
+
+
+def plot_posteriors2(n_components, trueposteriors, qs, exp_dir, name=''):
+
+    rows = 5
     cols = 1
     fig = plt.figure(figsize=(8+cols,8+rows), facecolor='white') #, dpi=150)
 
-    col =0
-    row = 0
-    ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+    for i in range(rows):
 
-    width = .3
-    ax.bar(range(len(qz)), trueposterior, width=width, label='True')
-    ax.bar(np.array(range(len(qz)))+width, qz, width=width, label='q')
-    # ax.bar(np.array(range(len(q_b)))+width+width, q_b, width=width)
-    ax.legend()
-    ax.grid(True, alpha=.3)
-    ax.set_title(str(error) + ' kl:' + str(kl))
-    ax.set_ylim(0.,1.)
+        col =0
+        row = i
+        ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
+
+        trueposterior = trueposteriors[i]
+        # print (trueposterior)
+        # fsads
+        qz = qs[i]
+        # print (qz)
+
+        width = .3
+        ax.bar(range(n_components), trueposterior, width=width, label='True')
+        ax.bar(np.array(range(n_components))+width, qz, width=width, label='q. Loss:'+str(L2_error(qz,trueposterior)))
+        # ax.bar(np.array(range(len(q_b)))+width+width, q_b, width=width)
+        ax.legend()
+        ax.grid(True, alpha=.3)
+        # ax.set_title(str(error) + ' kl:' + str(kl))
+        ax.set_ylim(0.,1.)
+        # ax.set_xticklabels(range(n_components))
+
 
     # save_dir = home+'/Documents/Grad_Estimators/GMM/'
     plt_path = exp_dir+'posteriors'+name+'.png'
     plt.savefig(plt_path)
     print ('saved training plot', plt_path)
     plt.close()
+
     
 
 
@@ -488,15 +556,10 @@ def plot_posteriors(needsoftmax_mixtureweight, name=''):
 
 
 
+def plot_dist2(n_components, mixture_weights, true_mixture_weights, exp_dir, name=''):
 
 
-
-
-
-def plot_dist():
-
-
-    mixture_weights = torch.softmax(needsoftmax_mixtureweight, dim=0)
+    # mixture_weights = torch.softmax(needsoftmax_mixtureweight, dim=0)
 
     rows = 1
     cols = 1
@@ -507,7 +570,8 @@ def plot_dist():
     ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
 
 
-    xs = np.linspace(-9,205, 300)
+    # xs = np.linspace(-9,205, 300)
+    xs = np.linspace(-10,n_components*10 +5, 300)
     sum_ = np.zeros(len(xs))
 
     # C = 20
@@ -515,20 +579,33 @@ def plot_dist():
         m = Normal(torch.tensor([c*10.]).float(), torch.tensor([5.0]).float())
         ys = []
         for x in xs:
-            # component_i = (torch.exp(m.log_prob(x) )* ((c+5.) / 290.)).numpy()
             component_i = (torch.exp(m.log_prob(x) )* mixture_weights[c]).detach().cpu().numpy()
-
-
             ys.append(component_i)
-
         ys = np.reshape(np.array(ys), [-1])
         sum_ += ys
-        ax.plot(xs, ys, label='')
+        ax.plot(xs, ys, label='', c='orange')
+    ax.plot(xs, sum_, label='current', c='r')
 
-    ax.plot(xs, sum_, label='')
+
+    sum_ = np.zeros(len(xs))
+    for c in range(n_components):
+        m = Normal(torch.tensor([c*10.]).float(), torch.tensor([5.0]).float())
+        ys = []
+        for x in xs:
+            component_i = (torch.exp(m.log_prob(x) )* true_mixture_weights[c]).detach().cpu().numpy()
+            ys.append(component_i)
+        ys = np.reshape(np.array(ys), [-1])
+        sum_ += ys
+        ax.plot(xs, ys, label='', c='c')
+    ax.plot(xs, sum_, label='true', c='b')
+
+    ax.legend()
+
+    ax.set_title(str(mixture_weights) +'\n'+str(true_mixture_weights), size=8, family='serif')
+
 
     # save_dir = home+'/Documents/Grad_Estimators/GMM/'
-    plt_path = exp_dir+'gmm_plot_dist.png'
+    plt_path = exp_dir+'gmm_plot_dist'+name+'.png'
     plt.savefig(plt_path)
     print ('saved training plot', plt_path)
     plt.close()
@@ -541,11 +618,46 @@ def plot_dist():
 
 
 
+# def plot_dist():
 
 
+#     mixture_weights = torch.softmax(needsoftmax_mixtureweight, dim=0)
+
+#     rows = 1
+#     cols = 1
+#     fig = plt.figure(figsize=(10+cols,4+rows), facecolor='white') #, dpi=150)
+
+#     col =0
+#     row = 0
+#     ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
 
 
+#     xs = np.linspace(-9,205, 300)
+#     sum_ = np.zeros(len(xs))
 
+#     # C = 20
+#     for c in range(n_components):
+#         m = Normal(torch.tensor([c*10.]).float(), torch.tensor([5.0]).float())
+#         ys = []
+#         for x in xs:
+#             # component_i = (torch.exp(m.log_prob(x) )* ((c+5.) / 290.)).numpy()
+#             component_i = (torch.exp(m.log_prob(x) )* mixture_weights[c]).detach().cpu().numpy()
+
+
+#             ys.append(component_i)
+
+#         ys = np.reshape(np.array(ys), [-1])
+#         sum_ += ys
+#         ax.plot(xs, ys, label='')
+
+#     ax.plot(xs, sum_, label='')
+
+#     # save_dir = home+'/Documents/Grad_Estimators/GMM/'
+#     plt_path = exp_dir+'gmm_plot_dist.png'
+#     plt.savefig(plt_path)
+#     print ('saved training plot', plt_path)
+#     plt.close()
+    
 
 
 
