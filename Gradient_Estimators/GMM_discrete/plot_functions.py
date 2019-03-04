@@ -251,7 +251,13 @@ def plot_curve2(data_dict, exp_dir):
 
         ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1, rowspan=1)
 
-        ax.plot(steps, v, label=v[-1])
+        if type(v) == dict:
+            for k2,v2 in v.items():
+                ax.plot(steps, v2, label=k2+' '+str(v2[-1]))
+
+        else:
+            ax.plot(steps, v, label=v[-1])
+
         ax.legend()
         ax.grid(True, alpha=.3)
         ax.set_ylabel(k)

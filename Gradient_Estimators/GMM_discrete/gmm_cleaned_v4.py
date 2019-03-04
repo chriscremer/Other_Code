@@ -95,28 +95,190 @@ def true_posterior(x, mixture_weights):
 
 
 
-def reinforce(x, logits, mixtureweights, k=1):
+
+
+
+
+
+def reinforce(x, logits, mixtureweights, k=1, get_grad=False):
     B = logits.shape[0]
     probs = torch.softmax(logits, dim=1)
+    outputs = {}
 
     cat = Categorical(probs=probs)
 
-    net_loss = 0
+    grads =[]
+    # net_loss = 0
     for jj in range(k):
 
         cluster_H = cat.sample()
-        logq = cat.log_prob(cluster_H).view(B,1)
-
-        logpx_given_z = logprob_undercomponent(x, component=cluster_H)
-        logpz = torch.log(mixtureweights[cluster_H]).view(B,1)
+        outputs['logq'] = logq = cat.log_prob(cluster_H).view(B,1)
+        outputs['logpx_given_z'] = logpx_given_z = logprob_undercomponent(x, component=cluster_H)
+        outputs['logpz'] = logpz = torch.log(mixtureweights[cluster_H]).view(B,1)
         logpxz = logpx_given_z + logpz #[B,1]
-        f = logpxz - logq
-        net_loss += - torch.mean((f.detach() - 1.) * logq)
+        outputs['f'] = f = logpxz - logq - 1.
+        # outputs['net_loss'] = net_loss = net_loss - torch.mean((f.detach() ) * logq)
+        outputs['net_loss'] = net_loss = - torch.mean((f.detach() ) * logq)
         # net_loss += - torch.mean( -logq.detach()*logq)
 
-    net_loss = net_loss/ k
+        if get_grad:
+            grad = torch.autograd.grad([net_loss], [logits], create_graph=True, retain_graph=True)[0]
+            grads.append(grad)
 
-    return net_loss, f, logpx_given_z, logpz, logq
+    # net_loss = net_loss/ k
+
+    if get_grad:
+        grads = torch.stack(grads)
+        # print (grads.shape)
+        outputs['grad_avg'] = torch.mean(torch.mean(grads, dim=0),dim=0)
+        outputs['grad_std'] = torch.std(grads, dim=0)[0]
+
+    # return net_loss, f, logpx_given_z, logpz, logq
+    return outputs
+
+
+
+
+
+
+
+
+
+def relax(step, surrogate, x, logits, mixtureweights, k=1, get_grad=False):
+
+    def sample_relax(probs):
+        cat = Categorical(probs=probs)
+        #Sample z
+        u = torch.rand(B,C).cuda()
+        u = u.clamp(1e-8, 1.-1e-8)
+        gumbels = -torch.log(-torch.log(u))
+        z = torch.log(probs) + gumbels
+
+        b = torch.argmax(z, dim=1)
+        logprob = cat.log_prob(b).view(B,1)
+
+        #Sample z_tilde
+        u_b = torch.rand(B,1).cuda()
+        u_b = u_b.clamp(1e-8, 1.-1e-8)
+        z_tilde_b = -torch.log(-torch.log(u_b))
+        u = torch.rand(B,C).cuda()
+        u = u.clamp(1e-8, 1.-1e-8)
+        z_tilde = -torch.log((- torch.log(u) / probs) - torch.log(u_b))
+        z_tilde.scatter_(dim=1, index=b.view(B,1), src=z_tilde_b)
+        return z, b, logprob, z_tilde, gumbels
+
+    outputs = {}
+    B = logits.shape[0]
+    C = logits.shape[1]
+    probs = torch.softmax(logits, dim=1)
+
+    #seems to get nans without this, but also sucks with it, so maybe this is the cause...
+    probs = probs.clamp(1e-12, 1.-1e-12)
+
+    grads =[]
+    for jj in range(k):
+
+        z, b, logq, z_tilde, gumbels = sample_relax(probs)
+
+        logpx_given_z = logprob_undercomponent(x, component=b)
+        logpz = torch.log(mixtureweights[b]).view(B,1)
+        logpxz = logpx_given_z + logpz #[B,1]
+        # print(logpxz.shape, logq.shape)
+        # fsdf
+        f = logpxz - logq - 1.
+
+        # surr_input = torch.cat([z, x, logits], dim=1)
+        surr_input = torch.cat([z, x], dim=1)
+        surr_pred_z = surrogate.net(surr_input)
+        surr_pred_z_tilde = surrogate.net(surr_input)
+
+        #Encoder loss
+        # warmup = np.minimum( (step+1) / 50000., 1.)
+        # warmup = .0001
+        warmup = 1.
+        # print (warmup)
+        # fsaf
+        net_loss = - torch.mean(   warmup*((f.detach() - surr_pred_z_tilde.detach()) * logq)  +  surr_pred_z - surr_pred_z_tilde )
+        # if get_grad:
+        #     net_loss = - torch.mean((f.detach()) * logq )
+
+        if (net_loss != net_loss).any():
+            print (net_loss)
+            print (f)
+            print (logpxz)
+            print (logq)
+            print (surr_pred_z_tilde)
+            print (surr_pred_z)
+            print (z)
+            print (probs)
+            print (gumbels)
+            fasdfas
+
+        if get_grad:
+            grad = torch.autograd.grad([net_loss], [logits], create_graph=True, retain_graph=True)[0]
+            grads.append(grad)
+
+        else:
+            # #Surrogate loss
+            # grad_logq =  torch.mean( torch.autograd.grad([torch.mean(logq)], [logits], create_graph=True, retain_graph=True)[0], dim=1, keepdim=True)
+            # grad_surr_z = torch.mean( torch.autograd.grad([torch.mean(surr_pred_z)], [logits], create_graph=True, retain_graph=True)[0], dim=1, keepdim=True)
+            # grad_surr_z_tilde = torch.mean( torch.autograd.grad([torch.mean(surr_pred_z_tilde)], [logits], create_graph=True, retain_graph=True)[0], dim=1, keepdim=True)
+
+            grad_logq =  torch.autograd.grad([torch.mean(logq)], [logits], create_graph=True, retain_graph=True)[0]
+            grad_surr_z =  torch.autograd.grad([torch.mean(surr_pred_z)], [logits], create_graph=True, retain_graph=True)[0]
+            grad_surr_z_tilde = torch.autograd.grad([torch.mean(surr_pred_z_tilde)], [logits], create_graph=True, retain_graph=True)[0]
+
+            # print (f.shape, surr_pred_z_tilde.shape, grad_logq.shape, grad_surr_z.shape, grad_surr_z_tilde.shape)
+            # fasdfdas
+            # print (grad_surr_z_tilde)
+            # fsfa
+
+            # surr_loss = torch.mean(((f.detach() - surr_pred_z_tilde) * grad_logq + grad_surr_z - grad_surr_z_tilde)**2)
+            surr_loss = torch.mean(torch.abs(f.detach() - surr_pred_z_tilde))
+
+            if (surr_loss != surr_loss).any():
+                print (net_loss)
+                print (f)
+                print (logpxz)
+                print (logq)
+                print (surr_pred_z_tilde)
+                print (surr_pred_z)
+                print (z)
+                print (probs)
+                print (gumbels)
+                print (grad_logq)
+                print (grad_surr_z)
+                print (grad_surr_z_tilde)
+                fasdfas
+
+            surr_dif = torch.mean(torch.abs(f.detach() - surr_pred_z_tilde))
+            # surr_loss = surr_dif
+
+    
+    outputs['net_loss'] = net_loss
+    outputs['f'] = f
+    outputs['logpx_given_z'] = logpx_given_z
+    outputs['logpz'] = logpz
+    outputs['logq'] = logq
+
+
+    if get_grad:
+        grads = torch.stack(grads)
+        # print (grads.shape)
+        outputs['grad_avg'] = torch.mean(torch.mean(grads, dim=0),dim=0)
+        outputs['grad_std'] = torch.std(grads, dim=0)[0]
+    else:
+        outputs['surr_loss'] = surr_loss
+        outputs['surr_dif'] = surr_dif   
+        outputs['grad_logq'] = torch.abs(grad_logq )  
+        outputs['grad_surr_z'] = torch.abs(grad_surr_z  ) 
+        outputs['grad_surr_z_tilde'] = torch.abs(grad_surr_z_tilde )  
+
+    # return net_loss, f, logpx_given_z, logpz, logq, surr_loss, surr_dif
+    return outputs
+
+
+
 
 
 
@@ -137,8 +299,8 @@ def reinforce_pz(x, logits, mixtureweights, k=1):
         logpx_given_z = logprob_undercomponent(x, component=cluster_H)
         logpz = torch.log(mixtureweights[cluster_H]).view(B,1)
         logpxz = logpx_given_z + logpz #[B,1]
-        f = logpxz - logq
-        net_loss += - torch.mean((f.detach() - 1.) * logq)
+        f = logpxz - logq - 1.
+        net_loss += - torch.mean((f.detach()) * logq)
         # net_loss += - torch.mean( -logq.detach()*logq)
 
     net_loss = net_loss/ k
@@ -149,89 +311,15 @@ def reinforce_pz(x, logits, mixtureweights, k=1):
 
 
 
-def relax(surrogate, x, logits, mixtureweights, k=1):
-
-    def sample_relax(probs):
-        cat = Categorical(probs=probs)
-        #Sample z
-        u = torch.rand(B,C).cuda()
-        u = u.clamp(1e-8, 1.-1e-8)
-        gumbels = -torch.log(-torch.log(u))
-        z = torch.log(probs) + gumbels
-
-        b = torch.argmax(z, dim=1)
-        logprob = cat.log_prob(b).view(B,1)
-
-        #Sample z_tilde
-        u_b = torch.rand(B,1).cuda()
-        u_b = u_b.clamp(1e-8, 1.-1e-8)
-        z_tilde_b = -torch.log(-torch.log(u_b))
-        u = torch.rand(B,C).cuda()
-        u = u.clamp(1e-8, 1.-1e-8)
-        z_tilde = -torch.log((- torch.log(u) / probs) - torch.log(u_b))
-        z_tilde[:,b] = z_tilde_b
-        return z, b, logprob, z_tilde, gumbels
-
-
-    B = logits.shape[0]
-    C = logits.shape[1]
-    probs = torch.softmax(logits, dim=1)
-
-    #seems to get nans without this, but also sucks, so maybe this is the cause...
-    # probs = probs.clamp(1e-8, 1.-1e-8)
-
-    z, b, logq, z_tilde, gumbels = sample_relax(probs)
-
-    logpx_given_z = logprob_undercomponent(x, component=b)
-    logpz = torch.log(mixtureweights[b]).view(B,1)
-    logpxz = logpx_given_z + logpz #[B,1]
-    # print(logpxz.shape, logq.shape)
-    # fsdf
-    f = logpxz - logq - 1.
-
-    surr_pred_z = surrogate.net(torch.cat([z, x], dim=1))
-    surr_pred_z_tilde = surrogate.net(torch.cat([z_tilde, x], dim=1))
-
-    #Encoder loss
-    net_loss = - torch.mean((f.detach() - surr_pred_z_tilde.detach()) * logq  + surr_pred_z - surr_pred_z_tilde)
-
-    if (net_loss != net_loss).any():
-        print (net_loss)
-        print (f)
-        print (logpxz)
-        print (logq)
-        print (surr_pred_z_tilde)
-        print (surr_pred_z)
-        print (z)
-        print (probs)
-        print (gumbels)
-        fasdfas
-
-    # #Surrogate loss
-    # grad_logq =  torch.mean( torch.autograd.grad([torch.mean(logq)], [logits], create_graph=True, retain_graph=True)[0], dim=1, keepdim=True)
-    # grad_surr_z = torch.mean( torch.autograd.grad([torch.mean(surr_pred_z)], [logits], create_graph=True, retain_graph=True)[0], dim=1, keepdim=True)
-    # grad_surr_z_tilde = torch.mean( torch.autograd.grad([torch.mean(surr_pred_z_tilde)], [logits], create_graph=True, retain_graph=True)[0], dim=1, keepdim=True)
-    grad_logq =  torch.autograd.grad([torch.mean(logq)], [logits], create_graph=True, retain_graph=True)[0]
-    grad_surr_z =  torch.autograd.grad([torch.mean(surr_pred_z)], [logits], create_graph=True, retain_graph=True)[0]
-    grad_surr_z_tilde = torch.autograd.grad([torch.mean(surr_pred_z_tilde)], [logits], create_graph=True, retain_graph=True)[0]
-    # print (f.shape, surr_pred_z_tilde.shape, grad_logq.shape, grad_surr_z.shape, grad_surr_z_tilde.shape)
-    # fasdfdas
-    surr_loss = torch.mean(((f.detach() - surr_pred_z_tilde) * grad_logq + grad_surr_z - grad_surr_z_tilde)**2)
-
-    surr_dif = torch.mean(torch.abs(f.detach() - surr_pred_z_tilde))
-    # surr_loss = surr_dif
-
-    return net_loss, f, logpx_given_z, logpz, logq, surr_loss, surr_dif
-
-
-
 
 def simplax(surrogate, x, logits, mixtureweights, k=1):
+
     B = logits.shape[0]
     probs = torch.softmax(logits, dim=1)
 
     cat = RelaxedOneHotCategorical(probs=probs, temperature=torch.tensor([1.]).cuda())
 
+    outputs = {}
     net_loss = 0
     surr_loss = 0
     for jj in range(k):
@@ -254,22 +342,33 @@ def simplax(surrogate, x, logits, mixtureweights, k=1):
         # surr_loss += torch.mean(torch.abs(f.detach()-1.-surr_pred))
         # grad_logq =  torch.mean( torch.autograd.grad([torch.mean(logq)], [logits], create_graph=True, retain_graph=True)[0], dim=1, keepdim=True)
         # grad_surr = torch.mean( torch.autograd.grad([torch.mean(surr_pred)], [logits], create_graph=True, retain_graph=True)[0], dim=1, keepdim=True)
-        grad_logq =  torch.autograd.grad([torch.mean(logq)], [logits], create_graph=True, retain_graph=True)[0]
-        grad_surr =  torch.autograd.grad([torch.mean(surr_pred)], [logits], create_graph=True, retain_graph=True)[0]
-        surr_loss += torch.mean(((f.detach() - surr_pred) * grad_logq + grad_surr)**2)
+
+        # grad_logq =  torch.autograd.grad([torch.mean(logq)], [logits], create_graph=True, retain_graph=True)[0]
+        # grad_surr =  torch.autograd.grad([torch.mean(surr_pred)], [logits], create_graph=True, retain_graph=True)[0]
+        # surr_loss += torch.mean(((f.detach() - surr_pred) * grad_logq + grad_surr)**2)
 
         surr_dif = torch.mean(torch.abs(f.detach() - surr_pred))
+        surr_loss = torch.mean(torch.abs(f.detach() - surr_pred))
 
         grad_path = torch.autograd.grad([torch.mean(surr_pred)], [logits], create_graph=True, retain_graph=True)[0]
         grad_score = torch.autograd.grad([torch.mean((f.detach() - surr_pred.detach()) * logq)], [logits], create_graph=True, retain_graph=True)[0]
         grad_path = torch.mean(torch.abs(grad_path))
         grad_score = torch.mean(torch.abs(grad_score))
-
-
+   
     net_loss = net_loss/ k
     surr_loss = surr_loss/ k
 
-    return net_loss, f, logpx_given_z, logpz, logq, surr_loss, surr_dif, grad_path, grad_score
+    outputs['net_loss'] = net_loss
+    outputs['f'] = f
+    outputs['logpx_given_z'] = logpx_given_z
+    outputs['logpz'] = logpz
+    outputs['logq'] = logq
+    outputs['surr_loss'] = surr_loss
+    outputs['surr_dif'] = surr_dif   
+    outputs['grad_path'] = grad_path   
+    outputs['grad_score'] = grad_score   
+
+    return outputs #net_loss, f, logpx_given_z, logpz, logq, surr_loss, surr_dif, grad_path, grad_score
 
 
 
@@ -356,6 +455,7 @@ def HLAX(surrogate, surrogate2, x, logits, mixtureweights, k=1):
 def train(method, n_components, true_mixture_weights, exp_dir, needsoftmax_mixtureweight=None):
 
     print('Method:', method)
+    C = n_components
 
     true_mixture_weights = torch.tensor(true_mixture_weights, 
                                             requires_grad=True, device="cuda")
@@ -366,21 +466,22 @@ def train(method, n_components, true_mixture_weights, exp_dir, needsoftmax_mixtu
         needsoftmax_mixtureweight = torch.tensor(needsoftmax_mixtureweight, 
                                             requires_grad=True, device="cuda")
     
+    lr = 1e-3
     optim = torch.optim.Adam([needsoftmax_mixtureweight], lr=1e-5, weight_decay=1e-7)
 
     encoder = NN3(input_size=1, output_size=n_components, n_residual_blocks=3).cuda()
-    optim_net = torch.optim.Adam(encoder.parameters(), lr=1e-4, weight_decay=1e-7)
+    optim_net = torch.optim.Adam(encoder.parameters(), lr=1e-5, weight_decay=1e-7)
 
     if method in ['simplax', 'relax']:
         surrogate = NN3(input_size=1+n_components, output_size=1, n_residual_blocks=4).cuda()
-        optim_surr = torch.optim.Adam(surrogate.parameters(), lr=1e-3)
+        optim_surr = torch.optim.Adam(surrogate.parameters(), lr=lr)
 
     if method == 'HLAX':
         # surrogate = NN4(input_size=1+n_components, output_size=1, n_residual_blocks=4).cuda()
         surrogate = NN3(input_size=1+n_components, output_size=1, n_residual_blocks=4).cuda()
         surrogate2 = NN3(input_size=1, output_size=1, n_residual_blocks=2).cuda()
-        optim_surr = torch.optim.Adam(surrogate.parameters(), lr=1e-3)
-        optim_surr2 = torch.optim.Adam(surrogate2.parameters(), lr=1e-3)
+        optim_surr = torch.optim.Adam(surrogate.parameters(), lr=lr)
+        optim_surr2 = torch.optim.Adam(surrogate2.parameters(), lr=lr)
 
     data_dict = {}
     data_dict['steps'] = []
@@ -391,7 +492,7 @@ def train(method, n_components, true_mixture_weights, exp_dir, needsoftmax_mixtu
     data_dict['lqz'] = []
     data_dict['inference_L2'] = []
     # data_dict['grad_var'] = []
-    data_dict['grad_avg'] = []
+    # data_dict['grad_avg'] = []
 
     if method in ['simplax', 'HLAX', 'relax']:
         data_dict['surr_loss'] = []
@@ -402,6 +503,10 @@ def train(method, n_components, true_mixture_weights, exp_dir, needsoftmax_mixtu
         data_dict['grad_split']['path'] = []
     if method=='HLAX':
         data_dict['alpha'] = []
+    if method=='relax':
+        data_dict['grad_logq'] = [] 
+        data_dict['grad_surr_z'] = [] 
+        data_dict['grad_surr_z_tilde'] = [] 
 
     for step in range(0,n_steps+1):
 
@@ -409,40 +514,43 @@ def train(method, n_components, true_mixture_weights, exp_dir, needsoftmax_mixtu
 
         x = sample_gmm(batch_size, mixture_weights=true_mixture_weights)
         logits = encoder.net(x)
+        logits = logits/100.
+        # logits = logits-10.
 
         if method == 'reinforce':
-            net_loss, f, logpx_given_z, logpz, logq = reinforce(x, logits, mixtureweights, k=1)
+            # net_loss, f, logpx_given_z, logpz, logq = reinforce(x, logits, mixtureweights, k=1)
+            outputs = reinforce(x, logits, mixtureweights, k=1)
         elif method == 'reinforce_pz':
             net_loss, f, logpx_given_z, logpz, logq = reinforce_pz(x, logits, mixtureweights, k=1)
         elif method == 'simplax':
-            net_loss, f, logpx_given_z, logpz, logq, surr_loss, surr_dif, grad_path, grad_score = simplax(surrogate, x, logits, mixtureweights, k=1)
+            # net_loss, f, logpx_given_z, logpz, logq, surr_loss, surr_dif, grad_path, grad_score = simplax(surrogate, x, logits, mixtureweights, k=1)
+            outputs = simplax(surrogate, x, logits, mixtureweights, k=1)
         elif method == 'HLAX':
             net_loss, f, logpx_given_z, logpz, logq, surr_loss, surr_dif, grad_path, grad_score, alpha = HLAX(surrogate, surrogate2, x, logits, mixtureweights, k=1)
         elif method=='relax':
-            net_loss, f, logpx_given_z, logpz, logq, surr_loss, surr_dif = relax(surrogate, x, logits, mixtureweights, k=1)
+            outputs = relax(step, surrogate, x, logits, mixtureweights, k=1)
 
 
-        #Grad variance 
-        grad = torch.autograd.grad([net_loss], [logits], create_graph=True, retain_graph=True)[0]
-        # grad_var = torch.mean(torch.std(grad, dim=0))
-        grad_avg = torch.mean(torch.abs(grad))
 
 
-        # Update encoder
-        optim_net.zero_grad()
-        net_loss.backward(retain_graph=True)
-        optim_net.step()
+        if step > 200000:
 
-        # Update generator
-        loss = - torch.mean(f)
-        optim.zero_grad()
-        loss.backward(retain_graph=True)  
-        optim.step()
+            # Update generator
+            loss = - torch.mean(outputs['f'])
+            optim.zero_grad()
+            loss.backward(retain_graph=True)  
+            optim.step()
+
+        if step > 80000:
+            # Update encoder
+            optim_net.zero_grad()
+            outputs['net_loss'].backward(retain_graph=True)
+            optim_net.step()
 
         # Update surrogate
         if method in ['simplax', 'HLAX', 'relax']:
             optim_surr.zero_grad()
-            surr_loss.backward(retain_graph=True)
+            outputs['surr_loss'].backward(retain_graph=True)
             optim_surr.step()
 
         if method == 'HLAX':
@@ -462,40 +570,69 @@ def train(method, n_components, true_mixture_weights, exp_dir, needsoftmax_mixtu
             inference_L2 = L2_batch(pz_give_x, probs)
 
 
+            # outputs = reinforce(x[0].view(1,1), logits[0].view(1,C), mixtureweights, k=5000, get_grad=True)
+            # print ('reinforce')
+            # print (outputs['grad_avg'])
+            # print (outputs['grad_std'])
+
+            # outputs = relax(step=step, surrogate=surrogate, x=x[0].view(1,1), 
+            #                 logits=logits[0].view(1,C), mixtureweights=mixtureweights, k=5000, get_grad=True)
+            # print ('relax')
+            # print (outputs['grad_avg'])
+            # print (outputs['grad_std'])
+            # print ()
+            # fadsaf
+
+
+            # #Grad variance 
+            # grad = torch.autograd.grad([outputs['net_loss']], [logits], create_graph=True, retain_graph=True)[0]
+            # # grad_var = torch.mean(torch.std(grad, dim=0))
+            # grad_avg = torch.mean(torch.abs(grad))
+
+            # plot_posteriors2(n_components, trueposteriors=to_print2(pz_give_x), qs=to_print2(probs), exp_dir=exp_dir, name=str(step))
+            # fasfs
+
             print( 
                 'S:{:5d}'.format(step),
                 'Theta_loss:{:.3f}'.format(theta_loss),
-                'Loss:{:.3f}'.format(to_print1(net_loss)),
-                'ELBO:{:.3f}'.format(to_print1(f)),
-                'lpx|z:{:.3f}'.format(to_print1(logpx_given_z)),
-                'lpz:{:.3f}'.format(to_print1(logpz)),
-                'lqz:{:.3f}'.format(to_print1(logq)),
+                'Loss:{:.3f}'.format(to_print1(outputs['net_loss'])),
+                'ELBO:{:.3f}'.format(to_print1(outputs['f'])),
+                'lpx|z:{:.3f}'.format(to_print1(outputs['logpx_given_z'])),
+                'lpz:{:.3f}'.format(to_print1(outputs['logpz'])),
+                'lqz:{:.3f}'.format(to_print1(outputs['logq'])),
                 )
 
             if step> 0:
                 data_dict['steps'].append(step)
                 data_dict['theta_losses'].append(theta_loss)
-                data_dict['f'].append(to_print1(f))
-                data_dict['lpx_given_z'].append(to_print1(logpx_given_z))
-                data_dict['lpz'].append(to_print1(logpz))
-                data_dict['lqz'].append(to_print1(logq))
+                data_dict['f'].append(to_print1(outputs['f']))
+                data_dict['lpx_given_z'].append(to_print1(outputs['logpx_given_z']))
+                data_dict['lpz'].append(to_print1(outputs['logpz']))
+                data_dict['lqz'].append(to_print1(outputs['logq']))
                 data_dict['inference_L2'].append(to_print2(inference_L2))
                 # data_dict['grad_var'].append(to_print2(grad_var))
-                data_dict['grad_avg'].append(to_print2(grad_avg))
+                # data_dict['grad_avg'].append(to_print2(grad_avg))
                 if method in ['simplax', 'HLAX', 'relax']:
-                    data_dict['surr_loss'].append(to_print2(surr_loss))
-                    data_dict['surr_dif'].append(to_print2(surr_dif))
+                    data_dict['surr_loss'].append(to_print2(outputs['surr_loss']))
+                    data_dict['surr_dif'].append(to_print2(outputs['surr_dif']))
                 if method in ['simplax', 'HLAX']:
-                    data_dict['grad_split']['score'].append(to_print2(grad_score))
-                    data_dict['grad_split']['path'].append(to_print2(grad_path))
+                    data_dict['grad_split']['score'].append(to_print2(outputs['grad_score']))
+                    data_dict['grad_split']['path'].append(to_print2(outputs['grad_path']))
                 if method == 'HLAX':
                     data_dict['alpha'].append(to_print2(alpha))
+                if method == 'relax':
+                    data_dict['grad_logq'].append(to_print1(outputs['grad_logq']))
+                    data_dict['grad_surr_z'].append(to_print1(outputs['grad_surr_z']))
+                    data_dict['grad_surr_z_tilde'].append(to_print1(outputs['grad_surr_z_tilde']))
 
-            check_nan(net_loss)
+
+            check_nan(outputs['net_loss'])
 
 
 
         if step%plot_steps==0 and step!=0:
+
+            # fsdfasd
 
             plot_curve2(data_dict, exp_dir)
 
@@ -560,7 +697,10 @@ if __name__ == "__main__":
     # exp_name = 'simplax_3cats_withsplit'
     # exp_name = 'HLAX_3cats_withalphaplot'
     # exp_name = 'reinforce_3cats_b64'
-    exp_name = 'relax_3cats'
+    # exp_name = 'relax_3cats'
+    # exp_name = 'relax_C20'
+    exp_name = 'simplax_C20'
+    # exp_name = 'relax_C3'
     # exp_name = 'simplax_3cats_newsurrobjective'
     # exp_name = 'reinforce_3cats_findingproblem'
     save_dir = home+'/Documents/Grad_Estimators/GMM/'
@@ -587,7 +727,7 @@ if __name__ == "__main__":
     torch.manual_seed(seed)
 
 
-    n_components = 3
+    n_components = 20
 
 
     denom = 0.
@@ -614,8 +754,8 @@ if __name__ == "__main__":
     params_step = 100000
 
     # train(method='reinforce', n_components=n_components, exp_dir=exp_dir, true_mixture_weights=true_mixture_weights)
-    train(method='relax', n_components=n_components, exp_dir=exp_dir, true_mixture_weights=true_mixture_weights)
-    # train(method='simplax', n_components=n_components, exp_dir=exp_dir, true_mixture_weights=true_mixture_weights)
+    # train(method='relax', n_components=n_components, exp_dir=exp_dir, true_mixture_weights=true_mixture_weights)
+    train(method='simplax', n_components=n_components, exp_dir=exp_dir, true_mixture_weights=true_mixture_weights)
     # train(method='HLAX', n_components=n_components, exp_dir=exp_dir, true_mixture_weights=true_mixture_weights)
     # train(method='reinforce_pz', n_components=n_components, exp_dir=exp_dir, true_mixture_weights=true_mixture_weights)
 
