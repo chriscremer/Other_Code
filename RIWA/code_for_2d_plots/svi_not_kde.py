@@ -6,6 +6,9 @@
 
 
 import numpy as np
+
+
+
 import tensorflow as tf
 import random
 import math
@@ -13,7 +16,11 @@ from os.path import expanduser
 home = expanduser("~")
 import imageio
 import time
+# import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
 from scipy.stats import norm
 import scipy.stats as st
 
@@ -231,7 +238,7 @@ if __name__ == '__main__':
 
 
     ax = fig.add_subplot(142, frameon=False)
-    print 'k=1'
+    print ('k=1')
 
     k = 1
     G_SVI_for_viz = Gaussian_SVI(n_particles=k, mean=[0.,0.], logvar=[1.,1.])
@@ -271,7 +278,7 @@ if __name__ == '__main__':
 
 
     ax = fig.add_subplot(143, frameon=False)
-    print 'k=10'
+    print ('k=10')
 
     k = 10
     G_SVI_for_viz = Gaussian_SVI(n_particles=k, mean=[0.,0.], logvar=[1.,1.])
@@ -309,7 +316,7 @@ if __name__ == '__main__':
 
 
     ax = fig.add_subplot(144, frameon=False)
-    print 'k=100'
+    print ('k=100')
 
     k = 100
     G_SVI_for_viz = Gaussian_SVI(n_particles=k, mean=[0.,0.], logvar=[1.,1.])
@@ -346,7 +353,16 @@ if __name__ == '__main__':
 
 
 
-    plt.show()
+    # plt.show()
+
+
+    save_dir = home+'/Downloads/'
+    plt_path = save_dir+'plot.png'
+    plt.savefig(plt_path)
+    print ('saved training plot', plt_path)
+    plt.close()
+
+    
 
 
 
@@ -356,193 +372,194 @@ if __name__ == '__main__':
 
 
 
-    fsdaf
+
+    # fsdaf
 
 
 
-    zs = func(np.concatenate([np.atleast_2d(X.ravel()), np.atleast_2d(Y.ravel())]).T)
-    Z = zs.reshape(X.shape)
-    plt.contour(X, Y, Z, cmap=cmap)
-    ax.set_yticks([])
-    ax.set_xticks([])
-
-
-
-
-    n_particles_viz = 1
-    # mean_, log_var_ = G_SVI.sess.run([G_SVI.mean, G_SVI.log_var])
-    G_SVI_for_viz = Gaussian_SVI(n_particles=n_particles_viz, mean=[0.,0.], logvar=[1.,1.])
-    # print x.shape
-    w_samples = []
-    for j in range(n_samples):
-        w_samples.append(iw_sampling(G_SVI_for_viz))
-    w_samples = np.array(w_samples)
-    # print np.array(w_samples).shape
-    x_ = w_samples[:, 0]
-    y_ = w_samples[:, 1]
-    # Peform the kernel density estimate
-    xmin, xmax = -6, 6
-    ymin, ymax = -6, 6
-    xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
-    positions = np.vstack([xx.ravel(), yy.ravel()])
-    values = np.vstack([x_, y_])
-    kernel = st.gaussian_kde(values)
-    f = np.reshape(kernel(positions).T, xx.shape)
-
-    # print f[0][0]
-    f[np.abs(f) < 10**(-10)] = 0
-    # print f[0][0]
-    # print f.shape
-    # fdsaf
-    cfset = ax.contourf(xx, yy, f, cmap='Blues', vmin=10**(-10))
-    ax.set_yticks([])
-    ax.set_xticks([])
-    plt.gca().set_aspect('equal', adjustable='box')
-
-
-    # float32fds
-
-
-    ax = fig.add_subplot(143, frameon=False)
-    n_particles_viz = 10
-    # mean_, log_var_ = G_SVI.sess.run([G_SVI.mean, G_SVI.log_var])
-    G_SVI_for_viz = Gaussian_SVI(n_particles=n_particles_viz, mean=[0.,0.], logvar=[1.,1.])
-    # print x.shape
-    w_samples = []
-    for j in range(n_samples):
-        w_samples.append(iw_sampling(G_SVI_for_viz))
-    w_samples = np.array(w_samples)
-    # print np.array(w_samples).shape
-    x_ = w_samples[:, 0]
-    y_ = w_samples[:, 1]
-    # Peform the kernel density estimate
-    xmin, xmax = -6, 6
-    ymin, ymax = -6, 6
-    xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
-    positions = np.vstack([xx.ravel(), yy.ravel()])
-    values = np.vstack([x_, y_])
-    kernel = st.gaussian_kde(values)
-    f = np.reshape(kernel(positions).T, xx.shape)
-    cfset = ax.contourf(xx, yy, f, cmap='Blues')
-    ax.set_yticks([])
-    ax.set_xticks([])
-    plt.gca().set_aspect('equal', adjustable='box')
+    # zs = func(np.concatenate([np.atleast_2d(X.ravel()), np.atleast_2d(Y.ravel())]).T)
+    # Z = zs.reshape(X.shape)
+    # plt.contour(X, Y, Z, cmap=cmap)
+    # ax.set_yticks([])
+    # ax.set_xticks([])
 
 
 
 
-    ax = fig.add_subplot(144, frameon=False)
-    n_particles_viz = 100
-    # mean_, log_var_ = G_SVI.sess.run([G_SVI.mean, G_SVI.log_var])
-    G_SVI_for_viz = Gaussian_SVI(n_particles=n_particles_viz, mean=[0.,0.], logvar=[1.,1.])
-    # print x.shape
-    w_samples = []
-    for j in range(n_samples):
-        w_samples.append(iw_sampling(G_SVI_for_viz))
-    w_samples = np.array(w_samples)
-    # print np.array(w_samples).shape
-    x_ = w_samples[:, 0]
-    y_ = w_samples[:, 1]
-    # Peform the kernel density estimate
-    xmin, xmax = -6, 6
-    ymin, ymax = -6, 6
-    xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
-    positions = np.vstack([xx.ravel(), yy.ravel()])
-    values = np.vstack([x_, y_])
-    kernel = st.gaussian_kde(values)
-    f = np.reshape(kernel(positions).T, xx.shape)
-    cfset = ax.contourf(xx, yy, f, cmap='Blues')
-    ax.set_yticks([])
-    ax.set_xticks([])
+    # n_particles_viz = 1
+    # # mean_, log_var_ = G_SVI.sess.run([G_SVI.mean, G_SVI.log_var])
+    # G_SVI_for_viz = Gaussian_SVI(n_particles=n_particles_viz, mean=[0.,0.], logvar=[1.,1.])
+    # # print x.shape
+    # w_samples = []
+    # for j in range(n_samples):
+    #     w_samples.append(iw_sampling(G_SVI_for_viz))
+    # w_samples = np.array(w_samples)
+    # # print np.array(w_samples).shape
+    # x_ = w_samples[:, 0]
+    # y_ = w_samples[:, 1]
+    # # Peform the kernel density estimate
+    # xmin, xmax = -6, 6
+    # ymin, ymax = -6, 6
+    # xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
+    # positions = np.vstack([xx.ravel(), yy.ravel()])
+    # values = np.vstack([x_, y_])
+    # kernel = st.gaussian_kde(values)
+    # f = np.reshape(kernel(positions).T, xx.shape)
 
-    plt.gca().set_aspect('equal', adjustable='box')
-    plt.show()
-
-    fdsasd
-
-
-
+    # # print f[0][0]
+    # f[np.abs(f) < 10**(-10)] = 0
+    # # print f[0][0]
+    # # print f.shape
+    # # fdsaf
+    # cfset = ax.contourf(xx, yy, f, cmap='Blues', vmin=10**(-10))
+    # ax.set_yticks([])
+    # ax.set_xticks([])
+    # plt.gca().set_aspect('equal', adjustable='box')
 
 
+    # # float32fds
+
+
+    # ax = fig.add_subplot(143, frameon=False)
+    # n_particles_viz = 10
+    # # mean_, log_var_ = G_SVI.sess.run([G_SVI.mean, G_SVI.log_var])
+    # G_SVI_for_viz = Gaussian_SVI(n_particles=n_particles_viz, mean=[0.,0.], logvar=[1.,1.])
+    # # print x.shape
+    # w_samples = []
+    # for j in range(n_samples):
+    #     w_samples.append(iw_sampling(G_SVI_for_viz))
+    # w_samples = np.array(w_samples)
+    # # print np.array(w_samples).shape
+    # x_ = w_samples[:, 0]
+    # y_ = w_samples[:, 1]
+    # # Peform the kernel density estimate
+    # xmin, xmax = -6, 6
+    # ymin, ymax = -6, 6
+    # xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
+    # positions = np.vstack([xx.ravel(), yy.ravel()])
+    # values = np.vstack([x_, y_])
+    # kernel = st.gaussian_kde(values)
+    # f = np.reshape(kernel(positions).T, xx.shape)
+    # cfset = ax.contourf(xx, yy, f, cmap='Blues')
+    # ax.set_yticks([])
+    # ax.set_xticks([])
+    # plt.gca().set_aspect('equal', adjustable='box')
 
 
 
 
-    plt.ion()
-    plt.show(block=False)
+    # ax = fig.add_subplot(144, frameon=False)
+    # n_particles_viz = 100
+    # # mean_, log_var_ = G_SVI.sess.run([G_SVI.mean, G_SVI.log_var])
+    # G_SVI_for_viz = Gaussian_SVI(n_particles=n_particles_viz, mean=[0.,0.], logvar=[1.,1.])
+    # # print x.shape
+    # w_samples = []
+    # for j in range(n_samples):
+    #     w_samples.append(iw_sampling(G_SVI_for_viz))
+    # w_samples = np.array(w_samples)
+    # # print np.array(w_samples).shape
+    # x_ = w_samples[:, 0]
+    # y_ = w_samples[:, 1]
+    # # Peform the kernel density estimate
+    # xmin, xmax = -6, 6
+    # ymin, ymax = -6, 6
+    # xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
+    # positions = np.vstack([xx.ravel(), yy.ravel()])
+    # values = np.vstack([x_, y_])
+    # kernel = st.gaussian_kde(values)
+    # f = np.reshape(kernel(positions).T, xx.shape)
+    # cfset = ax.contourf(xx, yy, f, cmap='Blues')
+    # ax.set_yticks([])
+    # ax.set_xticks([])
 
-    print 'Performing SVI'
-    for i in range(5000):
+    # plt.gca().set_aspect('equal', adjustable='box')
+    # plt.show()
 
-        #Sample q distribution
-        # x, eps = G_SVI.sess.run([G_SVI.sample_q, G_SVI.eps]) #[P,D]
-
-        #Get log_p_x
-        # log_px = G_SVI.sess.run(G_SVI.log_px, feed_dict={G_SVI.sample_q: x})  #[P]
-
-        #Optimize variational params 
-        # _ = G_SVI.sess.run(G_SVI.optimizer, feed_dict={G_SVI.eps: eps, G_SVI.log_px: log_px})
-        _ = G_SVI.sess.run(G_SVI.optimizer)
+    # fdsasd
 
 
-        if i%500==0:
-            # elbo, mean, logvar = G_SVI.sess.run([G_SVI.elbo, G_SVI.mean, G_SVI.log_var], feed_dict={G_SVI.eps: eps, G_SVI.log_px: log_px})
-            # print i, elbo, mean, logvar#, grad
 
-            elbo, mean, logvar = G_SVI.sess.run([G_SVI.elbo, G_SVI.mean, G_SVI.log_var])
-            print i, elbo, mean, logvar#, grad
 
-            #Visualize while training
-            plt.cla()
 
-            mean_, log_var_ = G_SVI.sess.run([G_SVI.mean, G_SVI.log_var])
-            G_SVI_for_viz = Gaussian_SVI(n_particles=n_particles_viz, mean=mean_, logvar=log_var_)
+
+
+
+
+    # plt.ion()
+    # plt.show(block=False)
+
+    # print 'Performing SVI'
+    # for i in range(5000):
+
+    #     #Sample q distribution
+    #     # x, eps = G_SVI.sess.run([G_SVI.sample_q, G_SVI.eps]) #[P,D]
+
+    #     #Get log_p_x
+    #     # log_px = G_SVI.sess.run(G_SVI.log_px, feed_dict={G_SVI.sample_q: x})  #[P]
+
+    #     #Optimize variational params 
+    #     # _ = G_SVI.sess.run(G_SVI.optimizer, feed_dict={G_SVI.eps: eps, G_SVI.log_px: log_px})
+    #     _ = G_SVI.sess.run(G_SVI.optimizer)
+
+
+    #     if i%500==0:
+    #         # elbo, mean, logvar = G_SVI.sess.run([G_SVI.elbo, G_SVI.mean, G_SVI.log_var], feed_dict={G_SVI.eps: eps, G_SVI.log_px: log_px})
+    #         # print i, elbo, mean, logvar#, grad
+
+    #         elbo, mean, logvar = G_SVI.sess.run([G_SVI.elbo, G_SVI.mean, G_SVI.log_var])
+    #         print i, elbo, mean, logvar#, grad
+
+    #         #Visualize while training
+    #         plt.cla()
+
+    #         mean_, log_var_ = G_SVI.sess.run([G_SVI.mean, G_SVI.log_var])
+    #         G_SVI_for_viz = Gaussian_SVI(n_particles=n_particles_viz, mean=mean_, logvar=log_var_)
             
 
-            # print x.shape
-            w_samples = []
-            for j in range(1000):
-                w_samples.append(iw_sampling(G_SVI_for_viz))
-            w_samples = np.array(w_samples)
-            # print np.array(w_samples).shape
+    #         # print x.shape
+    #         w_samples = []
+    #         for j in range(1000):
+    #             w_samples.append(iw_sampling(G_SVI_for_viz))
+    #         w_samples = np.array(w_samples)
+    #         # print np.array(w_samples).shape
 
-            x_ = w_samples[:, 0]
-            y_ = w_samples[:, 1]
+    #         x_ = w_samples[:, 0]
+    #         y_ = w_samples[:, 1]
 
-            # Peform the kernel density estimate
-            xmin, xmax = -6, 6
-            ymin, ymax = -6, 6
+    #         # Peform the kernel density estimate
+    #         xmin, xmax = -6, 6
+    #         ymin, ymax = -6, 6
 
-            xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
-            positions = np.vstack([xx.ravel(), yy.ravel()])
-            values = np.vstack([x_, y_])
-            kernel = st.gaussian_kde(values)
-            f = np.reshape(kernel(positions).T, xx.shape)
+    #         xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
+    #         positions = np.vstack([xx.ravel(), yy.ravel()])
+    #         values = np.vstack([x_, y_])
+    #         kernel = st.gaussian_kde(values)
+    #         f = np.reshape(kernel(positions).T, xx.shape)
 
-            cfset = ax.contourf(xx, yy, f, cmap='Blues')
-            plt.show()
-
-
-            target_distribution = lambda x: np.exp(G_SVI.log_density(x))
-            plot_isocontours(ax, target_distribution, cmap='Greens')
-            var_distribution    = lambda x: np.exp(log_variational(x, mean, logvar))
-            plot_isocontours(ax, var_distribution, cmap='Reds')
-
-            ax.set_autoscale_on(False)
-            plt.draw()
-            plt.pause(1.0/30.0)
+    #         cfset = ax.contourf(xx, yy, f, cmap='Blues')
+    #         plt.show()
 
 
+    #         target_distribution = lambda x: np.exp(G_SVI.log_density(x))
+    #         plot_isocontours(ax, target_distribution, cmap='Greens')
+    #         var_distribution    = lambda x: np.exp(log_variational(x, mean, logvar))
+    #         plot_isocontours(ax, var_distribution, cmap='Reds')
+
+    #         ax.set_autoscale_on(False)
+    #         plt.draw()
+    #         plt.pause(1.0/30.0)
 
 
-    target_distribution = lambda x: np.exp(G_SVI.log_density(x))
-    plot_isocontours(ax, target_distribution, cmap='Blues')
-    plt.show()
 
 
-    var_distribution    = lambda x: np.exp(log_variational(x, mean, logvar))
-    plot_isocontours(ax, var_distribution, cmap='Reds')
-    plt.show()
+    # target_distribution = lambda x: np.exp(G_SVI.log_density(x))
+    # plot_isocontours(ax, target_distribution, cmap='Blues')
+    # plt.show()
+
+
+    # var_distribution    = lambda x: np.exp(log_variational(x, mean, logvar))
+    # plot_isocontours(ax, var_distribution, cmap='Reds')
+    # plt.show()
 
 
 
