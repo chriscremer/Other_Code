@@ -20,6 +20,27 @@ from torch.distributions.relaxed_categorical import RelaxedOneHotCategorical
 # from NN_forrelax import NN as NN2
 from NN2 import NN3
 
+
+
+
+
+#quick check
+
+f = np.array([0,1,2])
+p = np.array([.3, .2, .4])
+E= np.dot(f,p)
+print (f*p)
+print (E)
+grad_E_dim0 = fsdaf
+fdsaf
+
+
+
+
+
+
+
+
 # def H(x):
 #     if x > .5:
 #         return 1

@@ -102,6 +102,13 @@ class NN2(nn.Module):
 
 
 
+
+
+
+
+
+
+
 class ResidualBlock(nn.Module):
     def __init__(self, in_features):
         super(ResidualBlock, self).__init__()
@@ -124,33 +131,15 @@ class ResidualBlock(nn.Module):
         return x + self.conv_block(x)
 
 
-
 class NN3(nn.Module):
-    def __init__(self, input_size, output_size, seed=1, n_residual_blocks=3):
+    def __init__(self, input_size, output_size, seed=1, n_residual_blocks=3, width=50):
         super(NN3, self).__init__()
 
         torch.manual_seed(seed)
 
         self.input_size = input_size
         self.output_size = output_size
-        h_size = 50
-
-        # self.net = nn.Sequential(
-        #   nn.Linear(self.input_size,h_size),
-        #   nn.BatchNorm1d(h_size),
-        #   # nn.Tanh(),
-        #   # nn.Linear(h_size,h_size),
-        #   nn.LeakyReLU(),
-        #   nn.Linear(h_size,h_size),
-        #   nn.BatchNorm1d(h_size),
-        #   # nn.Tanh(),
-        #   nn.LeakyReLU(),
-        #   nn.Linear(h_size,h_size),
-        #   nn.BatchNorm1d(h_size),
-        #   # nn.Tanh(),
-        #   nn.LeakyReLU(),
-        #   nn.Linear(h_size,self.output_size),
-        # )
+        h_size = width
 
         self.first_layer = nn.Linear(self.input_size,h_size)
         self.last_layer = nn.Linear(h_size,self.output_size)
@@ -170,6 +159,24 @@ class NN3(nn.Module):
         out = self.last_layer(out)
 
         return out
+
+
+    def load_params_v3(self, save_dir, name, step):
+        save_to=os.path.join(save_dir, name + str(step)+".pt")
+        state_dict = torch.load(save_to)
+        # # # print (state_dict)
+        # for key, val in state_dict.items():
+        #     print (key)
+        # fddsf
+        self.load_state_dict(state_dict)
+        print ('loaded params', save_to)
+
+
+    def save_params_v3(self, save_dir, name, step):
+        save_to=os.path.join(save_dir, name + str(step)+".pt")
+        torch.save(self.state_dict(), save_to)
+        print ('saved params', save_to)
+        
 
 
 
