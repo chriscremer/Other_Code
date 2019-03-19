@@ -48,11 +48,33 @@ def to_print2(x):
 
 B=1
 C=3
-N = 1000
-logits =  torch.ones((B,C), requires_grad=True)
+N = 5000
+
+# theta = .5
+# bern_param = torch.tensor([theta], requires_grad=True).view(B,1)
+# aa = 1 - bern_param
+# probs = torch.cat([aa, bern_param], dim=1)
+# logits = torch.log(probs)
+
+# vs
+
+# logits =  torch.ones((B,C), requires_grad=True) # this is what I had before, not sure how the B even worked * -0.6931
+
+# logits =  torch.ones((1,C), requires_grad=True) #* -0.6931
+# logits =  torch.zeros((1,C), requires_grad=True) #* -0.6931
+probs = torch.softmax(torch.ones((1,C)), dim=1)
+logits = torch.log(probs)
+logits = torch.tensor(logits, requires_grad=True)
+
+
 # probs = torch.ones((B,C), requires_grad=True) / C
 # rewards = torch.tensor([-1., 0., 1., 4.])
-rewards = torch.tensor([-1., 1., 2.])
+rewards = torch.tensor([-1., 1., 2.]) #*.1 #* 100.
+# rewards = torch.tensor([-1., 2.])
+
+true = np.array([-.5478, .1122, .4422])
+# true = np.array([0,0])
+
 def f(ind):
     return rewards[ind]
 
@@ -72,7 +94,7 @@ def f(ind):
 
 
 print ('rewards', rewards)
-# print ('probs', probs)
+print ('probs', probs)
 print ('logits', logits)
 
 
@@ -90,10 +112,8 @@ print ('logits', logits)
 #REINFORCE
 print ('REINFORCE')
 
-def sample_reinforce_given_class(logits, samp):
-    
-    
-    return logprob
+# def sample_reinforce_given_class(logits, samp):    
+#     return logprob
 
 grads = []
 for i in range (N):
@@ -115,17 +135,10 @@ print ('REINFORCE')
 print ('mean:', grad_mean_reinforce)
 print ('std:', grad_std_reinforce)
 print ()
-print ()
-
-
-
-
-
-
-
-
-
-
+# print ('True')
+# print ('[-.5478, .1122, .4422]')
+# print ('dif:', np.abs(grad_mean_reinforce.numpy() -  true))
+# print ()
 
 
 
@@ -139,22 +152,40 @@ print ()
 print ('RELAX')
 
 def sample_relax(logits): #, k=1):
-    cat = Categorical(logits=logits)
+    
 
-    u = torch.rand(B,C).clamp(1e-8, 1.-1e-8) #.cuda()
+    # u = torch.rand(B,C).clamp(1e-8, 1.-1e-8) #.cuda()
+    u = torch.rand(B,C).clamp(1e-12, 1.-1e-12) #.cuda()
     gumbels = -torch.log(-torch.log(u))
     z = logits + gumbels
     b = torch.argmax(z, dim=1)
+
+    cat = Categorical(logits=logits)
     logprob = cat.log_prob(b).view(B,1)
 
-    u_b = torch.rand(B,1).clamp(1e-8, 1.-1e-8)
-    z_tilde_b = -torch.log(-torch.log(u_b))
-    u = torch.rand(B,C).clamp(1e-8, 1.-1e-8) #.cuda()
-    # u_b = torch.gather(input=u, dim=1, index=b.view(B,1))
-    # z_tilde_b = -torch.log(-torch.log(u_b))
+    v_k = torch.rand(B,1).clamp(1e-12, 1.-1e-12)
+    z_tilde_b = -torch.log(-torch.log(v_k))
+    
+    # # v = torch.rand(B,C) #.clamp(1e-12, 1.-1e-12) #.cuda()
+    # v_k = torch.gather(input=u, dim=1, index=b.view(B,1))
+    # # z_tilde_b = -torch.log(-torch.log(v_k))
+    # z_tilde_b = torch.gather(input=z, dim=1, index=b.view(B,1))
+    # # print (z_tilde_b)
 
-    z_tilde = -torch.log((- torch.log(u) / torch.softmax(logits,dim=1)) - torch.log(u_b))
+    v = torch.rand(B,C).clamp(1e-12, 1.-1e-12) #.cuda()
+    probs = torch.softmax(logits,dim=1).repeat(B,1)
+    # print (probs.shape, torch.log(v_k).shape, torch.log(v).shape)
+    # fasdfa
+
+    # print (v.shape)
+    # print (v.shape)
+    z_tilde = -torch.log((- torch.log(v) / probs) - torch.log(v_k))
+
+    # print (z_tilde)
+    # print (z_tilde_b)
     z_tilde.scatter_(dim=1, index=b.view(B,1), src=z_tilde_b)
+    # print (z_tilde)
+    # fasdfs
 
     return z, b, logprob, z_tilde
 
@@ -185,32 +216,117 @@ def sample_relax_given_b(logits, b):
 
 
 
-surrogate = NN3(input_size=C, output_size=1, n_residual_blocks=2)
+surrogate = NN3(input_size=C, output_size=1, n_residual_blocks=1)
 train_ = 1
-n_steps = 3000
+n_steps = 1000#0 #0 #1000 #50000 #
+B = 32 #0
+k=3
 if train_:
     optim = torch.optim.Adam(surrogate.parameters(), lr=1e-4, weight_decay=1e-7)
     #Train surrogate
     for i in range(n_steps+1):
+
+        # warmup = np.minimum( (i+1) / 1000., 1.)
+        warmup = 1.
+
+        # zs = []
+        # z_tildes = []
+        # logprobs = []
+        # rewards1 = []
+        # for j in range(B):
+
+        # logits = torch.log(probs)
+        # logits =  torch.ones((1,C), requires_grad=True) #* -0.6931
+        # logits =  torch.zeros((1,C), requires_grad=True) #* -0.6931
+            # print (z.shape)
+
+            # zs.append(z)
+            # z_tildes.append(z_tilde)
+            # logprobs.append(logprob)
+            # rewards1.append(reward)
+
+        # z = torch.stack(zs)
+        # z_tilde = torch.stack(z_tildes)
+        # logprob = torch.stack(logprobs)
+        # reward = torch.stack(rewards1)
+
+        # print (z.shape)
+        # print (b.shape)
+        
+        # print (logprob.shape)
+        # # fsaad
+
         z, b, logprob, z_tilde = sample_relax(logits)
-
-        cz_tilde = surrogate.net(z_tilde)
         reward = f(b)
-        loss = (cz_tilde - reward)**2 
+        cz_tilde = surrogate.net(z_tilde)
+        cz = surrogate.net(z)
 
-        # cz = surrogate.net(z)
-        # grad_logq =  torch.autograd.grad([torch.mean(logprob)], [logits], create_graph=True, retain_graph=True)[0]
-        # grad_surr_z =  torch.autograd.grad([torch.mean(cz)], [logits], create_graph=True, retain_graph=True)[0]
-        # grad_surr_z_tilde = torch.autograd.grad([torch.mean(cz_tilde)], [logits], create_graph=True, retain_graph=True)[0]
-        # loss = torch.mean(((reward - cz_tilde) * grad_logq + grad_surr_z - grad_surr_z_tilde)**2)
+
+
+
+        # czs = []
+        # cz_tildes = []
+        # # logprobs = []
+        # # rewards1 = []
+        # for j in range(k):
+        #     z = sample_relax_z(logits)
+        #     z_tilde = sample_relax_given_b(logits, b)
+            
+            
+        #     cz_tilde = surrogate.net(z_tilde)
+        #     cz = surrogate.net(z)
+
+        #     czs.append(cz)
+        #     cz_tildes.append(cz_tilde)
+        #     # logprobs.append(logprob)
+        #     # rewards1.append(reward)
+
+        # czs = torch.stack(czs)
+        # cz_tildes = torch.stack(cz_tildes)
+        # # logprobs = torch.stack(logprobs)
+        # # rewards1 = torch.stack(rewards1)
+
+        # cz = torch.mean(czs, dim=0).view(B,1)
+        # cz_tilde = torch.mean(cz_tildes, dim=0).view(B,1)
+        # # logprob = torch.mean(logprobs, dim=0).view(B,1)
+        # # reward = torch.mean(rewards1, dim=0).view(B,1)
+
+
+        # print (logprob)
+
+        # logits_repeat = logits.repeat(B,1)
+        # print (logits_repeat.shape)
+        grad_logq =  torch.autograd.grad([torch.mean(logprob)], [logits], create_graph=True, retain_graph=True)[0]
+        grad_surr_z =  torch.autograd.grad([torch.mean(cz)], [logits], create_graph=True, retain_graph=True)[0]
+        grad_surr_z_tilde = torch.autograd.grad([torch.mean(cz_tilde)], [logits], create_graph=True, retain_graph=True)[0]
+
+        # print()
+        # print (reward.view(B,1).shape)
+        # print (cz_tilde.shape)
+        # print (grad_logq.repeat(B,1).shape)
+        # print (grad_surr_z.repeat(B,1).shape)
+        # print (grad_surr_z_tilde.repeat(B,1).shape)
+        
+        # loss = ((reward.view(B,1) - cz_tilde) * grad_logq.repeat(B,1) + grad_surr_z.repeat(B,1) - grad_surr_z_tilde.repeat(B,1))
+        # print (loss.shape)
+        # fdsf        
+        # loss = torch.mean(((reward.view(B,1) - cz_tilde) * grad_logq.repeat(B,1) +  (grad_surr_z.repeat(B,1) - grad_surr_z_tilde.repeat(B,1))*warmup   )**2)
+        # loss = torch.mean(((reward.view(B,1) - cz_tilde) * grad_logq.repeat(B,1) +  (grad_surr_z.repeat(B,1) - grad_surr_z_tilde.repeat(B,1))*.1   )**2)
+        loss = torch.mean(((reward.view(B,1) - cz_tilde) * grad_logq.repeat(B,1) +  (grad_surr_z.repeat(B,1) - grad_surr_z_tilde.repeat(B,1))   )**2)
+        # loss = torch.mean((reward.view(B,1) - cz_tilde)**2)
+        # fdsaf
 
 
         optim.zero_grad()
         loss.backward()
         optim.step()
 
-        if i % (n_steps/10)==0:
-            print(i, loss)
+        cz_tilde_after = surrogate.net(z_tilde)
+
+
+        # if i % (n_steps/10)==0:
+        if i % (100)==0:
+            print(i, 'loss:', loss.data.numpy(), ' dif:', torch.mean(torch.abs(reward.view(B,1) - cz_tilde)).data.numpy(), 'pred:', cz_tilde[0].data.numpy(), 'R:', reward[0].data.numpy(), '  z:', z[0].data.numpy(), '  b:', b[0].data.numpy(), '  z_t:', z_tilde[0].data.numpy(), '  pred2:', cz_tilde_after[0].data.numpy(),)
 else:
     #Load
     net.load_params_v3(save_dir=home+'/Downloads/tmmpp/', step=17285, name='') 
@@ -223,19 +339,21 @@ grads_relax_score_b1 = []
 grads_relax_path_b1 = []
 grads_relax_score_b2 = []
 grads_relax_path_b2 = []
+B=1
 for i in range (N):
-    if i%200==0:
+    if i%1000==0:
         print(i,N)
     z, b, logprob, z_tilde = sample_relax(logits)
 
     # cz = surrogate.net(z)
     czs = []
-    for j in range(10):
+    for j in range(1):
         z = sample_relax_z(logits)
         cz = surrogate.net(z)
         czs.append(cz)
     czs = torch.stack(czs)
     cz = torch.mean(czs).view(1,1)
+
 
     # cz_tilde = surrogate.net(z_tilde)
     cz_tildes = []
@@ -246,12 +364,36 @@ for i in range (N):
     cz_tildes = torch.stack(cz_tildes)
     cz_tilde = torch.mean(cz_tildes).view(1,1)
 
+
+    # gg = torch.autograd.grad(outputs=z[0][0], inputs=(logits), retain_graph=True)[0]
+    # gg2 = torch.autograd.grad(outputs=z[0][1], inputs=(logits), retain_graph=True)[0]
+    # print (b)
+    # print (gg)
+    # print (gg2)
+    # fsaf
+
     
-    reward = f(b) 
+    reward = f(b).view(B,1) 
     gradlogprob = torch.autograd.grad(outputs=logprob, inputs=(logits), retain_graph=True)[0]
     gradcz = torch.autograd.grad(outputs=cz, inputs=(logits), retain_graph=True)[0]
     gradcz_tilde = torch.autograd.grad(outputs=cz_tilde, inputs=(logits), retain_graph=True)[0]
+    # print (reward.shape)
+    # print (cz_tilde.shape)
+    # print (gradlogprob.shape)
+    # print (gradcz.shape)
+    # print (gradcz_tilde.shape)
+
     grad = (reward-cz_tilde).detach() *gradlogprob + gradcz - gradcz_tilde
+    # grad = reward *gradlogprob #+ gradcz - gradcz_tilde
+
+    # print (b)
+    # print (reward-cz_tilde, 'reward-cz_tilde')
+    # print (gradlogprob, 'gradlogprob')
+    # print (gradcz, 'gradcz')
+    # print (gradcz_tilde, 'gradcz_tilde')
+    # print (grad, 'grad')
+    # print()
+
 
     if (grad != grad).any():
         print ('nan')
@@ -291,13 +433,14 @@ print ()
 
 print ('True')
 print ('[-.5478, .1122, .4422]')
+print ('dif:', np.abs(grad_mean_relax.numpy() - true ))
+print ()
 
 
 
 
 
-
-
+# fasfa
 
 
 
@@ -878,6 +1021,8 @@ print ('RELAX')
 print ('mean:', grad_mean)
 print ('std:', grad_std)
 print ()
+
+
 
 
 

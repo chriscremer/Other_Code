@@ -393,7 +393,7 @@ for theta in thetas:
     C= 2
     n_components = C
     B=1
-    probs = torch.ones(B,C)
+    # probs = torch.ones(B,C)
     bern_param = bern_param.view(B,1)
     aa = 1 - bern_param
     probs = torch.cat([aa, bern_param], dim=1)
@@ -418,7 +418,12 @@ for theta in thetas:
         z_tilde_b = -torch.log(-torch.log(u_b))
         u = torch.rand(B,C)
         z_tilde = -torch.log((- torch.log(u) / probs) - torch.log(u_b))
+
+        # print (z_tilde)
         z_tilde[:,b] = z_tilde_b
+        # print (z_tilde)
+
+        # fasdfasd
 
         # print (z)
         # print (b)
