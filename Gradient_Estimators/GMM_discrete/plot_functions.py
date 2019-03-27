@@ -259,8 +259,11 @@ def plot_curve2(data_dict, exp_dir):
             ax.plot(steps, v, label=v[-1])
 
         ax.legend()
-        ax.grid(True, alpha=.3)
+        ax.grid(True, alpha=.3) 
         ax.set_ylabel(k)
+
+        if row==0:
+            ax.set_title(exp_dir)
 
         row+=1
 

@@ -1,17 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 from os.path import expanduser
 home = expanduser("~")
 
@@ -27,11 +15,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import torch
-# from torch.distributions.bernoulli import Bernoulli
+from torch.distributions.bernoulli import Bernoulli
 # from torch.distributions.relaxed_bernoulli import RelaxedBernoulli
-from torch.distributions.categorical import Categorical
+# from torch.distributions.categorical import Categorical
 
-from NN2 import NN3
+# from NN2 import NN3
 
 
 seed=1
@@ -39,16 +27,67 @@ torch.manual_seed(seed)
 
 
 
-
-def to_print1(x):
-    return torch.mean(x).data.cpu().numpy()
-def to_print2(x):
+def to_print(x):
     return x.data.cpu().numpy()
+def to_print_mean(x):
+    return torch.mean(x).data.cpu().numpy()
 
+
+def logsumexp(x):
+    max_ = torch.max(x, dim=1, keepdim=True)[0]
+    lse = torch.log(torch.sum(torch.exp(x - max_), dim=1, keepdim=True)) + max_
+    return lse
 
 B=1
-C=3
+C=1
 N = 5000
+
+
+
+
+prelogits = torch.zeros([B,C])
+logits = prelogits - logsumexp(prelogits)
+
+
+dist1 = Bernoulli(logits=logits[:,0])
+
+# Decision 1
+b1 = dist1.sample()
+logprob1 = dist1.log_prob(b1)
+gradlogprob1 = torch.autograd.grad(outputs=logprob1, inputs=(logits), retain_graph=True)[0]
+
+if b1 ==0:
+    dist2 = Bernoulli(logits=logits[:,1])
+else:
+    dist2 = Bernoulli(logits=logits[:,2])
+
+# Decision 2
+b2 = dist2.sample()
+logprob2 = dist2.log_prob(b2)
+gradlogprob2 = torch.autograd.grad(outputs=logprob2, inputs=(logits), retain_graph=True)[0]
+
+if b1 == 0 and b2 == 0:
+    reward = 0
+elif b1 == 0 and b2 == 1:
+    reward = 1
+elif b1 == 1 and b2 == 0:
+    reward = 1
+elif b1 == 1 and b2 == 1:
+    reward = 0
+
+
+print (to_print(b1), to_print(b2), reward, )
+
+
+fafdafsafa
+
+
+
+
+
+
+
+
 
 # theta = .5
 # bern_param = torch.tensor([theta], requires_grad=True).view(B,1)
@@ -148,6 +187,59 @@ print ()
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #RELAX
 print ('RELAX')
 
@@ -165,12 +257,9 @@ def sample_relax(logits): #, k=1):
 
     v_k = torch.rand(B,1).clamp(1e-12, 1.-1e-12)
     z_tilde_b = -torch.log(-torch.log(v_k))
-    
-    # # v = torch.rand(B,C) #.clamp(1e-12, 1.-1e-12) #.cuda()
+    #this way seems biased even tho it shoudlnt be
     # v_k = torch.gather(input=u, dim=1, index=b.view(B,1))
-    # # z_tilde_b = -torch.log(-torch.log(v_k))
     # z_tilde_b = torch.gather(input=z, dim=1, index=b.view(B,1))
-    # # print (z_tilde_b)
 
     v = torch.rand(B,C).clamp(1e-12, 1.-1e-12) #.cuda()
     probs = torch.softmax(logits,dim=1).repeat(B,1)
@@ -217,8 +306,12 @@ def sample_relax_given_b(logits, b):
 
 
 surrogate = NN3(input_size=C, output_size=1, n_residual_blocks=1)
+
+amortizedgrad = NN3(input_size=C, output_size=C, n_residual_blocks=1)
+optim_ag = torch.optim.Adam(amortizedgrad.parameters(), lr=1e-4, weight_decay=1e-7)
+
 train_ = 1
-n_steps = 1000#0 #0 #1000 #50000 #
+n_steps = 2000#0 #0 #1000 #50000 #
 B = 32 #0
 k=3
 if train_:
@@ -262,6 +355,7 @@ if train_:
         cz = surrogate.net(z)
 
 
+        
 
 
         # czs = []
@@ -312,21 +406,50 @@ if train_:
         # fdsf        
         # loss = torch.mean(((reward.view(B,1) - cz_tilde) * grad_logq.repeat(B,1) +  (grad_surr_z.repeat(B,1) - grad_surr_z_tilde.repeat(B,1))*warmup   )**2)
         # loss = torch.mean(((reward.view(B,1) - cz_tilde) * grad_logq.repeat(B,1) +  (grad_surr_z.repeat(B,1) - grad_surr_z_tilde.repeat(B,1))*.1   )**2)
-        loss = torch.mean(((reward.view(B,1) - cz_tilde) * grad_logq.repeat(B,1) +  (grad_surr_z.repeat(B,1) - grad_surr_z_tilde.repeat(B,1))   )**2)
+
+        
+
+
+        # true_tensor = torch.tensor(true).view(1,C)
+        # true_tensor = true_tensor.repeat(B,1).float()
+
+        ag = amortizedgrad.net(logits.detach().repeat(B,1))
+        true_tensor = ag
+
+
+        loss = torch.mean(((reward.view(B,1) - cz_tilde) * grad_logq.repeat(B,1) +  (grad_surr_z.repeat(B,1) - grad_surr_z_tilde.repeat(B,1))  - true_tensor  )**2)
+        # loss = torch.mean(((reward.view(B,1) - cz_tilde) * grad_logq.repeat(B,1) +  (grad_surr_z.repeat(B,1) - grad_surr_z_tilde.repeat(B,1))  )**2 - true_tensor**2 )
+
+
+        # loss = torch.mean(((reward.view(B,1) - cz_tilde) * grad_logq.repeat(B,1) +  (grad_surr_z.repeat(B,1) - grad_surr_z_tilde.repeat(B,1)) )**2)
+
+
         # loss = torch.mean((reward.view(B,1) - cz_tilde)**2)
         # fdsaf
 
 
         optim.zero_grad()
-        loss.backward()
+        loss.backward(retain_graph=True)
         optim.step()
 
         cz_tilde_after = surrogate.net(z_tilde)
 
 
+
+        
+        grad = (reward.view(B,1) - cz_tilde) * grad_logq.repeat(B,1) +  (grad_surr_z.repeat(B,1) - grad_surr_z_tilde.repeat(B,1)) 
+        loss2 = torch.mean((ag - grad)**2)
+
+        optim_ag.zero_grad()
+        loss2.backward()
+        optim_ag.step()
+
+
+
         # if i % (n_steps/10)==0:
         if i % (100)==0:
             print(i, 'loss:', loss.data.numpy(), ' dif:', torch.mean(torch.abs(reward.view(B,1) - cz_tilde)).data.numpy(), 'pred:', cz_tilde[0].data.numpy(), 'R:', reward[0].data.numpy(), '  z:', z[0].data.numpy(), '  b:', b[0].data.numpy(), '  z_t:', z_tilde[0].data.numpy(), '  pred2:', cz_tilde_after[0].data.numpy(),)
+            print (loss2.data.numpy(), ag.data.numpy()[0])
 else:
     #Load
     net.load_params_v3(save_dir=home+'/Downloads/tmmpp/', step=17285, name='') 
@@ -347,7 +470,7 @@ for i in range (N):
 
     # cz = surrogate.net(z)
     czs = []
-    for j in range(1):
+    for j in range(2):
         z = sample_relax_z(logits)
         cz = surrogate.net(z)
         czs.append(cz)
@@ -357,7 +480,7 @@ for i in range (N):
 
     # cz_tilde = surrogate.net(z_tilde)
     cz_tildes = []
-    for j in range(1):
+    for j in range(2):
         z_tilde = sample_relax_given_b(logits, b)
         cz_tilde = surrogate.net(z_tilde)
         cz_tildes.append(cz_tilde)
