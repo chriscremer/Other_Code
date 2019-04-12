@@ -257,7 +257,7 @@ class VAE(nn.Module):
         # outputs['fsoft'] = torch.mean(fsoft)
         # outputs['c'] = torch.mean(c)
         outputs['logq_z'] = torch.mean(logq_z)
-        outputs['logits'] = torch.mean(logits)
+        outputs['logits'] = logits
 
         return outputs
 

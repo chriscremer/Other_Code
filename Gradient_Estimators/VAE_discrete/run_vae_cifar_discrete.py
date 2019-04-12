@@ -54,6 +54,16 @@ from vae_discrete_simplax import VAE
 
 # fdsaf
 
+
+
+def to_print_mean(x):
+    return torch.mean(x).data.cpu().numpy()
+def to_print(x):
+    return x.data.cpu().numpy()
+
+
+
+
 def unpickle(file):
 
     with open(file, 'rb') as fo:
@@ -137,7 +147,10 @@ def train(model, train_x, train_y, valid_x, valid_y,
                 continue_training):
 
     # random.seed( 0 )
-    
+
+    seed=1
+    torch.manual_seed(seed)
+
     all_dict = {}
 
     list_recorded_values = [ 
@@ -170,7 +183,8 @@ def train(model, train_x, train_y, valid_x, valid_y,
 
         for batch_idx, (batch, target) in enumerate(train_loader):
 
-            warmup = min((step+load_step) / float(warmup_steps), max_beta)
+            # warmup = min((step+load_step) / float(warmup_steps), max_beta)
+            warmup = 1.
 
             # print ((batch).shape)
             # print ((batch + torch.FloatTensor(batch.shape).uniform_(0., 1./256.)).shape)
@@ -181,11 +195,13 @@ def train(model, train_x, train_y, valid_x, valid_y,
 
 
             if step == 0:
-                for ii in range(1000):
+                # for ii in range(1000):
+                for ii in range(1001):
                               
                     model.optimizer_surr.zero_grad()
                     outputs = model.forward(grad_est_type=args.grad_est_type, x=batch.cuda(), warmup=warmup)  
                     NN_loss = outputs['surr_cost'] 
+                    # NN_loss.backward(retain_graph=True)  
                     NN_loss.backward()  
                     model.optimizer_surr.step()
                     model.scheduler_surr.step()
@@ -193,6 +209,50 @@ def train(model, train_x, train_y, valid_x, valid_y,
                     if ii%display_step==0:
                         print (ii, outputs['surr_cost'].data.item())
             
+
+                # with torch.no_grad():
+                #check if its unbiased here. 
+                # get grad wrt to logits 
+                # print (batch.shape)
+                batch1 = batch.cuda()[0].view(1,3,32,32)
+                grads = []
+                for i in range(100):
+                    outputs1 = model.forward(grad_est_type=args.grad_est_type, x=batch1, warmup=warmup)  
+                    grad = torch.autograd.grad([outputs1['welbo']], [outputs1['logits']], create_graph=True, retain_graph=True)[0] #[B,C]
+                    grads.append(grad)
+
+                grads = torch.stack(grads)
+                mean = torch.mean(grads, dim=0)
+                std = torch.std(grads, dim=0)#[0]
+
+
+
+                print (grads.shape)
+                print (mean.shape)
+                print (std.shape)
+                print (grads[0])
+                print (mean)
+                print (std)
+                print (torch.mean(std))
+                fafss
+
+                print (grad.shape)
+                fasdf
+                print (outputs['logits'].shape)
+                fasfsd
+
+
+
+
+
+
+
+
+
+
+
+
+
 
             model.optimizer_x.zero_grad()
             outputs = model.forward(grad_est_type=args.grad_est_type, x=batch.cuda(), warmup=warmup) 
@@ -255,7 +315,7 @@ def train(model, train_x, train_y, valid_x, valid_y,
                     # 'fsoft:{:.4f}'.format(outputs['fsoft'].data.item()),
                     # 'c:{:.4f}'.format(outputs['c'].data.item()),
                     'logq_z:{:.4f}'.format(outputs['logq_z'].data.item()),
-                    'logits:{:.4f}'.format(outputs['logits'].data.item()),
+                    'logits:{:.4f}'.format(to_print_mean(outputs['logits'])),
                     # 'lpx_v:{:.4f}'.format(valid_outputs['logpx'].data.item()),
                     # 'lpz_v:{:.4f}'.format(valid_outputs['logpz'].data.item()),
                     # 'lqz_v:{:.4f}'.format(valid_outputs['logqz'].data.item()),
