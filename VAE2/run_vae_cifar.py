@@ -27,7 +27,7 @@ import torch
 # from torch.autograd import Variable
 import torch.utils.data
 import torch.optim as optim
-# import torch.nn as nn
+import torch.nn as nn
 # import torch.nn.functional as F
 
 # from utils import lognormal2 as lognormal
@@ -152,6 +152,10 @@ def train(model, train_x, train_y, valid_x, valid_y,
     train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
     # optimizer = optim.Adam(model.parameters(), lr=.0001)
 
+
+    model_parallel = nn.DataParallel(model)
+    model.cuda()
+
     max_beta = 1.
 
     if not continue_training:
@@ -174,7 +178,8 @@ def train(model, train_x, train_y, valid_x, valid_y,
 
 
             model.optimizer_x.zero_grad()
-            outputs = model.forward(x=batch.cuda(), warmup=warmup) 
+            # outputs = model.forward(x=batch.cuda(), warmup=warmup) 
+            outputs = model_parallel.forward(x=batch.cuda(), warmup=warmup) 
             loss = -outputs['welbo']
             loss.backward()
             model.optimizer_x.step()
@@ -953,10 +958,8 @@ if __name__ == "__main__":
 
     print ('\nInit VAE')
     vae = VAE(args_dict)
-
-    vae = nn.DataParallel(vae)
-
-    vae.cuda()
+    # print (vae)
+    # vae.cuda()
     if args.model_load_step>0:
         vae.load_params_v3(save_dir=args.params_load_dir, step=args.model_load_step)
     # print(vae)
