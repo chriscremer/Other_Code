@@ -38,22 +38,21 @@ def logsumexp(x):
     lse = torch.log(torch.sum(torch.exp(x - max_), dim=1, keepdim=True)) + max_
     return lse
 
-B=1
-C=3
-N = 2000
+
+def reward_func(b1,b2):
+    if b1 == 0 and b2 == 0:
+        reward = 1
+    elif b1 == 0 and b2 == 1:
+        reward = 2
+    elif b1 == 1 and b2 == 0:
+        reward = 3
+    elif b1 == 1 and b2 == 1:
+        reward = 4
+    return reward
 
 
+def make_decisions(logits):
 
-
-prelogits = torch.zeros([B,C])
-logits = prelogits - logsumexp(prelogits)
-# logits = torch.tensor(logits.clone().detach(), requires_grad=True)
-logits.requires_grad_(True)
-
-
-
-grads = []
-for i in range(N):
     dist1 = Bernoulli(logits=logits[:,0])
 
     # Decision 1
@@ -69,14 +68,28 @@ for i in range(N):
     b2 = dist2.sample()
     logprob2 = dist2.log_prob(b2)
 
-    if b1 == 0 and b2 == 0:
-        reward = 1
-    elif b1 == 0 and b2 == 1:
-        reward = 2
-    elif b1 == 1 and b2 == 0:
-        reward = 3
-    elif b1 == 1 and b2 == 1:
-        reward = 4
+    return b1, logprob1, b2, logprob2   
+
+
+
+B=1
+C=3
+N = 1000
+
+
+
+
+#REINFORCE
+
+prelogits = torch.zeros([B,C])
+logits = prelogits - logsumexp(prelogits)
+logits.requires_grad_(True)
+
+grads = []
+for i in range(N):
+    
+    b1, logprob1, b2, logprob2 = make_decisions(logits)
+    reward = reward_func(b1,b2)
 
     logprob = logprob1 + logprob2
     gradlogprob = torch.autograd.grad(outputs=logprob, inputs=(logits), retain_graph=True)[0]
@@ -84,6 +97,7 @@ for i in range(N):
     grads.append(grad)
 
     # print (to_print(b1), to_print(b2), reward, to_print(logprob), to_print(gradlogprob),)
+    # fasfsd
 
 grads = torch.stack(grads).view(N,C)
 grad_mean_reinforce = torch.mean(grads,dim=0)
@@ -94,7 +108,93 @@ print ('mean:', grad_mean_reinforce)
 print ('std:', grad_std_reinforce)
 print ()
 
+
+
+
+
+
+
+
+#REINFORCE WITH BASELINE
+print ('REINFORCE with baseline')
+baseline=0
+for step in range(100):
+
+    b1, logprob1, b2, logprob2 = make_decisions(logits)
+    reward = reward_func(b1,b2)
+
+    baseline = baseline + .02*(reward-baseline)
+
+print ('baseline', baseline)
+
+
+
+prelogits = torch.zeros([B,C])
+logits = prelogits - logsumexp(prelogits)
+logits.requires_grad_(True)
+
+grads = []
+for i in range(N):
+    
+    b1, logprob1, b2, logprob2 = make_decisions(logits)
+    reward = reward_func(b1,b2)
+
+    logprob = logprob1 + logprob2
+    gradlogprob = torch.autograd.grad(outputs=logprob, inputs=(logits), retain_graph=True)[0]
+    grad = (reward - baseline) * gradlogprob
+    grads.append(grad)
+
+    # print (to_print(b1), to_print(b2), reward, to_print(logprob), to_print(gradlogprob),)
+    # fasfsd
+
+grads = torch.stack(grads).view(N,C)
+grad_mean_reinforce = torch.mean(grads,dim=0)
+grad_std_reinforce = torch.std(grads,dim=0)
+
+print ('REINFORCE with baseline')
+print ('mean:', grad_mean_reinforce)
+print ('std:', grad_std_reinforce)
+print ()
+
+
+
+
+
+
 fafdafsafa
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
