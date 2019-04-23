@@ -2,7 +2,7 @@
 
 
 
-python3 train_jointVAE.py --exp_name "test_22apr2019" \
+python3 train_jointVAE.py --exp_name "test_23apr2019_debuggingplotting" \
 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
 								--w_logpy 200 --w_logpx .02 --max_beta 1 --z_size 50 \
 								--data_dir "$HOME/vl_data/two_objects_large/" \

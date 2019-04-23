@@ -861,21 +861,28 @@ def train2(self, max_steps, load_step,
                 # make batch
                 # val_img_batch, val_question_batch = self.make_batch(val_image_dataset, val_question_dataset, val=True)
 
-                vizualize_2D(model, step)
+                # vizualize_2D(model, step)
 
+                vizualize(model, img_batch, question_batch, 
+                            val_img_batch, val_question_batch, 
+                            images_dir, step_count+load_step, classifier,
+                            training_recon_img, training_recon_q, training_recon_sampled_words,
+                            val_recon_img, val_recon_q, val_recon_sampled_words,
+                            x_hat_prior, y_hat_prior, y_hat_prior_sampled_words)
+                    
 
-                try:   
-                    vizualize(model, img_batch, question_batch, 
-                                val_img_batch, val_question_batch, 
-                                images_dir, step_count+load_step, classifier,
-                                training_recon_img, training_recon_q, training_recon_sampled_words,
-                                val_recon_img, val_recon_q, val_recon_sampled_words,
-                                x_hat_prior, y_hat_prior, y_hat_prior_sampled_words)
-                except:
-                    if self.quick_check:
-                        raise
-                    else:
-                        print ('problem with viz plotting')
+                # try:   
+                #     vizualize(model, img_batch, question_batch, 
+                #                 val_img_batch, val_question_batch, 
+                #                 images_dir, step_count+load_step, classifier,
+                #                 training_recon_img, training_recon_q, training_recon_sampled_words,
+                #                 val_recon_img, val_recon_q, val_recon_sampled_words,
+                #                 x_hat_prior, y_hat_prior, y_hat_prior_sampled_words)
+                # except:
+                #     if self.quick_check:
+                #         raise
+                #     else:
+                #         print ('problem with viz plotting')
 
 
                 try:
@@ -2013,6 +2020,7 @@ if __name__ == "__main__":
     exp_dir = args.save_to_dir + args.exp_name + '/'
     params_dir = exp_dir + 'params/'
     images_dir = exp_dir + 'images/'
+    code_dir = exp_dir + 'code/'
 
     if not os.path.exists(exp_dir):
         os.makedirs(exp_dir)
@@ -2029,9 +2037,16 @@ if __name__ == "__main__":
         os.makedirs(images_dir)
         print ('Made dir', images_dir) 
 
+    if not os.path.exists(code_dir):
+        os.makedirs(code_dir)
+        print ('Made dir', code_dir) 
 
 
-
+    #Save args and code
+    json_path = exp_dir+'args_dict.json'
+    with open(json_path, 'w') as outfile:
+        json.dump(args_dict, outfile, sort_keys=True, indent=4)
+    subprocess.call("(rsync -r --exclude=__pycache__/ . "+code_dir+" )", shell=True)
 
 
 
