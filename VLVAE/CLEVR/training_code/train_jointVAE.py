@@ -3,7 +3,9 @@
 
 import sys, os
 sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('../VLVAE'))
+sys.path.insert(0, os.path.abspath('../../VLVAE'))
+sys.path.insert(0, os.path.abspath('../utils'))
+
 
 from os.path import expanduser
 home = expanduser("~")
@@ -745,8 +747,21 @@ def train2(self, max_steps, load_step,
                     LL_shuffle_val = np.max([LL_shuffle_val1, LL_shuffle_val2])
                 # print (LL)
                 # fdsa
-                
+
+                # print (x_hat_prior)
+                # print (y_hat_prior_sampled_words)
+                # print (y_hat_prior)
+
+
+                # vizualize(model, img_batch, question_batch, 
+                #             val_img_batch, val_question_batch, 
+                #             images_dir, step_count+load_step, classifier,
+                #             training_recon_img, training_recon_q, training_recon_sampled_words,
+                #             val_recon_img, val_recon_q, val_recon_sampled_words,
+                #             x_hat_prior, y_hat_prior, y_hat_prior_sampled_words)    
                     
+                # dsafsda
+
             self.train()
 
 
