@@ -2,9 +2,9 @@
 
 
 
-/home/ccremer/anaconda3/bin/python ../training_code/train_jointVAE.py --exp_name "test_apr23" \
+/home/ccremer/anaconda3/bin/python ../training_code/train_jointVAE.py --exp_name "vlvae_qy20" \
 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
-								--w_logpy 200 --w_logpx .02 --max_beta 1 --z_size 50 \
+								--w_logpy 200 --w_logpx .02 --w_logqy 20 --max_beta 1 --z_size 50 \
 								--data_dir "$HOME/VL/data/two_objects_no_occ/"  \
 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
 								--just_classifier 0 \
@@ -846,6 +846,7 @@
 # 								--ssl_type '0' \
 # 								--textAR 1 \
 # 								--max_steps 300000 \
+
 
 
 
