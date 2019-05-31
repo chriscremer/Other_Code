@@ -43,6 +43,8 @@ from vae_2 import VAE
 from inference_net import standard
 
 
+from distributions import Gaussian
+from distributions import Flow1
 
 
 # x_size = 784
@@ -563,7 +565,7 @@ hyper_config = {
                 'act_func': F.tanh,# F.relu,
                 'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
-                'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+                'q_dist': Gaussian, # standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
                 'cuda': 1
             }
 
@@ -612,7 +614,8 @@ print('\nModel:', hyper_config,'\n')
 
 
 # path_to_load_variables=''
-path_to_save_variables=home+'/Documents/tmp/inference_suboptimality/vae' #.pt'
+# path_to_save_variables=home+'/Documents/tmp/inference_suboptimality/vae' #.pt'
+path_to_save_variables=home+'/Documents/Inf_Sub/vae' #.pt'
 # path_to_save_variables=home+'/Documents/tmp/pytorch_vae'+str(epochs)+'.pt'
 # path_to_save_variables=this_dir+'/params_'+model_name+'_'
 # path_to_save_variables=''
