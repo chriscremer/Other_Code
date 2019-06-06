@@ -42,9 +42,9 @@ import pickle
 parser = argparse.ArgumentParser()
 # training
 
-parser.add_argument('--exp_name', default='glow_improve3_3_16', type=str)
+parser.add_argument('--exp_name', default='glow_improve3_3_32', type=str)
 parser.add_argument('--save_to_dir', default=home+'/Documents/glow_clevr/', type=str)
-parser.add_argument('--which_gpu', default='1', type=str)
+parser.add_argument('--which_gpu', default='0', type=str)
 
 # parser.add_argument('--batch_size', type=int, default=64)
 # parser.add_argument('--batch_size', type=int, default=32)
@@ -55,7 +55,7 @@ parser.add_argument('--batch_size', type=int, default=16)
 # parser.add_argument('--depth', type=int, default=8) 
 # parser.add_argument('--depth', type=int, default=6)  
 parser.add_argument('--n_levels', type=int, default=3) 
-parser.add_argument('--depth', type=int, default=16)  
+parser.add_argument('--depth', type=int, default=32)  
 # parser.add_argument('--depth', type=int, default=16) 
 
 # parser.add_argument('--n_levels', type=int, default=5) 
@@ -76,12 +76,12 @@ parser.add_argument('--lr', type=float, default=2e-4)
 # logging
 parser.add_argument('--print_every', type=int, default=200, help='print NLL every _ minibatches')
 parser.add_argument('--curveplot_every', type=int, default=2000)
-parser.add_argument('--plotimages_every', type=int, default=2000)
-parser.add_argument('--save_every', type=int, default=10000, help='save model every _ epochs')
+parser.add_argument('--plotimages_every', type=int, default=4000)
+parser.add_argument('--save_every', type=int, default=50000, help='save model every _ epochs')
 parser.add_argument('--max_steps', type=int, default=200000)
 
 # parser.add_argument('--data_dir', type=str, default='../pixelcnn-pp')
-parser.add_argument('--data_dir', type=str, default=home +'/Documents')
+# parser.add_argument('--data_dir', type=str, default=home +'/Documents')
 
 
 parser.add_argument('--load_step', type=int, default=0)
@@ -200,7 +200,7 @@ sampling_batch_size = 64
 model = Glow_((sampling_batch_size, 3, 112, 112), args).cuda()
 # print(model)
 print("number of model parameters:", sum([np.prod(p.size()) for p in model.parameters()]))
-fasdfad
+# fasdfad
 # model = nn.DataParallel(model).cuda()
 ###########################################################################################
 
@@ -210,9 +210,12 @@ fasdfad
 
 
 
+
 ###########################################################################################
 # CLEVR DATA
-data_dir = home+ "/VL/data/two_objects_no_occ/"
+# data_dir = home+ "/VL/data/two_objects_no_occ/"
+data_dir = home+ "/vl_data/two_objects_large/"
+
 question_file = data_dir+'train.h5'
 image_file = data_dir+'train_images.h5'
 vocab_file = data_dir+'train_vocab.json'
