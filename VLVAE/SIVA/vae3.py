@@ -55,18 +55,21 @@ class Conditional_VAE(nn.Module):
         B = x.shape[0]
         outputs = {}
 
-        z, logqz = self.encoder.sample(x) 
+        y_enc = self.text_encoder.encode(y)
+
+        z, logqz = self.encoder.sample(x, y_enc) 
 
         logpz = self.prior.logprob(z)
 
-        y_enc = self.text_encoder.encode(y)
-
-
         x_hat = self.generator.decode(z, y_enc)
         alpha = torch.sigmoid(x_hat)
-        beta = Beta(alpha*self.beta_scale, (1.-alpha)*self.beta_scale)
-        logpxz = beta.log_prob(x) #[120,3,112,112]
+
+        logpxz = -(alpha - x)**2
+
+        # beta = Beta(alpha*self.beta_scale, (1.-alpha)*self.beta_scale)
+        # logpxz = beta.log_prob(x) #[120,3,112,112]
         logpxz = torch.sum(logpxz.view(B, -1),1) # [B]  * self.w_logpx
+
         # print (logpxz.shape)
         # logpxz = logpxz * .02 #self.w_logpx
 
@@ -76,7 +79,10 @@ class Conditional_VAE(nn.Module):
         #     max_ = torch.max(elbo, 0)[0] #[B]
         #     elbo = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
         elbo = logpxz + logpz - logqz
-        welbo = logpxz*.1 + warmup*(logpz - logqz)
+        # welbo = logpxz*.1 + warmup*(logpz - logqz)
+        welbo = logpxz*10. + warmup*(logpz - logqz)
+
+
             
         # elbo = torch.mean(elbo) #[1]
         outputs['logpxz'] = torch.mean(logpxz) #[1]
@@ -86,6 +92,12 @@ class Conditional_VAE(nn.Module):
         outputs['welbo'] = torch.mean(welbo)
         outputs['x_hat'] = alpha
         # outputs['elbo_B'] = elbo
+
+        if (elbo!=elbo).any():
+            print (torch.mean(logpxz))
+            print (torch.mean(logqz))
+            print (torch.mean(logpz))
+            faasdf
 
         return outputs
 
@@ -97,9 +109,9 @@ class Conditional_VAE(nn.Module):
 
 
 
-    def get_z(self, x):
-
-        z, logqz = self.encoder.sample(x) 
+    def get_z(self, x, y):
+        y_enc = self.text_encoder.encode(y)
+        z, logqz = self.encoder.sample(x,y_enc) 
         return z
 
 

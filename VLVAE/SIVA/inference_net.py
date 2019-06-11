@@ -57,6 +57,9 @@ class Inf_Net(nn.Module):
         hs = 100 #50 #hidden size
         self.image_encoder = Image_encoder(input_nc=3, image_encoding_size=hs, 
                                             n_residual_blocks=2, input_size=self.img_dim)
+        
+
+        self.linear0 = nn.Linear(hs+ self.y_enc_size, hs)
         self.linear1 = nn.Linear(hs, hs)
         # self.qzx_bn1 = nn.BatchNorm1d(self.linear_hidden_size)
         self.linear2 = nn.Linear(hs, hs)
@@ -78,7 +81,7 @@ class Inf_Net(nn.Module):
 
 
 
-    def encode(self, x):
+    def encode(self, x, y):
         out = x
         # for i in range(len(self.encoder_weights)-1):
         #     out = self.act_func(self.encoder_weights[i](out))
@@ -91,7 +94,13 @@ class Inf_Net(nn.Module):
         # out = self.act_func(self.linear2(out))
         # out = self.linear3(out)
 
+
+
         out = self.act_func(self.image_encoder(out))
+
+        out = torch.cat((out,y), 1)
+        out = self.act_func(self.linear0(out))
+
         res = self.act_func(self.linear2(self.act_func(self.linear1(out))))
         out = out + res 
         out = self.linear3(out)
@@ -103,9 +112,9 @@ class Inf_Net(nn.Module):
 
 
 
-    def sample(self, x):
+    def sample(self, x, y):
 
-        mean, logvar = self.encode(x)
+        mean, logvar = self.encode(x, y)
 
         z, logqz = self.q.sample(mean, logvar)
 

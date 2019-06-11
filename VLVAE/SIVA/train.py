@@ -90,7 +90,8 @@ def train(exp_dict):
 
         img_batch, text_batch = get_batch(image_dataset=S['train_x'], text_dataset=S['train_y'], batch_size=S['batch_size'])
         # warmup = min((step+S['load_step']) / float(S['warmup_steps']), 1.)
-        warmup = max(50. - (step / float(S['warmup_steps'])), 1.)
+        # warmup = max(50. - (step / float(S['warmup_steps'])), 1.)
+        warmup = 1.
 
         outputs = model.forward(img_batch, text_batch, warmup=warmup)
 
@@ -170,7 +171,7 @@ def train(exp_dict):
                 image2 = img_batch[1].view(1,3,112,112)
                 text1 = text_batch[0].view(1,9)
                 text2 = text_batch[1].view(1,9)
-                z = model.get_z(image1)
+                z = model.get_z(image1, text1)
                 new_image1 = model.generate_given_z_y(y=text1, z=z)
                 new_image2 = model.generate_given_z_y(y=text2, z=z)
 
@@ -315,7 +316,8 @@ if __name__ == "__main__":
     ################################################################################
     # CLEVR DATA
 
-    data_dir = home+ "/VL/data/two_objects_no_occ/"
+    # data_dir = home+ "/VL/data/two_objects_no_occ/" #BOLTZ
+    data_dir = home+ "/vl_data/two_objects_large/" # VWS
     question_file = data_dir+'train.h5'
     image_file = data_dir+'train_images.h5'
     vocab_file = data_dir+'train_vocab.json'
