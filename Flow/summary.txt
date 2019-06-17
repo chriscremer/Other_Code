@@ -1,0 +1,11 @@
+
+
+I started with viz_flow. Its using the partitioning of Real NVP. Its in 2D
+Then I did viz_1D_flow, using basically the planar flow.
+	However, you cant efficiently do the inverse of the function
+	so you can either sample a lot and use the probs of those samples
+	or you can reverse the function by using Newtons method for example
+I then did planar flow in 2D, and used griddata to visualize.
+
+
+
