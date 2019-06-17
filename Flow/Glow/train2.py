@@ -42,7 +42,7 @@ import pickle
 parser = argparse.ArgumentParser()
 # training
 
-parser.add_argument('--exp_name', default='glow_improve3_3_32', type=str)
+parser.add_argument('--exp_name', default='glow_sigmoid', type=str)
 parser.add_argument('--save_to_dir', default=home+'/Documents/glow_clevr/', type=str)
 parser.add_argument('--which_gpu', default='0', type=str)
 
@@ -55,8 +55,8 @@ parser.add_argument('--batch_size', type=int, default=16)
 # parser.add_argument('--depth', type=int, default=8) 
 # parser.add_argument('--depth', type=int, default=6)  
 parser.add_argument('--n_levels', type=int, default=3) 
-parser.add_argument('--depth', type=int, default=32)  
-# parser.add_argument('--depth', type=int, default=16) 
+# parser.add_argument('--depth', type=int, default=32)  
+parser.add_argument('--depth', type=int, default=16) 
 
 # parser.add_argument('--n_levels', type=int, default=5) 
 
@@ -70,13 +70,14 @@ parser.add_argument('--coupling', type=str, default='additive')
 parser.add_argument('--n_bits_x', type=int, default=8)
 # parser.add_argument('--n_epochs', type=int, default=2000)
 parser.add_argument('--learntop', action='store_true')
+# parser.add_argument('--learntop', action='store_false')
 # parser.add_argument('--n_warmup', type=int, default=20, help='number of warmup epochs')
-parser.add_argument('--lr', type=float, default=2e-4)
+parser.add_argument('--lr', type=float, default=1e-4)
 # parser.add_argument('--lr', type=float, default=1e-5)
 # logging
 parser.add_argument('--print_every', type=int, default=200, help='print NLL every _ minibatches')
 parser.add_argument('--curveplot_every', type=int, default=2000)
-parser.add_argument('--plotimages_every', type=int, default=4000)
+parser.add_argument('--plotimages_every', type=int, default=2000)
 parser.add_argument('--save_every', type=int, default=50000, help='save model every _ epochs')
 parser.add_argument('--max_steps', type=int, default=200000)
 
@@ -228,12 +229,6 @@ train_loader_kwargs = {
                         }
 loader = ClevrDataLoader(**train_loader_kwargs)
 
-train_image_dataset, train_question_dataset, val_image_dataset, \
-     val_question_dataset, test_image_dataset, test_question_dataset, \
-     train_indexes, val_indexes, question_idx_to_token, \
-     question_token_to_idx, q_max_len, vocab_size =  preprocess_v2(loader, vocab_file)
-
-
 class MyClevrDataset(Dataset):
     """Face Landmarks dataset."""
 
@@ -248,28 +243,57 @@ class MyClevrDataset(Dataset):
 
         img_batch = self.data[idx]
         img_batch = torch.from_numpy(img_batch) #.cuda()
-        img_batch = torch.clamp(img_batch, min=1e-5, max=1-1e-5)
+        # img_batch = torch.clamp(img_batch, min=1e-5, max=1-1e-5)
+        # img_batch = torch.clamp(img_batch, min=1e-2, max=1-1e-2)
 
         return img_batch 
 
-# quick_check_data = home+ "/VL/two_objects_large/quick_stuff.pkl" 
+
+train_image_dataset, train_question_dataset, val_image_dataset, \
+     val_question_dataset, test_image_dataset, test_question_dataset, \
+     train_indexes, val_indexes, question_idx_to_token, \
+     question_token_to_idx, q_max_len, vocab_size =  preprocess_v2(loader, vocab_file)
+
+train_image_dataset = train_image_dataset[:50000]
+
+
+
+# # quick_check_data = home+ "/VL/two_objects_large/quick_stuff.pkl" 
+# quick_check_data = home+ "/vl_data/quick_stuff.pkl" 
 # with open(quick_check_data, "rb" ) as f:
 #     stuff = pickle.load(f)
 #     train_image_dataset, train_question_dataset, val_image_dataset, \
 #          val_question_dataset, test_image_dataset, test_question_dataset, \
 #          train_indexes, val_indexes, question_idx_to_token, \
-    # question_token_to_idx, q_max_len, vocab_size = stuff
+#     question_token_to_idx, q_max_len, vocab_size = stuff
 
-# img_batch, question_batch = get_batch(train_image_dataset, train_question_dataset, batch_size=4)
+# # img_batch, question_batch = get_batch(train_image_dataset, train_question_dataset, batch_size=4)
 
 
-train_image_dataset = train_image_dataset[:50000]
+
+train_image_dataset = np.clip(train_image_dataset, a_min=1e-2, a_max=1-1e-2)
+
+print (np.max(train_image_dataset))
+print (np.min(train_image_dataset))
+
+
+# train_image_dataset = -np.log( (1/train_image_dataset) - 1)
+
+# print (np.max(train_image_dataset))
+# print (np.min(train_image_dataset))
+# fadsf
+
+
+
 # train_image_dataset = train_image_dataset[:22]
 dataset = MyClevrDataset(train_image_dataset)
 loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, 
                                 shuffle=True, num_workers=0, drop_last=True)
 print (train_image_dataset.shape)
 ###########################################################################################
+
+
+
 
 
 
@@ -293,7 +317,8 @@ lr_sched = torch.optim.lr_scheduler.StepLR(optim, step_size=50, gamma=0.999)
 
 
 # # data dependant init
-init_loader = torch.utils.data.DataLoader(dataset, batch_size=100, 
+bs = int(np.minimum(len(dataset), 256))
+init_loader = torch.utils.data.DataLoader(dataset, batch_size=bs, 
                     shuffle=True, num_workers=1, drop_last=True)
 with torch.no_grad():
     model.eval()
@@ -323,6 +348,12 @@ if args.load_step > 0:
 
 
 
+
+
+
+
+
+
 ###########################################################################################
 # training loop
 # ------------------------------------------------------------------------------
@@ -336,6 +367,7 @@ data_dict['steps'] = []
 data_dict['lpx'] = []
 data_dict['lr'] = []
 data_dict['T'] = []
+
 
 iter_loader = iter(loader)
 for i in range(max_steps+1):
@@ -352,12 +384,16 @@ for i in range(max_steps+1):
     
     
     # img = img.cuda() 
+    # print (img.shape)
+    # print (img[:, 0, 0, 0].shape)
     objective = torch.zeros_like(img[:, 0, 0, 0])
 
     # discretizing cost 
     objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
     
     # log_det_jacobian cost (and some prior from Split OP)
+    # print (objective.shape)
+    # fadsfa
     z, objective = model(img, objective)
 
     nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
@@ -367,8 +403,10 @@ for i in range(max_steps+1):
 
     optim.zero_grad()
     nobj.backward()
-    torch.nn.utils.clip_grad_value_(model.parameters(), 5)
-    torch.nn.utils.clip_grad_norm_(model.parameters(), 100)
+    # torch.nn.utils.clip_grad_value_(model.parameters(), 5)
+    # torch.nn.utils.clip_grad_norm_(model.parameters(), 100)
+    torch.nn.utils.clip_grad_value_(model.parameters(), 1)
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 20)
     optim.step()
     lr_sched.step()
 

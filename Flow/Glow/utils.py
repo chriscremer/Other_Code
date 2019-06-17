@@ -60,8 +60,9 @@ def gaussian_diag(mean, logsd):
         def logps(x):
             return  -0.5 * (o.Log2PI + 2. * logsd + ((x - mean) ** 2) / torch.exp(2. * logsd))
 
-        def sample():
-            eps = torch.zeros_like(mean).normal_()
+        def sample(eps=None):
+            if eps is None:
+                eps = torch.zeros_like(mean).normal_()
             return mean + torch.exp(logsd) * eps
 
     o.logp    = lambda x: flatten_sum(o.logps(x))

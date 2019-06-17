@@ -34,8 +34,34 @@ class LayerList(Layer):
         return self.layers[i]
 
     def forward_(self, x, objective):
+
+        count = 0
         for layer in self.layers:
             x, objective = layer.forward_(x, objective)
+
+
+            # # for ii in range(len(layer.parameters())):
+            # if count ==2:
+            #     print (layer)
+            #     for ii in layer.parameters():
+            #         # print (layer.parameters()[ii])
+            #         print (ii)
+            #     fadsa
+            # print (count, layer)
+
+            if (x!=x).any() or torch.max(x) > 999999:
+                print('forward')
+                print (count, layer)
+                print (torch.min(x_pre), torch.max(x_pre))
+                print (torch.min(x), torch.max(x))
+                for ii in layer.parameters():
+                    print (ii)
+                fadfas
+            x_pre = x.clone()    
+            count+=1
+            
+        # fasfas
+
         return x, objective
 
     def reverse_(self, x, objective):
@@ -46,6 +72,7 @@ class LayerList(Layer):
             #     x_pre = x.clone()
 
             x, objective = layer.reverse_(x, objective)
+
 
 
             # print (count, layer)
@@ -64,13 +91,14 @@ class LayerList(Layer):
             #     fasfa
 
             if (x!=x).any() or torch.max(x) > 999999:
+                print('reverse')
                 print (count, layer)
-
                 # h = layer.conv_zero(x_pre)
                 # mean, logs = h[:, 0::2], h[:, 1::2]
-
                 print (torch.min(x_pre), torch.max(x_pre))
                 print (torch.min(x), torch.max(x))
+                for ii in layer.parameters():
+                    print (ii)
                 # print ((x_pre!=x_pre).any(), (mean!=mean).any(), (logs!=logs).any())
                 # print ( layer.conv_zero.logs)
                 fadfas
@@ -81,6 +109,18 @@ class LayerList(Layer):
         # fsadfa
 
         return x, objective
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # ------------------------------------------------------------------------------
@@ -257,6 +297,9 @@ class GaussianPrior(Layer):
         else: 
             self.conv = None
 
+        # self.eps = None
+        self.eps = torch.zeros(input_shape).normal_().cuda()
+
     def forward_(self, x, objective):
         mean_and_logsd = torch.cat([torch.zeros_like(x) for _ in range(2)], dim=1)
         
@@ -280,7 +323,14 @@ class GaussianPrior(Layer):
 
         mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
         pz = gaussian_diag(mean, logsd)
-        z = pz.sample() if x is None else x
+
+
+        z = pz.sample(self.eps) if x is None else x
+
+        # fafads
+        # # did it work?
+
+
         objective -= pz.logp(z)
 
         # this way, you can encode and decode back the same image. 
@@ -316,6 +366,9 @@ class AdditiveCoupling(Layer):
         z1, z2 = torch.chunk(x, 2, dim=1)
         z2 -= self.NN(z1)
         return torch.cat([z1, z2], dim=1), objective
+
+
+
 
 # Additive Coupling Layer
 class AffineCoupling(Layer):
@@ -409,6 +462,47 @@ class ActNorm(Layer):
 
 
 
+
+# Inverse Sigmoid
+class InverseSigmoid(Layer):
+    def __init__(self):
+        super(InverseSigmoid, self).__init__()
+        # assert num_features % 2 == 0
+        # self.NN = NN(num_features // 2)
+
+    def forward_(self, x, objective):
+
+
+        # SHOULD MODIFY OBJECTIVE
+        # however wouldnt affect the gradient since x cant be cahnged, its the data
+        jac = (1/x) + (1/(1-x))
+        objective += flatten_sum(torch.log(jac))
+
+        x = -torch.log( (1/x) - 1)
+        # print (objective.shape)
+        # fasfd
+
+        return x, objective
+
+    def reverse_(self, x, objective):
+
+        x = 1/ (torch.exp(-x) + 1)
+
+        # SHOULD MODIFY OBJECTIVE
+        jac = 1/x + (1/(1-x))
+        objective += flatten_sum(torch.log(jac))
+
+        return x, objective
+
+
+
+
+
+
+
+
+
+
 # ------------------------------------------------------------------------------
 # Stacked Layers
 # ------------------------------------------------------------------------------
@@ -444,6 +538,10 @@ class RevNetStep(LayerList):
         self.layers = nn.ModuleList(layers)
 
 
+
+
+
+
 # Full model
 class Glow_(LayerList, nn.Module):
     def __init__(self, input_shape, args):
@@ -451,6 +549,9 @@ class Glow_(LayerList, nn.Module):
         layers = []
         output_shapes = []
         B, C, H, W = input_shape
+
+
+        layers += [InverseSigmoid()]
         
         for i in range(args.n_levels):
 
@@ -476,10 +577,12 @@ class Glow_(LayerList, nn.Module):
         # # print (output_shapes)
         # # fadsf
 
-        
-        for i in range(len(output_shapes)):
-            print (i, output_shapes[i])
-        # fdsa
+        # count = 0
+        # for i in range(len(output_shapes)):
+        #     print (i, output_shapes[i])
+        #     count +=1
+        # print ()
+        # # fdsa
 
         self.layers = nn.ModuleList(layers)
         self.output_shapes = output_shapes
