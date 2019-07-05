@@ -177,9 +177,12 @@ class flow1(nn.Module):
 
         self.D = 1
 
-        # self.n_flows = n_flows
+        self.n_flows = n_flows
 
-        self.sigma = nn.Parameter(torch.tensor([0.]).float())
+        self.p0_mean = torch.tensor([0.]).float()
+        self.p0_logvar = torch.tensor([0.]).float()
+
+        self.sigma = nn.Parameter(torch.tensor([1.]).float())
         self.mu = nn.Parameter(torch.tensor([0.]).float())
 
         # self.flows = []
@@ -217,6 +220,7 @@ class flow1(nn.Module):
         if reverse == True:
             z1 = z
             z0 = (z1-b) / a
+            z1 = z0
             # jac = 1 + sig_der(z1*a + b)* a
             # logdet = torch.log(torch.abs(jac))
         else:
@@ -225,8 +229,9 @@ class flow1(nn.Module):
             z1 = z0 * a +b
 
         # jac = 1 + sig_der(z0*a + b)* a
-        jac = a #1 + tanh_der(z0*a + b)* a
+        jac = torch.ones(z.shape[0]) *a #1 + tanh_der(z0*a + b)* a
         logdet = torch.log(torch.abs(jac))
+        # print (logdet.shape)
 
         return z1, logdet
 
@@ -242,16 +247,17 @@ class flow1(nn.Module):
 
         z = z0
         logdetsum = 0
-        for i in range(n_flows):
-            # print (z)
-            z, logdet = self.transform(z, self.flows[i][0], self.flows[i][1]) #mask=self.masks[i], net=self.nets[i])
-            # z, logdet = self.transform(z, self.a, self.b, reverse=True)
-            # print (z)
-            # fds
-            logdetsum += logdet
+        # for i in range(n_flows):
+        # print (z)
+        z, logdet = self.transform(z, self.sigma, self.mu) #mask=self.masks[i], net=self.nets[i])
+        # z, logdet = self.transform(z, self.a, self.b, reverse=True)
+        # print (z)
+        # fds
+        logdetsum += logdet
         zT = z
 
-        logprob = logqz0 - logdetsum
+        # print (logqz0.shape, logdetsum.shape)
+        logprob = logqz0.view(N) - logdetsum.view(N)
         return zT, logprob.view(N)
 
 
@@ -262,9 +268,11 @@ class flow1(nn.Module):
         trans = lambda x: x + torch.tanh(x*w + b) - z1
         der = lambda x: 1 + (1- torch.tanh(x*w + b)**2)*w
 
+
         for i in range(5):
             z0 = z0 - (trans(z0)/der(z0))
-            # print (z0)
+            print (z0)
+        fasdf
 
         return z0
 
@@ -313,10 +321,12 @@ class flow1(nn.Module):
 
 
 
-            z = self.newtons(z, self.flows[i][0], self.flows[i][1])
+            # z = self.newtons(z, self.sigma, self.mu)
+
+            z, logdet = self.transform(z, self.sigma, self.mu, reverse=True)
 
 
-            forward_z, logdet = self.transform(z, self.flows[i][0], self.flows[i][1])
+            # forward_z, logdet = self.transform(z, self.sigma, self.mu)
             logdetsum += logdet
 
             # print (original_z, forward_z)
@@ -325,6 +335,8 @@ class flow1(nn.Module):
         z0 = z
 
         logqz0 = log_normal(z0, self.p0_mean, self.p0_logvar)
+
+        # print (logqz0.shape, logdetsum.shape)
         logprob = logqz0 - logdetsum.view(B)
 
         # print (logqz0, logdetsum)
@@ -436,8 +448,8 @@ if __name__ == "__main__":
     # fsf
     batch_size = 128 #64 #32
 
-    # for i in range(4000):
-    for i in range(100):
+    for i in range(2000):
+    # for i in range(100):
 
         z, logprob = flow.sample(batch_size)
 
@@ -493,16 +505,19 @@ if __name__ == "__main__":
     # print (flow_prob)
 
     z, logprob = flow.sample(1000)
-    flow_prob = np.exp(numpy(logprob))
+    flow_prob = np.exp(numpy(logprob.view(1000)))
     z = numpy(z)
 
+    # print (z.shape, flow_prob.shape)
+    # flow_prob = flow_prob
+    # fasdf
 
 
 
     fontsize = 9
 
     rows = 3 #2 
-    cols = n_flows
+    cols = 4 #n_flows
     fig = plt.figure(figsize=(8+cols,4+rows), facecolor='white') #, dpi=150)
     # xlimits=[-3, 3]
     ylimits=[0, .43]
@@ -517,67 +532,72 @@ if __name__ == "__main__":
     ax.plot(aa, prob)
     ax.set_ylim(ylimits)
     ax.set_title('Initial Distribution', fontsize=fontsize)
+    # plt.gca().set_aspect('equal', adjustable='box')
 
     ax = plt.subplot2grid((rows,cols), (0,1), frameon=False)
     ax.scatter(z, flow_prob, s=5, alpha=.05)
     ax.set_ylim(ylimits)
     ax.set_xlim(xlimits)
+    ax.plot(aa, target_prob, alpha=.3, c='red')
     ax.set_title('Flow samples', fontsize=fontsize)
+    # plt.gca().set_aspect('equal', adjustable='box')
 
 
     ax = plt.subplot2grid((rows,cols), (0,2), frameon=False)
     ax.plot(aa, flow_prob_density)
     ax.set_ylim(ylimits)
     ax.set_title('Flow Density (using Newtons)', fontsize=fontsize)
+    # plt.gca().set_aspect('equal', adjustable='box')
 
 
     ax = plt.subplot2grid((rows,cols), (0,3), frameon=False)
     ax.plot(aa, target_prob)
     ax.set_ylim(ylimits)
     ax.set_title('Target Distribution', fontsize=fontsize)
+    # plt.gca().set_aspect('equal', adjustable='box')
 
 
     # p = lambda x: torch.exp(log_targetdist(tensor(x)))
     # plot_isocontours(ax, p, cmap='Blues', xlimits=xlimits, ylimits=ylimits, contour_type='')
 
 
-    for i in range(n_flows):
+    # for i in range(n_flows):
 
-        # ax = plt.subplot2grid((rows,cols), (0,1+i), frameon=False)
+    #     # ax = plt.subplot2grid((rows,cols), (0,1+i), frameon=False)
         
-        # p = lambda x: torch.exp(log_targetdist(tensor(x)))
-        # plot_isocontours(ax, p, cmap='Greys', xlimits=xlimits, ylimits=ylimits, contour_type='', alpha=.1)
+    #     # p = lambda x: torch.exp(log_targetdist(tensor(x)))
+    #     # plot_isocontours(ax, p, cmap='Greys', xlimits=xlimits, ylimits=ylimits, contour_type='', alpha=.1)
 
-        # p = lambda x: torch.exp(flow.logprob(tensor(x), n_flows=i))
-        # plot_isocontours(ax, p, cmap='Blues', xlimits=xlimits, ylimits=ylimits)
-
-
-
-        ax = plt.subplot2grid((rows,cols), (2,i), frameon=False)
-
-        z, logprob = flow.sample(N=1000, n_flows=i+1)
-        flow_prob = np.exp(numpy(logprob))
-        z = numpy(z)
-        ax.scatter(z, flow_prob, s=5, alpha=.05)
-        ax.set_ylim(ylimits)
-        ax.set_xlim(xlimits)
-        ax.set_title('Flow '+str(i+1), fontsize=fontsize)
+    #     # p = lambda x: torch.exp(flow.logprob(tensor(x), n_flows=i))
+    #     # plot_isocontours(ax, p, cmap='Blues', xlimits=xlimits, ylimits=ylimits)
 
 
-        # plot_isocontours(ax, p, cmap='Blues', xlimits=xlimits, ylimits=ylimits)
+
+    #     ax = plt.subplot2grid((rows,cols), (2,i), frameon=False)
+
+    #     z, logprob = flow.sample(N=1000, n_flows=i+1)
+    #     flow_prob = np.exp(numpy(logprob))
+    #     z = numpy(z)
+    #     ax.scatter(z, flow_prob, s=5, alpha=.05)
+    #     ax.set_ylim(ylimits)
+    #     ax.set_xlim(xlimits)
+    #     ax.set_title('Flow '+str(i+1), fontsize=fontsize)
+
+
+    #     # plot_isocontours(ax, p, cmap='Blues', xlimits=xlimits, ylimits=ylimits)
        
-        # n_samps = 1000
-        # samps = []
-        # for n in range(n_samps):
-        #     z, logprob = flow.sample(n_flows=i)
-        #     samps.append(numpy(z))
-        # samps = np.array(samps)
-        # ax.scatter(samps.T[0], samps.T[1], alpha=.1, c='Black')
-        # ax.set_yticks([])
-        # ax.set_xticks([])
-        # plt.gca().set_aspect('equal', adjustable='box') 
-        # ax.set_xlim(left=xlimits[0], right=xlimits[1])
-        # ax.set_ylim(ylimits)
+    #     # n_samps = 1000
+    #     # samps = []
+    #     # for n in range(n_samps):
+    #     #     z, logprob = flow.sample(n_flows=i)
+    #     #     samps.append(numpy(z))
+    #     # samps = np.array(samps)
+    #     # ax.scatter(samps.T[0], samps.T[1], alpha=.1, c='Black')
+    #     # ax.set_yticks([])
+    #     # ax.set_xticks([])
+    #     # plt.gca().set_aspect('equal', adjustable='box') 
+    #     # ax.set_xlim(left=xlimits[0], right=xlimits[1])
+    #     # ax.set_ylim(ylimits)
 
 
 
