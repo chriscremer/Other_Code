@@ -42,9 +42,9 @@ import pickle
 parser = argparse.ArgumentParser()
 # training
 
-parser.add_argument('--exp_name', default='glow_improve3_3_16', type=str)
+parser.add_argument('--exp_name', default='glow_1by1conv', type=str)
 parser.add_argument('--save_to_dir', default=home+'/Documents/glow_clevr/', type=str)
-parser.add_argument('--which_gpu', default='1', type=str)
+parser.add_argument('--which_gpu', default='0', type=str)
 
 # parser.add_argument('--batch_size', type=int, default=64)
 # parser.add_argument('--batch_size', type=int, default=32)
@@ -61,8 +61,8 @@ parser.add_argument('--depth', type=int, default=16)
 # parser.add_argument('--n_levels', type=int, default=5) 
 
 parser.add_argument('--norm', type=str, default='actnorm')
-# parser.add_argument('--permutation', type=str, default='conv')
-parser.add_argument('--permutation', type=str, default='shuffle')
+parser.add_argument('--permutation', type=str, default='conv')
+# parser.add_argument('--permutation', type=str, default='shuffle')
 # parser.add_argument('--coupling', type=str, default='affine')
 parser.add_argument('--coupling', type=str, default='additive')
 
@@ -200,7 +200,7 @@ sampling_batch_size = 64
 model = Glow_((sampling_batch_size, 3, 112, 112), args).cuda()
 # print(model)
 print("number of model parameters:", sum([np.prod(p.size()) for p in model.parameters()]))
-fasdfad
+# fasdfad
 # model = nn.DataParallel(model).cuda()
 ###########################################################################################
 
@@ -212,7 +212,8 @@ fasdfad
 
 ###########################################################################################
 # CLEVR DATA
-data_dir = home+ "/VL/data/two_objects_no_occ/"
+# data_dir = home+ "/VL/data/two_objects_no_occ/" #boltz 
+data_dir = home+ "/vl_data/two_objects_large/"  #vws
 question_file = data_dir+'train.h5'
 image_file = data_dir+'train_images.h5'
 vocab_file = data_dir+'train_vocab.json'

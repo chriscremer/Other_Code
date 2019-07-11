@@ -409,6 +409,49 @@ class ActNorm(Layer):
 
 
 
+# Inverse Sigmoid
+class InverseSigmoid(Layer):
+    def __init__(self):
+        super(InverseSigmoid, self).__init__()
+        # assert num_features % 2 == 0
+        # self.NN = NN(num_features // 2)
+
+    def forward_(self, x, objective):
+
+
+        # SHOULD MODIFY OBJECTIVE
+        # however wouldnt affect the gradient since x cant be cahnged, its the data
+        jac = (1/x) + (1/(1-x))
+        objective += flatten_sum(torch.log(jac))
+
+        x = -torch.log( (1/x) - 1)
+        # print (objective.shape)
+        # fasfd
+
+        return x, objective
+
+    def reverse_(self, x, objective):
+
+        x = 1/ (torch.exp(-x) + 1)
+
+        # SHOULD MODIFY OBJECTIVE
+        jac = 1/x + (1/(1-x))
+        objective += flatten_sum(torch.log(jac))
+
+        return x, objective
+
+
+
+
+
+
+
+
+
+
+
+
+
 # ------------------------------------------------------------------------------
 # Stacked Layers
 # ------------------------------------------------------------------------------
@@ -451,6 +494,9 @@ class Glow_(LayerList, nn.Module):
         layers = []
         output_shapes = []
         B, C, H, W = input_shape
+
+
+        layers += [InverseSigmoid()]
         
         for i in range(args.n_levels):
 

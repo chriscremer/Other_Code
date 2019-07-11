@@ -42,7 +42,7 @@ import pickle
 parser = argparse.ArgumentParser()
 # training
 
-parser.add_argument('--exp_name', default='glow_sigmoid', type=str)
+parser.add_argument('--exp_name', default='glow_1by1conv', type=str)
 parser.add_argument('--save_to_dir', default=home+'/Documents/glow_clevr/', type=str)
 parser.add_argument('--which_gpu', default='0', type=str)
 
@@ -61,8 +61,8 @@ parser.add_argument('--depth', type=int, default=16)
 # parser.add_argument('--n_levels', type=int, default=5) 
 
 parser.add_argument('--norm', type=str, default='actnorm')
-# parser.add_argument('--permutation', type=str, default='conv')
-parser.add_argument('--permutation', type=str, default='shuffle')
+parser.add_argument('--permutation', type=str, default='conv')
+# parser.add_argument('--permutation', type=str, default='shuffle')
 # parser.add_argument('--coupling', type=str, default='affine')
 parser.add_argument('--coupling', type=str, default='additive')
 
@@ -75,9 +75,9 @@ parser.add_argument('--learntop', action='store_true')
 parser.add_argument('--lr', type=float, default=1e-4)
 # parser.add_argument('--lr', type=float, default=1e-5)
 # logging
-parser.add_argument('--print_every', type=int, default=200, help='print NLL every _ minibatches')
+parser.add_argument('--print_every', type=int, default=400, help='print NLL every _ minibatches')
 parser.add_argument('--curveplot_every', type=int, default=2000)
-parser.add_argument('--plotimages_every', type=int, default=2000)
+parser.add_argument('--plotimages_every', type=int, default=5000)
 parser.add_argument('--save_every', type=int, default=50000, help='save model every _ epochs')
 parser.add_argument('--max_steps', type=int, default=200000)
 
