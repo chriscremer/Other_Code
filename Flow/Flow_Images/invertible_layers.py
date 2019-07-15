@@ -9,6 +9,36 @@ import pdb
 from layers import * 
 from utils import * 
 
+
+from os.path import expanduser
+home = expanduser("~")
+
+
+
+import sys, os
+# sys.path.insert(0, os.path.abspath(home+'/nsf-master/'))
+# sys.path.insert(0, os.path.abspath(home+'/nsf-master/nde/'))
+# sys.path.insert(0, os.path.abspath(home+'/nsf-master/nde/transforms/'))
+# sys.path.insert(0, os.path.abspath(home+'/nsf-master/nde/transforms/splines/'))
+# import rational_quadratic
+
+
+sys.path.insert(0, './spline_code/')
+sys.path.insert(0, './spline_code/nde/')
+sys.path.insert(0, './spline_code/nde/transforms/')
+from nde import *
+# import utils2 #as utils
+from conv import OneByOneConvolution
+
+
+# print (utils)
+# sfda
+
+# from nsf-master import utils
+
+# fsad
+
+
 # ------------------------------------------------------------------------------
 # Abstract Classes to define common interface for invertible functions
 # ------------------------------------------------------------------------------
@@ -35,17 +65,84 @@ class LayerList(Layer):
 
     def forward_(self, x, objective):
         for layer in self.layers:
+
             x, objective = layer.forward_(x, objective)
+
+
+            # aa = x.clone()
+
+            # xx, objective = layer.forward_(x, objective)
+
+            # bb = x.clone()
+            # print ()
+            # print (str(layer)[:6])
+            # print(torch.mean((aa - bb)**2))
+
+            # if 'Add' in str(layer)[:6]:
+
+            #     fadads
+
+            # x = xx
+
+
         return x, objective
 
-    def reverse_(self, x, objective):
+
+
+
+
+
+    # def forward_2(self, x, objective):
+    #     for layer in self.layers:
+
+    #         # x, objective = layer.forward_(x, objective)
+
+
+    #         aa = x.clone()
+
+
+    #         if 'Add' in str(layer)[:6]:
+
+    #             xx, objective = layer.forward_2(x, objective)
+    #             # bb = x.clone()
+
+    #             # print ()
+    #             print (str(layer)[:6], torch.mean((aa - x)**2))
+    #             print ('xx vs x', str(layer)[:6], torch.mean((xx - x)**2))
+    #             # print()
+    #             # fadads
+
+
+
+    #         else:
+
+    #             xx, objective = layer.forward_(x, objective)
+
+
+    #         x = xx
+
+
+    #     return x, objective
+
+
+
+
+
+    def reverse_(self, x, objective, args=None):
         count=0
         for layer in reversed(self.layers): 
 
             # if count ==13:
             #     x_pre = x.clone()
 
-            x, objective = layer.reverse_(x, objective)
+            # if 'Split' in str(layer):
+            #     x, objective = layer.reverse_(x, objective, use_stored_sample=True)
+
+
+            # else:
+            
+
+            x, objective = layer.reverse_(x, objective, args=args)
 
 
             # print (count, layer)
@@ -73,7 +170,8 @@ class LayerList(Layer):
                 print (torch.min(x), torch.max(x))
                 # print ((x_pre!=x_pre).any(), (mean!=mean).any(), (logs!=logs).any())
                 # print ( layer.conv_zero.logs)
-                fadfas
+                # fadfas
+                print ('bad stuff in reverse')
 
             x_pre = x.clone()    
             count+=1
@@ -83,9 +181,94 @@ class LayerList(Layer):
         return x, objective
 
 
+
+
+
+
+    # def forward_andgetlayers_(self, x, objective):
+    #     layers = []
+    #     layers.append(x)
+    #     names = []
+    #     names.append('x')
+    #     for layer in self.layers:
+    #         # print (layer)
+    #         # print (str(layer)[:10])
+    #         names.append(str(layer)[:6])
+    #         # fas
+
+    #         # aa = x.clone()
+
+    #         # xx, objective = layer.forward_(x, objective)
+
+
+    #         if 'Split' in str(layer):
+    #             xx, objective = layer.reverse_(x, objective, use_stored_sample=True)
+
+    #         else:
+    #             xx, objective = layer.reverse_(x, objective)
+
+
+    #         # bb = x.clone()
+    #         # print ()
+    #         # print (str(layer)[:6])
+    #         # print(torch.mean((aa - bb)**2))
+
+
+    #         x = xx
+
+
+    #         layers.append(x.clone())
+
+    #     # print(torch.mean((layers[3] - layers[33])**2))
+    #     # fasd
+
+
+    #     return layers, names
+
+
+
+    # def reverse_andgetlayers_(self, x, objective):
+
+        
+        
+
+    #     layers = []
+    #     layers.append(x)
+    #     for layer in reversed(self.layers): 
+
+    #         # aa = x.clone()
+
+    #         xx, objective = layer.reverse_(x, objective)
+
+
+    #         # bb = x.clone()
+    #         # print(torch.mean((aa - bb)**2))
+            
+
+    #         x = xx
+
+    #         layers.append(x.clone())
+
+
+    #     # fdsaa
+
+
+    #     return layers
+
+
+
+
+
+
+
+
+
+
 # ------------------------------------------------------------------------------
 # Permutation Layers 
 # ------------------------------------------------------------------------------
+
+
 
 # Shuffling on the channel axis
 class Shuffle(Layer):
@@ -106,9 +289,14 @@ class Shuffle(Layer):
     def forward_(self, x, objective):
         return x[:, self.indices], objective
 
-    def reverse_(self, x, objective):
+    def reverse_(self, x, objective, args=None):
         return x[:, self.rev_indices], objective
         
+
+
+
+
+
 # Reversing on the channel axis
 class Reverse(Shuffle):
     def __init__(self, num_channels):
@@ -193,7 +381,7 @@ class Squeeze(Layer):
 
         return self.squeeze_bchw(x), objective
         
-    def reverse_(self, x, objective):
+    def reverse_(self, x, objective, args=None):
         if len(x.size()) != 4: 
             raise NotImplementedError
 
@@ -223,22 +411,44 @@ class Split(Layer):
         bs, c, h, w = input_shape
         self.conv_zero = Conv2dZeroInit(c // 2, c, 3, padding=(3 - 1) // 2)
 
-    def split2d_prior(self, x):
+    def split2d_prior(self, x, args=None):
         h = self.conv_zero(x)
         mean, logs = h[:, 0::2], h[:, 1::2]
-        return gaussian_diag(mean, logs)
+
+        logs = torch.clamp(logs, min=-5., max=2.)
+
+        # if (logs < -10).any():
+        #     print (logs)
+        #     print ('small logs!!')
+        #     fasdfa
+
+        return gaussian_diag(mean, logs, temp=args.temp)
 
     def forward_(self, x, objective):
         bs, c, h, w = x.size()
         z1, z2 = torch.chunk(x, 2, dim=1)
+
         pz = self.split2d_prior(z1)
-        self.sample = z2
+        # mean = torch.zeros_like(z1)
+        # logs = torch.zeros_like(z1)
+        # pz = gaussian_diag(mean, logs)
         objective += pz.logp(z2) 
+        self.sample = z2
+
         return z1, objective
 
-    def reverse_(self, x, objective, use_stored_sample=False):
-        pz = self.split2d_prior(x)
+    def reverse_(self, x, objective, use_stored_sample=False, args=None):
+
+        pz = self.split2d_prior(x, args=args)
+        # mean = torch.zeros_like(x)
+        # logs = torch.zeros_like(x)
+        # pz = gaussian_diag(mean, logs)
+
+
         z2 = self.sample if use_stored_sample else pz.sample() 
+        # print (x.shape)
+        # print (z2.shape)
+        # fsdfa
         z = torch.cat([x, z2], dim=1)
         objective -= pz.logp(z2) 
         return z, objective
@@ -252,18 +462,26 @@ class GaussianPrior(Layer):
     def __init__(self, input_shape, args):
         super(GaussianPrior, self).__init__()
         self.input_shape = input_shape
-        if args.learntop: 
-            self.conv = Conv2dZeroInit(2 * input_shape[1], 2 * input_shape[1], 3, padding=(3 - 1) // 2)
-        else: 
-            self.conv = None
+        # print(args.learntop)
+        # if args.learntop: 
+        #     self.conv = Conv2dZeroInit(2 * input_shape[1], 2 * input_shape[1], 3, padding=(3 - 1) // 2)
+        # else: 
+        #     self.conv = None
+
+        self.conv = Conv2dZeroInit(2 * input_shape[1], 2 * input_shape[1], 3, padding=(3 - 1) // 2)
 
     def forward_(self, x, objective):
         mean_and_logsd = torch.cat([torch.zeros_like(x) for _ in range(2)], dim=1)
-        
-        if self.conv: 
-            mean_and_logsd = self.conv(mean_and_logsd)
+        # if self.conv: 
+        mean_and_logsd = self.conv(mean_and_logsd)
 
         mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
+
+        logsd = torch.clamp(logsd, min=-5., max=2.)
+
+        # print(self.conv)
+        # # print (mean)
+        # fdsfa
 
         pz = gaussian_diag(mean, logsd)
         objective += pz.logp(x) 
@@ -271,15 +489,19 @@ class GaussianPrior(Layer):
         # this way, you can encode and decode back the same image. 
         return x, objective
 
-    def reverse_(self, x, objective):
+    def reverse_(self, x, objective, args=None):
         bs, c, h, w = self.input_shape
         mean_and_logsd = torch.cuda.FloatTensor(bs, 2 * c, h, w).fill_(0.)
         
-        if self.conv: 
-            mean_and_logsd = self.conv(mean_and_logsd)
+        # if self.conv: 
+        mean_and_logsd = self.conv(mean_and_logsd)
 
         mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
-        pz = gaussian_diag(mean, logsd)
+
+        logsd = torch.clamp(logsd, min=-5., max=2.)
+
+
+        pz = gaussian_diag(mean, logsd, temp=args.temp)
         z = pz.sample() if x is None else x
         objective -= pz.logp(z)
 
@@ -307,39 +529,115 @@ class AdditiveCoupling(Layer):
         assert num_features % 2 == 0
         self.NN = NN(num_features // 2)
 
+
     def forward_(self, x, objective):
+
         z1, z2 = torch.chunk(x, 2, dim=1)
         z2 += self.NN(z1)
-        return torch.cat([z1, z2], dim=1), objective
+        output = torch.cat([z1, z2], dim=1)
+        return output, objective
 
-    def reverse_(self, x, objective):
+    # #due to my findings:
+    #     # this doesnt work becasue x loses its grad somehow 
+    #     # so have to stick with original
+    # def forward_(self, x, objective):
+
+    #     z1, z2 = torch.chunk(x, 2, dim=1)
+    #     z2 += self.NN(z1)
+    #     # output = torch.cat([z1, z2], dim=1)
+    #     return x, objective
+
+
+    # def forward_2(self, x, objective):
+
+    #     aa = x.clone()
+
+    #     z1, z2 = torch.chunk(x, 2, dim=1)
+
+    #     # z1_pre = z1.clone()
+
+
+    #     z2 += self.NN(z1)
+
+
+    #     print('in additive', torch.mean((aa - x)**2))
+    #     # print('in additive z1', torch.mean((z1_pre - z1)**2)) not changing
+
+    #     output = torch.cat([z1, z2], dim=1)
+
+    #     print('in additive x vs output', torch.mean((output - x)**2))
+
+    #     # bb = x.clone()
+    #     # print ()
+    #     # print (str(layer)[:6])
+        
+    #     # fafds
+        
+    #     return output, objective
+
+
+    def reverse_(self, x, objective, args=None):
         z1, z2 = torch.chunk(x, 2, dim=1)
         z2 -= self.NN(z1)
         return torch.cat([z1, z2], dim=1), objective
 
+
+
+
+
+
+
 # Additive Coupling Layer
 class AffineCoupling(Layer):
-    def __init__(self, num_features):
+    def __init__(self, num_features, hidden_channels=128):
         super(AffineCoupling, self).__init__()
         # assert num_features % 2 == 0
-        self.NN = NN(num_features // 2, channels_out=num_features)
+        self.NN = NN(num_features // 2, channels_out=num_features, hidden_channels=hidden_channels)
 
     def forward_(self, x, objective):
         z1, z2 = torch.chunk(x, 2, dim=1)
         h = self.NN(z1)
         shift = h[:, 0::2]
-        scale = torch.sigmoid(h[:, 1::2] + 2.)
+        scale = h[:, 1::2]
+        scale = torch.tanh(scale) /4. + 1.
+
+        # scale = torch.tanh(scale) + 1.2
+
+        # scale = torch.clamp(scale, min=-4., max=.5)
+        # scale = torch.exp(scale)
+
+        # scale = torch.sigmoid(h[:, 1::2] + 2.)
+
+        # shift = torch.clamp(shift, min=-5., max=5.)
+        # scale = torch.sigmoid(h[:, 1::2] )
+
+        # shift = torch.clamp(shift, min=-5., max=5.)
+        # scale = torch.exp(h[:, 1::2] )
+
         z2 += shift
         z2 *= scale
         objective += flatten_sum(torch.log(scale))
 
         return torch.cat([z1, z2], dim=1), objective
 
-    def reverse_(self, x, objective):
+    def reverse_(self, x, objective, args=None):
         z1, z2 = torch.chunk(x, 2, dim=1)
         h = self.NN(z1)
         shift = h[:, 0::2]
-        scale = torch.sigmoid(h[:, 1::2] + 2.)
+        scale = h[:, 1::2]
+        scale = torch.tanh(scale) /4. + 1.
+
+
+        # scale = torch.tanh(scale) + 1.2
+
+        # scale = torch.clamp(scale, min=-4., max=.5)
+        # scale = torch.exp(scale)
+
+        # shift = torch.clamp(shift, min=-5., max=5.)
+
+        # # scale = torch.sigmoid(h[:, 1::2] + 2.)
+        # scale = torch.sigmoid(h[:, 1::2] )
+
         z2 /= scale
         z2 -= shift
         objective -= flatten_sum(torch.log(scale))
@@ -390,7 +688,7 @@ class ActNorm(Layer):
 
         return output.view(input_shape), objective + dlogdet
 
-    def reverse_(self, input, objective):
+    def reverse_(self, input, objective, args=None):
         assert self.initialized
         input_shape = input.size()
         input = input.view(input_shape[0], input_shape[1], -1)
@@ -430,7 +728,7 @@ class InverseSigmoid(Layer):
 
         return x, objective
 
-    def reverse_(self, x, objective):
+    def reverse_(self, x, objective, args=None):
 
         x = 1/ (torch.exp(-x) + 1)
 
@@ -473,21 +771,72 @@ class RevNetStep(LayerList):
         elif args.permutation == 'shuffle': 
             layers += [Shuffle(num_channels)]
         elif args.permutation == 'conv':
-            layers += [Invertible1x1Conv(num_channels)]
+            # layers += [Invertible1x1Conv(num_channels)]
+            layers += [OneByOneConvolution(num_channels)]
+
+
         else: 
             raise ValueError
 
         if args.coupling == 'additive': 
             layers += [AdditiveCoupling(num_channels)]
         elif args.coupling == 'affine':
-            layers += [AffineCoupling(num_channels)]
+            layers += [AffineCoupling(num_channels, hidden_channels=args.hidden_channels)]
+        elif args.coupling == 'spline':
+            layers += [unconstrained_quadratic_spline(num_channels)]
         else: 
             raise ValueError
 
         self.layers = nn.ModuleList(layers)
 
 
-# Full model
+# # Full model
+# class Glow_(LayerList, nn.Module):
+#     def __init__(self, input_shape, args):
+#         super(Glow_, self).__init__()
+#         layers = []
+#         output_shapes = []
+#         B, C, H, W = input_shape
+
+
+#         layers += [InverseSigmoid()]
+        
+#         for i in range(args.n_levels):
+
+#             if W > 10:
+#                 # Squeeze Layer 
+#                 layers += [Squeeze(input_shape)]
+#                 C, H, W = C * 4, H // 2, W // 2
+#                 output_shapes += [(-1, C, H, W)]
+                
+#             # RevNet Block
+#             layers += [RevNetStep(C, args) for _ in range(args.depth)]
+#             output_shapes += [(-1, C, H, W) for _ in range(args.depth)]
+
+#             if i < args.n_levels - 1: 
+#                 # Split Layer
+#                 layers += [Split(output_shapes[-1])]
+#                 C = C // 2
+#                 output_shapes += [(-1, C, H, W)]
+
+#         layers += [GaussianPrior((B, C, H, W), args)]
+#         output_shapes += [output_shapes[-1]]
+
+#         # # print (output_shapes)
+#         # # fadsf
+
+        
+#         for i in range(len(output_shapes)):
+#             print (i, output_shapes[i])
+#         # fdsa
+
+#         self.layers = nn.ModuleList(layers)
+#         self.output_shapes = output_shapes
+#         self.args = args
+#         self.flatten()
+
+
+# Full model - trying different architecutres
 class Glow_(LayerList, nn.Module):
     def __init__(self, input_shape, args):
         super(Glow_, self).__init__()
@@ -495,6 +844,7 @@ class Glow_(LayerList, nn.Module):
         output_shapes = []
         B, C, H, W = input_shape
 
+        # depths = [4,4,4,4,4,30]
 
         layers += [InverseSigmoid()]
         
@@ -506,9 +856,11 @@ class Glow_(LayerList, nn.Module):
                 C, H, W = C * 4, H // 2, W // 2
                 output_shapes += [(-1, C, H, W)]
                 
-            # RevNet Block
+            # # RevNet Block
             layers += [RevNetStep(C, args) for _ in range(args.depth)]
             output_shapes += [(-1, C, H, W) for _ in range(args.depth)]
+            # layers += [RevNetStep(C, args) for _ in range(depths[i])]
+            # output_shapes += [(-1, C, H, W) for _ in range(depths[i])]
 
             if i < args.n_levels - 1: 
                 # Split Layer
@@ -523,8 +875,8 @@ class Glow_(LayerList, nn.Module):
         # # fadsf
 
         
-        for i in range(len(output_shapes)):
-            print (i, output_shapes[i])
+        # for i in range(len(output_shapes)):
+        #     print (i, output_shapes[i])
         # fdsa
 
         self.layers = nn.ModuleList(layers)
@@ -532,13 +884,33 @@ class Glow_(LayerList, nn.Module):
         self.args = args
         self.flatten()
 
+
+
+
+
     def forward(self, *inputs):
         return self.forward_(*inputs)
 
-    def sample(self):
+    def sample(self, args=None):
         with torch.no_grad():
-            samples = self.reverse_(None, 0.)[0]
+            samples = self.reverse_(None, 0., args=args)[0]
             return samples
+
+
+
+
+
+    # def forward_andgetlayers(self, *inputs):
+    #     return self.forward_andgetlayers_(*inputs)
+
+    # def reverse_andgetlayers(self, x, objective):
+    #     with torch.no_grad():
+    #         return self.reverse_andgetlayers_(x, 0.)
+
+
+
+
+
 
     def flatten(self):
         # flattens the list of layers to avoid recursive call every time. 

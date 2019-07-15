@@ -52,7 +52,7 @@ def standard_gaussian(shape):
     mean, logsd = [torch.cuda.FloatTensor(shape).fill_(0.) for _ in range(2)]
     return gaussian_diag(mean, logsd)
 
-def gaussian_diag(mean, logsd):
+def gaussian_diag(mean, logsd, temp=1.):
     class o(object):
         Log2PI = float(np.log(2 * np.pi))
         pass
@@ -62,7 +62,7 @@ def gaussian_diag(mean, logsd):
 
         def sample():
             eps = torch.zeros_like(mean).normal_()
-            return mean + torch.exp(logsd) * eps
+            return mean + torch.exp(logsd) * eps * temp
 
     o.logp    = lambda x: flatten_sum(o.logps(x))
     return o
