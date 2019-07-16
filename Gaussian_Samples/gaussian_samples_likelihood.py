@@ -3,6 +3,11 @@ from os.path import expanduser
 home = expanduser("~")
 
 
+# I think the point of this is to show that you dont sample high likelihood samples
+# most samples are from the 'bubble'
+# thats because in high dimensios, most of the mass is not in the center
+
+
 import numpy as np
 
 # import matplotlib

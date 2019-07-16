@@ -3,11 +3,15 @@ import math
 import torch
 from torch.nn import functional as F
 
-import utils
+import utils2
 from nde import transforms
 
 DEFAULT_MIN_BIN_WIDTH = 1e-3
 DEFAULT_MIN_BIN_HEIGHT = 1e-3
+
+# DEFAULT_MIN_BIN_WIDTH = .1
+# DEFAULT_MIN_BIN_HEIGHT = 1e-3
+
 
 def unconstrained_quadratic_spline(inputs,
                                    unnormalized_widths,
@@ -25,6 +29,14 @@ def unconstrained_quadratic_spline(inputs,
     logabsdet = torch.zeros_like(inputs)
 
     num_bins = unnormalized_widths.shape[-1]
+
+    # print (inputs.shape)
+    # print (unnormalized_widths.shape)
+    # print (unnormalized_heights.shape)
+    # print (num_bins)
+    # print (inside_interval_mask.shape)
+    # # fasdf
+
 
     if tails == 'linear':
         outputs[outside_interval_mask] = inputs[outside_interval_mask]
@@ -100,9 +112,9 @@ def quadratic_spline(inputs,
     bin_locations = F.pad(bin_locations, pad=(1, 0), mode='constant', value=0.0)
 
     if inverse:
-        bin_idx = utils.searchsorted(bin_left_cdf, inputs)[..., None]
+        bin_idx = utils2.searchsorted(bin_left_cdf, inputs)[..., None]
     else:
-        bin_idx = utils.searchsorted(bin_locations, inputs)[..., None]
+        bin_idx = utils2.searchsorted(bin_locations, inputs)[..., None]
 
     input_bin_locations = bin_locations.gather(-1, bin_idx)[..., 0]
     input_bin_widths = widths.gather(-1, bin_idx)[..., 0]
@@ -112,17 +124,77 @@ def quadratic_spline(inputs,
     input_left_heights = heights.gather(-1, bin_idx)[..., 0]
     input_right_heights = heights.gather(-1, bin_idx+1)[..., 0]
 
+
     a = 0.5 * (input_right_heights - input_left_heights) * input_bin_widths
     b = input_left_heights * input_bin_widths
     c = input_left_cdf
 
     if inverse:
         c_ = c - inputs
-        alpha = (-b + torch.sqrt(b.pow(2) - 4*a*c_)) / (2*a)
+        # if (c_!=c_).any():
+        #     print ('nan c_')
+        #     fadf 
+        # if (a!=a).any():
+        #     print ('nan a')
+        #     fadf 
+        # if (b!=b).any():
+        #     print ('nan b')
+        #     fadf 
+
+        # print ('a', torch.min(a), torch.max(a))
+        # print ('b', torch.min(b), torch.max(b))
+        # print ('c_', torch.min(c_), torch.max(c_))
+
+        # a is near 0, resulting in nan/inf
+        # alpha = (-b + torch.sqrt(b.pow(2) - 4*a*c_)) / (2*a)
+
+
+
+        bot = torch.clamp(torch.abs(2*a), min=1e-5)
+        not_zero = 1.-(torch.abs(2*a) > 0.).float()
+        # print ()
+        # print ('bot', torch.min(bot), torch.max(bot))
+        bot = (torch.sign(2*a)+not_zero) * bot
+        # print ('bot', torch.min(bot), torch.max(bot))
+        # print ('abs bot', torch.min(torch.abs(bot)), torch.max(torch.abs(bot)))
+        # print ('2*a', torch.min(2*a), torch.max(2*a))
+
+        alpha = (-b + torch.sqrt(b.pow(2) - 4*a*c_)) / bot
+
+        # print ('(2*a)', torch.min((2*a)), torch.max((2*a)))
+
+
+        # eeee = (-b + torch.sqrt(b.pow(2) - 4*a*c_)) # / (2*a)
+        # print ('eeee', torch.min(eeee), torch.max(eeee))
+        # if (eeee!=eeee).any():
+        #     print ('nan eeee')
+        #     fadf 
+
+        # bbbb = 1. / (2.*a)
+        # print ('bbbb', torch.min(bbbb), torch.max(bbbb))
+        # if (bbbb!=bbbb).any():
+        #     print ('nan bbbb')
+        #     fadf 
+
+        if (alpha!=alpha).any():
+            print ('bot', torch.min(bot), torch.max(bot))
+            print ('abs bot', torch.min(torch.abs(bot)), torch.max(torch.abs(bot)))
+            # print (input_right_heights)
+            # print (input_left_heights)
+            # print (input_bin_widths)
+            # dif = input_right_heights - input_left_heights
+            # print ('dif', torch.min(dif), torch.max(dif))
+            print ('nan alpha')
+            fadf 
+
+
         outputs = alpha * input_bin_widths + input_bin_locations
         outputs = torch.clamp(outputs, 0, 1)
         logabsdet = -torch.log((alpha * (input_right_heights - input_left_heights)
                                 + input_left_heights))
+        if (outputs!=outputs).any():
+            print ('nan here')
+            fadf 
     else:
         alpha = (inputs - input_bin_locations) / input_bin_widths
         outputs = a * alpha.pow(2) + b * alpha + c
@@ -130,11 +202,27 @@ def quadratic_spline(inputs,
         logabsdet = torch.log((alpha * (input_right_heights - input_left_heights)
                                + input_left_heights))
 
+
+
     if inverse:
         outputs = outputs * (right - left) + left
         logabsdet = logabsdet - math.log(top - bottom) + math.log(right - left)
+        if (outputs!=outputs).any():
+            print ('nan here122222')
+            fadf 
     else:
         outputs = outputs * (top - bottom) + bottom
         logabsdet = logabsdet + math.log(top - bottom) - math.log(right - left)
 
+
     return outputs, logabsdet
+
+
+
+
+
+
+
+
+
+

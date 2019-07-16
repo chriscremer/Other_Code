@@ -372,8 +372,12 @@ data_dict['LL']['real_LL'] = []
 data_dict['LL']['sample_LL'] = []
 
 iter_loader = iter(loader)
+
+
 for i in range(max_steps+1):
     step = i + args.load_step
+
+
 
     
     try:
@@ -383,7 +387,8 @@ for i in range(max_steps+1):
                             shuffle=True, num_workers=0, drop_last=True)
         iter_loader = iter(loader)
         img = next(iter_loader).cuda()
-    
+
+
     # dequantize
     img += torch.zeros_like(img).uniform_(0., 1./args.n_bins)
     img = torch.clamp(img, min=1e-5, max=1-1e-5)
@@ -462,84 +467,87 @@ for i in range(max_steps+1):
         fafad
 
 
-
-
-    optim.zero_grad()
-    nobj.backward()
-
-
-
-    # if step > 609:
-
-    #     with torch.no_grad():
-
-    #         allgrads = []
-    #         param_list = list(model.parameters())
-    #         for param_i in range(len(param_list)):
-    #             g = numpy(param_list[param_i].grad.view(-1))
-    #             allgrads.extend(list(g))
-    #         print (step, 'Grads: max', np.max(allgrads), 'mean', np.mean(allgrads),
-    #                  'median', np.median(allgrads),  'min', np.min(allgrads),)
-
-
-    see_grads_every = 20
-
-    if step %(args.print_every*see_grads_every) == 0:
-
-        # print (step)
-        # forwardlayers, names = model.forward_2(img, objective)
-
-        # for ii in range(161):
-        #     print (str(model[ii]))
-        #     print (sum([np.prod(p.size()) for p in model[ii].parameters()]))
-        #     print ()
-
-        # print (str(model[148]))  #goes up to 160
-        # print (list(model[148].parameters()))
-        allparams = []
-        allgrads = []
-        param_list = list(model.parameters())
-        for param_i in range(len(param_list)):
-            p =  numpy(param_list[param_i].view(-1))
-            g = numpy(param_list[param_i].grad.view(-1))
-            allparams.extend(list(p))
-            allgrads.extend(list(g))
-
-        print ('\nParams: max', np.max(allparams), 'mean', np.mean(allparams), 
-                    'median', np.median(allparams),  'min', np.min(allparams),)
-        print ('Grads: max', np.max(allgrads), 'mean', np.mean(allgrads), 
-                    'median', np.median(allgrads),  'min', np.min(allgrads),)
-
-
-    torch.nn.utils.clip_grad_value_(model.parameters(), 5)
-
-
-    if step % (args.print_every*see_grads_every) == 0:
-        allgrads = []
-        param_list = list(model.parameters())
-        for param_i in range(len(param_list)):
-            g = numpy(param_list[param_i].grad.view(-1))
-            allgrads.extend(list(g))
-        print ('after clip 5, Grads: max', np.max(allgrads), 'mean', np.mean(allgrads), 
-                    'median', np.median(allgrads),  'min', np.min(allgrads),)
-
-
-    torch.nn.utils.clip_grad_norm_(model.parameters(), 100)
-
-
-    if step %(args.print_every*see_grads_every) == 0:
-        allgrads = []
-        param_list = list(model.parameters())
-        for param_i in range(len(param_list)):
-            g = numpy(param_list[param_i].grad.view(-1))
-            allgrads.extend(list(g))
-        print ('after clip 10, Grads: max', np.max(allgrads), 'mean', np.mean(allgrads), 
-                    'median', np.median(allgrads),  'min', np.min(allgrads),)
+    # if I dont just want to plot
+    if args.plotimages_every != 1: 
 
 
 
-    optim.step()
-    lr_sched.step()
+        optim.zero_grad()
+        nobj.backward()
+
+
+
+        # if step > 609:
+
+        #     with torch.no_grad():
+
+        #         allgrads = []
+        #         param_list = list(model.parameters())
+        #         for param_i in range(len(param_list)):
+        #             g = numpy(param_list[param_i].grad.view(-1))
+        #             allgrads.extend(list(g))
+        #         print (step, 'Grads: max', np.max(allgrads), 'mean', np.mean(allgrads),
+        #                  'median', np.median(allgrads),  'min', np.min(allgrads),)
+
+
+        # see_grads_every = 20
+
+        # if step %(args.print_every*see_grads_every) == 0:
+
+        #     # print (step)
+        #     # forwardlayers, names = model.forward_2(img, objective)
+
+        #     # for ii in range(161):
+        #     #     print (str(model[ii]))
+        #     #     print (sum([np.prod(p.size()) for p in model[ii].parameters()]))
+        #     #     print ()
+
+        #     # print (str(model[148]))  #goes up to 160
+        #     # print (list(model[148].parameters()))
+        #     allparams = []
+        #     allgrads = []
+        #     param_list = list(model.parameters())
+        #     for param_i in range(len(param_list)):
+        #         p =  numpy(param_list[param_i].view(-1))
+        #         g = numpy(param_list[param_i].grad.view(-1))
+        #         allparams.extend(list(p))
+        #         allgrads.extend(list(g))
+
+        #     print ('\nParams: max', np.max(allparams), 'mean', np.mean(allparams), 
+        #                 'median', np.median(allparams),  'min', np.min(allparams),)
+        #     print ('Grads: max', np.max(allgrads), 'mean', np.mean(allgrads), 
+        #                 'median', np.median(allgrads),  'min', np.min(allgrads),)
+
+
+        torch.nn.utils.clip_grad_value_(model.parameters(), 5)
+
+
+        # if step % (args.print_every*see_grads_every) == 0:
+        #     allgrads = []
+        #     param_list = list(model.parameters())
+        #     for param_i in range(len(param_list)):
+        #         g = numpy(param_list[param_i].grad.view(-1))
+        #         allgrads.extend(list(g))
+        #     print ('after clip 5, Grads: max', np.max(allgrads), 'mean', np.mean(allgrads), 
+        #                 'median', np.median(allgrads),  'min', np.min(allgrads),)
+
+
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 100)
+
+
+        # if step %(args.print_every*see_grads_every) == 0:
+        #     allgrads = []
+        #     param_list = list(model.parameters())
+        #     for param_i in range(len(param_list)):
+        #         g = numpy(param_list[param_i].grad.view(-1))
+        #         allgrads.extend(list(g))
+        #     print ('after clip 10, Grads: max', np.max(allgrads), 'mean', np.mean(allgrads), 
+        #                 'median', np.median(allgrads),  'min', np.min(allgrads),)
+
+
+
+        optim.step()
+        lr_sched.step()
 
 
 
@@ -587,7 +595,7 @@ for i in range(max_steps+1):
         with torch.no_grad():
 
             model_args = {}
-            temps = [.1,.5,1.]
+            temps = [.5,1.,1.5,2.]
             for temp_i in range(len(temps)):
 
                 model_args['temp'] = temps[temp_i]

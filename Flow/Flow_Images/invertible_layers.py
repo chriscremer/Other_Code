@@ -26,10 +26,14 @@ import sys, os
 sys.path.insert(0, './spline_code/')
 sys.path.insert(0, './spline_code/nde/')
 sys.path.insert(0, './spline_code/nde/transforms/')
+sys.path.insert(0, './spline_code/nde/transforms/splines/')
 from nde import *
 # import utils2 #as utils
-from conv import OneByOneConvolution
+# from conv import OneByOneConvolution
 
+from quadratic import *
+
+import utils2
 
 # print (utils)
 # sfda
@@ -172,6 +176,7 @@ class LayerList(Layer):
                 # print ( layer.conv_zero.logs)
                 # fadfas
                 print ('bad stuff in reverse')
+                fasdf
 
             x_pre = x.clone()    
             count+=1
@@ -422,7 +427,12 @@ class Split(Layer):
         #     print ('small logs!!')
         #     fasdfa
 
-        return gaussian_diag(mean, logs, temp=args.temp)
+        if args is not None:
+            temp = args['temp']
+        else:
+            temp = 1.
+
+        return gaussian_diag(mean, logs, temp=temp)
 
     def forward_(self, x, objective):
         bs, c, h, w = x.size()
@@ -500,8 +510,13 @@ class GaussianPrior(Layer):
 
         logsd = torch.clamp(logsd, min=-5., max=2.)
 
+        if args is not None:
+            temp = args['temp']
+        else:
+            temp =1.
 
-        pz = gaussian_diag(mean, logsd, temp=args.temp)
+
+        pz = gaussian_diag(mean, logsd, temp=temp)
         z = pz.sample() if x is None else x
         objective -= pz.logp(z)
 
@@ -618,6 +633,10 @@ class AffineCoupling(Layer):
         z2 *= scale
         objective += flatten_sum(torch.log(scale))
 
+        # print (objective.shape)
+        # print (flatten_sum(torch.log(scale)).shape)
+        # fasd
+
         return torch.cat([z1, z2], dim=1), objective
 
     def reverse_(self, x, objective, args=None):
@@ -641,7 +660,94 @@ class AffineCoupling(Layer):
         z2 /= scale
         z2 -= shift
         objective -= flatten_sum(torch.log(scale))
+
         return torch.cat([z1, z2], dim=1), objective
+
+
+
+
+
+
+
+
+class SplineCoupling(Layer):
+    def __init__(self, num_features, hidden_channels=128):
+        super(SplineCoupling, self).__init__()
+        # assert num_features % 2 == 0
+        self.num_bins = 5 
+        dim_multiplier = self.num_bins * 2 - 1
+
+        self.transform_net = NN(num_features // 2, channels_out=num_features //2 * dim_multiplier, hidden_channels=hidden_channels)
+
+
+    def forward_(self, x, objective):
+
+        identity_split, transform_split = torch.chunk(x, 2, dim=1)
+        # identity_split = inputs[:, self.identity_features, ...]
+        # transform_split = inputs[:, self.transform_features, ...]
+
+        transform_params = self.transform_net(identity_split)
+        # print (transform_params.shape)
+        # For images, reshape transform_params from Bx(C*?)xHxW to BxCxHxWx?
+        b, c, h, w = transform_split.shape
+        transform_params = transform_params.reshape(b, c, -1, h, w).permute(0, 1, 3, 4, 2)
+        # print (transform_params.shape)
+        unnormalized_widths = transform_params[..., :self.num_bins]
+        unnormalized_heights = transform_params[..., self.num_bins:]
+
+        transformed, logabsdet = unconstrained_quadratic_spline(transform_split, 
+                                            unnormalized_widths=unnormalized_widths, 
+                                            unnormalized_heights=unnormalized_heights)
+
+        output = torch.cat([identity_split, transformed], dim=1)
+
+        objective += utils2.sum_except_batch(logabsdet)
+
+        return output, objective
+
+
+
+
+    def reverse_(self, x, objective, args=None):
+
+        identity_split, transform_split = torch.chunk(x, 2, dim=1)
+        # identity_split = inputs[:, self.identity_features, ...]
+        # transform_split = inputs[:, self.transform_features, ...]
+
+        transform_params = self.transform_net(identity_split)
+        # print (transform_params.shape)
+        # For images, reshape transform_params from Bx(C*?)xHxW to BxCxHxWx?
+        b, c, h, w = transform_split.shape
+        transform_params = transform_params.reshape(b, c, -1, h, w).permute(0, 1, 3, 4, 2)
+        # print (transform_params.shape)
+        unnormalized_widths = transform_params[..., :self.num_bins]
+        unnormalized_heights = transform_params[..., self.num_bins:]
+
+        transformed, logabsdet = unconstrained_quadratic_spline(transform_split, 
+                                            unnormalized_widths=unnormalized_widths, 
+                                            unnormalized_heights=unnormalized_heights,
+                                            inverse=True)
+
+        output = torch.cat([identity_split, transformed], dim=1)
+
+
+        objective += utils2.sum_except_batch(logabsdet)
+
+        return output, objective
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -754,7 +860,48 @@ class InverseSigmoid(Layer):
 # Stacked Layers
 # ------------------------------------------------------------------------------
 
-# 1 step of the flow (see Figure 2 a) in the original paper)
+
+
+# # 1 step of the flow (see Figure 2 a) in the original paper)
+# class RevNetStep(LayerList):
+#     def __init__(self, num_channels, args):
+#         super(RevNetStep, self).__init__()
+#         self.args = args
+#         layers = []
+
+#         if args.norm == 'actnorm': 
+#             layers += [ActNorm(num_channels)]
+#         else: 
+#             assert not args.norm               
+ 
+#         if args.permutation == 'reverse':
+#             layers += [Reverse(num_channels)]
+#         elif args.permutation == 'shuffle': 
+#             layers += [Shuffle(num_channels)]
+#         elif args.permutation == 'conv':
+#             # layers += [Invertible1x1Conv(num_channels)]
+#             layers += [OneByOneConvolution(num_channels)]
+
+
+#         else: 
+#             raise ValueError
+
+#         if args.coupling == 'additive': 
+#             layers += [AdditiveCoupling(num_channels)]
+#         elif args.coupling == 'affine':
+#             layers += [AffineCoupling(num_channels, hidden_channels=args.hidden_channels)]
+#         elif args.coupling == 'spline':
+#             layers += [SplineCoupling(num_channels)]
+#         else: 
+#             raise ValueError
+
+#         self.layers = nn.ModuleList(layers)
+
+
+
+
+
+# trying new setup
 class RevNetStep(LayerList):
     def __init__(self, num_channels, args):
         super(RevNetStep, self).__init__()
@@ -779,13 +926,29 @@ class RevNetStep(LayerList):
             raise ValueError
 
         if args.coupling == 'additive': 
-            layers += [AdditiveCoupling(num_channels)]
+            layers += [AdditiveCoupling(num_channels, hidden_channels=args.hidden_channels)]
         elif args.coupling == 'affine':
             layers += [AffineCoupling(num_channels, hidden_channels=args.hidden_channels)]
         elif args.coupling == 'spline':
-            layers += [unconstrained_quadratic_spline(num_channels)]
+            layers += [SplineCoupling(num_channels, hidden_channels=args.hidden_channels)]
         else: 
             raise ValueError
+
+
+
+        layers += [Reverse(num_channels)]
+
+
+        if args.coupling == 'additive': 
+            layers += [AdditiveCoupling(num_channels, hidden_channels=args.hidden_channels)]
+        elif args.coupling == 'affine':
+            layers += [AffineCoupling(num_channels, hidden_channels=args.hidden_channels)]
+        elif args.coupling == 'spline':
+            layers += [SplineCoupling(num_channels, hidden_channels=args.hidden_channels)]
+        else: 
+            raise ValueError
+
+
 
         self.layers = nn.ModuleList(layers)
 
