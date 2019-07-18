@@ -32,6 +32,7 @@ from nde import *
 # from conv import OneByOneConvolution
 
 from quadratic import *
+from linear import *
 
 import utils2
 
@@ -87,6 +88,25 @@ class LayerList(Layer):
             #     fadads
 
             # x = xx
+
+
+            if (x!=x).any() or torch.max(x) > 99999 or torch.max(x) < -99999 or (objective!=objective).any():
+                print (layer)
+
+                # h = layer.conv_zero(x_pre)
+                # mean, logs = h[:, 0::2], h[:, 1::2]
+
+                # print (torch.min(x_pre), torch.max(x_pre))
+                print (torch.min(x), torch.max(x))
+                print (torch.min(objective), torch.max(objective))
+                # print ((x_pre!=x_pre).any(), (mean!=mean).any(), (logs!=logs).any())
+                # print ( layer.conv_zero.logs)
+                # fadfas
+                print ('bad stuff in forward')
+                fasdf
+
+
+
 
 
         return x, objective
@@ -420,7 +440,7 @@ class Split(Layer):
         h = self.conv_zero(x)
         mean, logs = h[:, 0::2], h[:, 1::2]
 
-        logs = torch.clamp(logs, min=-5., max=2.)
+        logs = torch.clamp(logs, min=-6., max=2.)
 
         # if (logs < -10).any():
         #     print (logs)
@@ -447,12 +467,17 @@ class Split(Layer):
 
         return z1, objective
 
-    def reverse_(self, x, objective, use_stored_sample=False, args=None):
+    def reverse_(self, x, objective, args=None):
 
         pz = self.split2d_prior(x, args=args)
         # mean = torch.zeros_like(x)
         # logs = torch.zeros_like(x)
         # pz = gaussian_diag(mean, logs)
+
+        if args is not None and 'use_stored_sample' in args:
+            use_stored_sample = args['use_stored_sample']
+        else:
+            use_stored_sample = 0
 
 
         z2 = self.sample if use_stored_sample else pz.sample() 
@@ -482,12 +507,15 @@ class GaussianPrior(Layer):
 
     def forward_(self, x, objective):
         mean_and_logsd = torch.cat([torch.zeros_like(x) for _ in range(2)], dim=1)
-        # if self.conv: 
+        # if self.conv:
+
+        #this could just be some parameters we learn, 
+        # doesnt need to output of conv 
         mean_and_logsd = self.conv(mean_and_logsd)
 
         mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
 
-        logsd = torch.clamp(logsd, min=-5., max=2.)
+        logsd = torch.clamp(logsd, min=-6., max=2.)
 
         # print(self.conv)
         # # print (mean)
@@ -501,6 +529,16 @@ class GaussianPrior(Layer):
 
     def reverse_(self, x, objective, args=None):
         bs, c, h, w = self.input_shape
+
+        if args is not None and 'temp' in args:
+            temp = args['temp']
+        else:
+            temp =1.
+
+        if args is not None and 'batch_size' in args:
+            bs = args['batch_size']
+
+
         mean_and_logsd = torch.cuda.FloatTensor(bs, 2 * c, h, w).fill_(0.)
         
         # if self.conv: 
@@ -508,12 +546,9 @@ class GaussianPrior(Layer):
 
         mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
 
-        logsd = torch.clamp(logsd, min=-5., max=2.)
+        logsd = torch.clamp(logsd, min=-6., max=2.)
 
-        if args is not None:
-            temp = args['temp']
-        else:
-            temp =1.
+
 
 
         pz = gaussian_diag(mean, logsd, temp=temp)
@@ -539,10 +574,11 @@ class GaussianPrior(Layer):
 
 # Additive Coupling Layer
 class AdditiveCoupling(Layer):
-    def __init__(self, num_features):
+    def __init__(self, num_features, hidden_channels):
         super(AdditiveCoupling, self).__init__()
         assert num_features % 2 == 0
-        self.NN = NN(num_features // 2)
+        self.NN = NN(num_features // 2, hidden_channels=hidden_channels, 
+                        filter_size=3)
 
 
     def forward_(self, x, objective):
@@ -745,6 +781,79 @@ class SplineCoupling(Layer):
 
 
 
+class LinearSplineCoupling(Layer):
+    def __init__(self, num_features, hidden_channels=128):
+        super(LinearSplineCoupling, self).__init__()
+        # assert num_features % 2 == 0
+        self.num_bins = 3
+        dim_multiplier = self.num_bins 
+
+        self.transform_net = NN(num_features // 2, channels_out=num_features //2 * dim_multiplier, hidden_channels=hidden_channels)
+
+
+    def forward_(self, x, objective):
+
+        identity_split, transform_split = torch.chunk(x, 2, dim=1)
+        # identity_split = inputs[:, self.identity_features, ...]
+        # transform_split = inputs[:, self.transform_features, ...]
+
+        transform_params = self.transform_net(identity_split)
+        # print (transform_params.shape)
+        # For images, reshape transform_params from Bx(C*?)xHxW to BxCxHxWx?
+        b, c, h, w = transform_split.shape
+        transform_params = transform_params.reshape(b, c, -1, h, w).permute(0, 1, 3, 4, 2)
+        # print (transform_params.shape)
+        # unnormalized_widths = transform_params[..., :self.num_bins]
+        # unnormalized_heights = transform_params[..., self.num_bins:]
+
+        transformed, logabsdet = unconstrained_linear_spline(transform_split, 
+                                            unnormalized_pdf=transform_params)
+
+        output = torch.cat([identity_split, transformed], dim=1)
+
+        objective += utils2.sum_except_batch(logabsdet)
+
+        return output, objective
+
+
+
+
+    def reverse_(self, x, objective, args=None):
+
+        identity_split, transform_split = torch.chunk(x, 2, dim=1)
+        # identity_split = inputs[:, self.identity_features, ...]
+        # transform_split = inputs[:, self.transform_features, ...]
+
+        transform_params = self.transform_net(identity_split)
+        # print (transform_params.shape)
+        # For images, reshape transform_params from Bx(C*?)xHxW to BxCxHxWx?
+        b, c, h, w = transform_split.shape
+        transform_params = transform_params.reshape(b, c, -1, h, w).permute(0, 1, 3, 4, 2)
+        # print (transform_params.shape)
+        # unnormalized_widths = transform_params[..., :self.num_bins]
+        # unnormalized_heights = transform_params[..., self.num_bins:]
+
+        transformed, logabsdet = unconstrained_linear_spline(transform_split, 
+                                            unnormalized_pdf=transform_params,
+                                            inverse=True)
+
+        output = torch.cat([identity_split, transformed], dim=1)
+
+
+        objective += utils2.sum_except_batch(logabsdet)
+
+        return output, objective
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -849,6 +958,66 @@ class InverseSigmoid(Layer):
 
 
 
+# Inverse Sigmoid
+class LeakyRelu(Layer):
+    def __init__(self):
+        super(LeakyRelu, self).__init__()
+        # assert num_features % 2 == 0
+        # self.NN = NN(num_features // 2)
+
+        self.slope = .01
+
+    def forward_(self, x, objective):
+
+        above_zero = (x > 0).float()
+        below_zero = 1. - above_zero
+
+        x_transformed = x * below_zero * self.slope
+
+        output = (x * above_zero) +  x_transformed
+
+
+        # objective += flatten_sum(np.log(self.slope)*below_zero)
+
+
+        # # SHOULD MODIFY OBJECTIVE
+        # # however wouldnt affect the gradient since x cant be cahnged, its the data
+        # jac = (1/x) + (1/(1-x))
+        # objective += flatten_sum(torch.log(jac))
+
+        # x = -torch.log( (1/x) - 1)
+        # # print (objective.shape)
+        # # fasfd
+
+        return output, objective
+
+    def reverse_(self, x, objective, args=None):
+
+        above_zero = (x > 0).float()
+        below_zero = 1. -above_zero
+
+        x_transformed = x * below_zero / self.slope
+
+        output = (x * above_zero) +  x_transformed
+
+
+        # objective -= flatten_sum(np.log(self.slope)*below_zero)
+
+        # x = 1/ (torch.exp(-x) + 1)
+
+        # # SHOULD MODIFY OBJECTIVE
+        # jac = 1/x + (1/(1-x))
+        # objective += flatten_sum(torch.log(jac))
+
+        return x, objective
+
+
+
+
+
+
+
+
 
 
 
@@ -908,10 +1077,20 @@ class RevNetStep(LayerList):
         self.args = args
         layers = []
 
+
+        
+
         if args.norm == 'actnorm': 
             layers += [ActNorm(num_channels)]
         else: 
-            assert not args.norm               
+            assert not args.norm     
+
+
+
+
+        # layers += [LeakyRelu()]
+
+
  
         if args.permutation == 'reverse':
             layers += [Reverse(num_channels)]
@@ -931,22 +1110,38 @@ class RevNetStep(LayerList):
             layers += [AffineCoupling(num_channels, hidden_channels=args.hidden_channels)]
         elif args.coupling == 'spline':
             layers += [SplineCoupling(num_channels, hidden_channels=args.hidden_channels)]
-        else: 
-            raise ValueError
+        elif args.coupling == 'linear_spline':
+            
 
 
-
-        layers += [Reverse(num_channels)]
-
-
-        if args.coupling == 'additive': 
+            
             layers += [AdditiveCoupling(num_channels, hidden_channels=args.hidden_channels)]
-        elif args.coupling == 'affine':
-            layers += [AffineCoupling(num_channels, hidden_channels=args.hidden_channels)]
-        elif args.coupling == 'spline':
-            layers += [SplineCoupling(num_channels, hidden_channels=args.hidden_channels)]
+            layers += [LinearSplineCoupling(num_channels, hidden_channels=args.hidden_channels // 4 )]
+            
+            
         else: 
             raise ValueError
+
+
+
+
+        # if args.norm == 'actnorm': 
+        #     layers += [ActNorm(num_channels)]
+        # else: 
+        #     assert not args.norm       
+
+
+        # layers += [Reverse(num_channels)]
+
+
+        # if args.coupling == 'additive': 
+        #     layers += [AdditiveCoupling(num_channels, hidden_channels=args.hidden_channels)]
+        # elif args.coupling == 'affine':
+        #     layers += [AffineCoupling(num_channels, hidden_channels=args.hidden_channels)]
+        # elif args.coupling == 'spline':
+        #     layers += [SplineCoupling(num_channels, hidden_channels=args.hidden_channels)]
+        # else: 
+        #     raise ValueError
 
 
 

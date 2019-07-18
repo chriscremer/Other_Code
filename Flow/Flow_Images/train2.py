@@ -90,6 +90,7 @@ parser.add_argument('--max_steps', type=int, default=200000)
 
 parser.add_argument('--quick', type=int, default=0)
 parser.add_argument('--vws', type=int, default=1)
+parser.add_argument('--save_output', type=int, default=0)
 
 # parser.add_argument('--data_dir', type=str, default='../pixelcnn-pp')
 parser.add_argument('--data_dir', type=str, default=home +'/Documents')
@@ -105,6 +106,27 @@ args.n_bins = 2 ** args.n_bits_x
 np.random.seed(0)
 torch.manual_seed(0)
 torch.cuda.manual_seed_all(0)
+
+
+
+def myprint(list_):
+    newtext =''
+    for i in range(len(list_)):
+        newtext += str(list_[i]) + ' '
+    print(newtext)
+
+    if save_output:        
+        with open(write_to_file, "a") as f:
+            for t in list_:
+                f.write(str(t) + ' ')
+            f.write('\n')
+
+def myprint_t(text):
+    print(text)
+    if save_output:        
+        with open(write_to_file, "a") as f:
+            f.write(str(text))
+            f.write('\n')
 
 
 
@@ -199,6 +221,15 @@ if not os.path.exists(code_dir):
 #Copy code
 subprocess.call("(rsync -r --exclude=__pycache__/ . "+code_dir+" )", shell=True)
 print ('code saved')
+
+save_output = args.save_output
+if save_output:
+
+    for f in os.listdir(exp_dir):
+        if 'exp_stdout.txt' in f:
+            os.remove(exp_dir + f)
+
+    write_to_file = exp_dir+'exp_stdout.txt'
 ###########################################################################################
 
 
@@ -293,11 +324,11 @@ else:
     # img_batch, question_batch = get_batch(train_image_dataset, train_question_dataset, batch_size=4)
 
 
+# train_image_dataset = train_image_dataset[:5]
+
 
 # train_image_dataset = train_image_dataset[:22]
 dataset = MyClevrDataset(train_image_dataset)
-loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, 
-                                shuffle=True, num_workers=0, drop_last=True)
 print (train_image_dataset.shape)
 ###########################################################################################
 
@@ -306,10 +337,10 @@ print (train_image_dataset.shape)
 
 
 ###########################################################################################
-# Optimizer, Param Init and Load
+# Optimizer, Param Init and Loaders
 # ------------------------------------------------------------------------------
 # set up the optimizer
-optim = optim.Adam(model.parameters(), lr=args.lr, weight_decay=.0001)
+optim = optim.Adam(model.parameters(), lr=args.lr, weight_decay=.00001)
 # optim = optim.Adam(model.parameters(), lr=args.lr, weight_decay=.01)
 # optim = optim.Adam(model.parameters(), lr=1e-5, weight_decay=.0001)
 # scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=45, gamma=0.1)
@@ -345,6 +376,10 @@ if args.load_step > 0:
 # # load trained model if necessary (must be done after DataParallel)
 # if args.load_dir is not None: 
 #     model, optim, start_epoch = load_session(model, optim, args)
+
+loader = torch.utils.data.DataLoader(dataset, batch_size=min(args.batch_size,len(dataset)), 
+                                shuffle=True, num_workers=0, drop_last=True)
+iter_loader = iter(loader)
 ###########################################################################################
 
 
@@ -371,47 +406,59 @@ data_dict['LL'] = {}
 data_dict['LL']['real_LL'] = []
 data_dict['LL']['sample_LL'] = []
 
-iter_loader = iter(loader)
 
 
 for i in range(max_steps+1):
     step = i + args.load_step
 
-
-
-    
     try:
         img = next(iter_loader).cuda()
     except:
-        loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, 
+        loader = torch.utils.data.DataLoader(dataset, batch_size=min(args.batch_size,len(dataset)), 
                             shuffle=True, num_workers=0, drop_last=True)
         iter_loader = iter(loader)
         img = next(iter_loader).cuda()
 
 
-    # dequantize
-    img += torch.zeros_like(img).uniform_(0., 1./args.n_bins)
-    img = torch.clamp(img, min=1e-5, max=1-1e-5)
-    # print (torch.max(img), torch.min(img))
-    # print (args.n_bins)
-    # fasfd
-    
-    # img = img.cuda() 
-    objective = torch.zeros_like(img[:, 0, 0, 0])
+    if step % 30 !=0:
 
-    # discretizing cost 
-    objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
-    
-    # log_det_jacobian cost (and some prior from Split OP)
-    z, objective = model(img, objective)
+        # dequantize
+        img += torch.zeros_like(img).uniform_(0., 1./args.n_bins)
+        img = torch.clamp(img, min=1e-5, max=1-1e-5)
+        # print (torch.max(img), torch.min(img))
+        # print (args.n_bins)
+        # fasfd
+        
+        # img = img.cuda() 
+        objective = torch.zeros_like(img[:, 0, 0, 0])
+        # discretizing cost 
+        objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+        # log_det_jacobian cost (and some prior from Split OP)
+        z, objective = model(img, objective)
+        nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+        # Generative loss
+        nobj = torch.mean(nll)
 
-    nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
-    
-    # Generative loss
-    nobj = torch.mean(nll)
+
+    else:
+
+        model_args = {}
+        model_args['temp'] = .5
+        model_args['batch_size'] = args.batch_size
+        img = model.sample(model_args)
+        img = torch.clamp(img, min=1e-5, max=1-1e-5).detach()
+        objective = torch.zeros_like(img[:, 0, 0, 0]) + float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+        z, objective = model(img, objective)
+        nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+        nobj = -torch.mean(nll)
+
+
+
+
+
 
     if (nobj!=nobj).any():
-        print (step, 'nans in obj!!')
+        print ('step', step, '  -nans in obj!!')
         print ('z', (z!=z).any())
         print (nobj)
         # allgrads = []
@@ -520,6 +567,7 @@ for i in range(max_steps+1):
 
 
         torch.nn.utils.clip_grad_value_(model.parameters(), 5)
+        # torch.nn.utils.clip_grad_value_(model.parameters(), 1)
 
 
         # if step % (args.print_every*see_grads_every) == 0:
@@ -533,6 +581,7 @@ for i in range(max_steps+1):
 
 
         torch.nn.utils.clip_grad_norm_(model.parameters(), 100)
+        # torch.nn.utils.clip_grad_norm_(model.parameters(), 20)
 
 
         # if step %(args.print_every*see_grads_every) == 0:
@@ -555,9 +604,12 @@ for i in range(max_steps+1):
 
     if step %args.print_every == 0:
         T=time.time() - t
-        print(step, 'T:{:.1f}'.format(T), 
+        # print(step, 'T:{:.1f}'.format(T), 
+        #         'C:{:.2f}'.format(float(nobj.data.cpu().numpy())), 
+        #         'lr', lr_sched.get_lr()[0])
+        myprint( (step, 'T:{:.1f}'.format(T), 
                 'C:{:.2f}'.format(float(nobj.data.cpu().numpy())), 
-                'lr', lr_sched.get_lr()[0])
+                'lr', lr_sched.get_lr()[0]) ) 
         t = time.time()
 
 
@@ -574,6 +626,10 @@ for i in range(max_steps+1):
                 sample = model.sample()
                 objective = torch.zeros_like(sample[:, 0, 0, 0])
                 objective += float(-np.log(args.n_bins) * np.prod(sample.shape[1:]))
+                # print (torch.min(sample), torch.max(sample))
+                sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
+                # print (torch.min(sample), torch.max(sample))
+
                 z, objective = model(sample, objective)
                 nll = (-objective) / float(np.log(2.) * np.prod(sample.shape[1:]))
                 nobj_sample = torch.mean(nll)
@@ -592,6 +648,19 @@ for i in range(max_steps+1):
 
     if step % args.plotimages_every == 0 and step!=0:
 
+        for f in os.listdir(images_dir):
+            if 'plot' in f:
+                os.remove(images_dir + f)
+
+
+        # if os.path.isfile(images_dir +'plot2500_temp3.png'):
+        #     print ('yer')
+        #     os.remove(images_dir +'plot*')
+        # else:
+        #     print ('noo')
+
+        # afdsfa
+
         with torch.no_grad():
 
             model_args = {}
@@ -601,7 +670,19 @@ for i in range(max_steps+1):
                 model_args['temp'] = temps[temp_i]
 
                 sample = model.sample(model_args)
+
+                sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
+
+
                 # print (torch.min(sample), torch.max(sample), sample.shape)
+
+                objective = torch.zeros_like(sample[:, 0, 0, 0]) + float(-np.log(args.n_bins) * np.prod(sample.shape[1:]))
+                z, objective = model(sample, objective)
+                nll = (-objective) / float(np.log(2.) * np.prod(sample.shape[1:]))
+                nobj_sample = torch.mean(nll)
+
+                print (temps[temp_i], nobj_sample)
+
 
                 if (sample!=sample).any():
                     print ('nans in sample!!')
@@ -612,11 +693,30 @@ for i in range(max_steps+1):
                 img_file = images_dir +'plot'+str(step)+'_temp' +str(temp_i) + '.png'
 
                 utils.save_image(grid, img_file)
+                # print ('saved', img_file)
+            print ('saved images')
+
+
+
+            if step / args.plotimages_every ==1:
+
+                init_loader = torch.utils.data.DataLoader(dataset, batch_size=min(64,len(dataset)), 
+                                    shuffle=True, num_workers=1, drop_last=True)
+                iter_loader_init = iter(init_loader)
+                img = next(iter_loader_init)
+                grid = utils.make_grid(img)
+                img_file = images_dir +'realimages.png'
+                utils.save_image(grid, img_file)
                 print ('saved', img_file)
 
 
+            if args.plotimages_every == 1: 
+                dfadfdasf
+
+
+
             # #confirm perfect recon
-            # sampling_loader = torch.utils.data.DataLoader(dataset, batch_size=sampling_batch_size, 
+            # sampling_loader = torch.utils.data.DataLoader(dataset, batch_size=min(sampling_batch_size,len(dataset)), 
             #             shuffle=True, num_workers=1, drop_last=True)
             # sampling_loader = iter(sampling_loader)
             # img = next(sampling_loader).cuda()
@@ -629,6 +729,9 @@ for i in range(max_steps+1):
             # # print(torch.mean((aa - img)**2))
             # # fafds
 
+            # model_args = {}
+            # model_args['use_stored_sample'] = 1
+            # # model_args['temp'] = 1
             # recons = model.reverse_(z, 0.)[0]
 
             # grid = utils.make_grid(recons)
@@ -641,9 +744,11 @@ for i in range(max_steps+1):
             # utils.save_image(grid, img_file)
             # print ('saved', img_file)
 
+            # fada
 
-            # # forwardlayers, names = model.forward_2(img, objective)
-            # # fdsafa
+
+            # forwardlayers, names = model.forward_2(img, objective)
+            # fdsafa
 
 
             # forwardlayers, names = model.forward_andgetlayers(img, objective)
@@ -672,8 +777,15 @@ for i in range(max_steps+1):
 
 
     if step % args.save_every ==0 and i > 0:
-        
+
+        for f in os.listdir(params_dir):
+            if 'model_params' in f:
+                os.remove(params_dir + f)
+
         model.save_params_v3(params_dir, step, name='model_params')
+
+
+
 
 print ('Done.')
 ###########################################################################################

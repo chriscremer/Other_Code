@@ -4,7 +4,7 @@ import torch
 from torch.nn import functional as F
 import numpy as np
 
-import utils
+import utils2
 from nde import transforms
 
 def unconstrained_linear_spline(inputs, unnormalized_pdf,
@@ -52,17 +52,18 @@ def linear_spline(inputs, unnormalized_pdf,
     num_bins = unnormalized_pdf.size(-1)
 
     pdf = F.softmax(unnormalized_pdf, dim=-1)
+    # pdf = F.softmax(unnormalized_pdf + 0.01, dim=-1)
 
     cdf = torch.cumsum(pdf, dim=-1)
     cdf[..., -1] = 1.
     cdf = F.pad(cdf, pad=(1, 0), mode='constant', value=0.0)
 
     if inverse:
-        inv_bin_idx = utils.searchsorted(cdf, inputs)
+        inv_bin_idx = utils2.searchsorted(cdf, inputs)
 
         bin_boundaries = (torch.linspace(0, 1, num_bins+1)
                           .view([1] * inputs.dim() + [-1])
-                          .expand(*inputs.shape, -1))
+                          .expand(*inputs.shape, -1)).cuda()
 
         slopes = ((cdf[..., 1:] - cdf[..., :-1])
                   / (bin_boundaries[..., 1:] - bin_boundaries[..., :-1]))
