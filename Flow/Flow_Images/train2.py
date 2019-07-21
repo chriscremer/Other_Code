@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim import lr_scheduler
 from torchvision import datasets, transforms, utils
-from torch.utils.data import Dataset
+
 
 
 import numpy as np
@@ -14,14 +14,11 @@ import numpy as np
 import argparse
 import time
 import subprocess
-
-from invertible_layers import * 
-from utils import * 
+import pickle
 
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
 
 
 from os.path import expanduser
@@ -31,11 +28,11 @@ import sys, os
 sys.path.insert(0, os.path.abspath(home+'/Other_Code/VLVAE/CLEVR/utils'))
 
 
-from preprocess_statements import preprocess_v2
-from Clevr_data_loader import ClevrDataset, ClevrDataLoader
+from invertible_layers import * 
+from utils import * 
 
-import pickle
 
+from load_data import load_clevr, load_cifar
 
 
 # ------------------------------------------------------------------------------
@@ -67,6 +64,7 @@ parser.add_argument('--permutation', type=str, default='shuffle')
 # parser.add_argument('--coupling', type=str, default='affine')
 # parser.add_argument('--coupling', type=str, default='additive')
 parser.add_argument('--coupling', type=str, default='additive')
+parser.add_argument('--base_dist', type=str, default='Gauss')
 
 
 parser.add_argument('--n_bits_x', type=int, default=8)
@@ -88,6 +86,7 @@ parser.add_argument('--plotimages_every', type=int, default=2000)
 parser.add_argument('--save_every', type=int, default=10000, help='save model every _ epochs')
 parser.add_argument('--max_steps', type=int, default=200000)
 
+parser.add_argument('--dataset', type=str)
 parser.add_argument('--quick', type=int, default=0)
 parser.add_argument('--vws', type=int, default=1)
 parser.add_argument('--save_output', type=int, default=0)
@@ -258,78 +257,18 @@ print("number of model parameters:", sum([np.prod(p.size()) for p in model.param
 
 
 ###########################################################################################
-# CLEVR DATA
-if args.vws:
-    data_dir = home+ "/vl_data/two_objects_large/"  #vws
-else:
-    data_dir = home+ "/VL/data/two_objects_no_occ/" #boltz 
+# LOAD DATA
 
-question_file = data_dir+'train.h5'
-image_file = data_dir+'train_images.h5'
-vocab_file = data_dir+'train_vocab.json'
-#Load data  (3,112,112)
-train_loader_kwargs = {
-                        'question_h5': question_file,
-                        'feature_h5': image_file,
-                        'batch_size': args.batch_size,
-                        # 'max_samples': 70000, i dont think this actually does anythn
-                        }
-loader = ClevrDataLoader(**train_loader_kwargs)
+if args.dataset=='clevr':
+    # # CLEVR DATA
+    dataset = load_clevr(batch_size=args.batch_size, vws=args.vws, quick=args.quick)
 
-class MyClevrDataset(Dataset):
-    """Face Landmarks dataset."""
+elif args.dataset=='cifar':
+    # CIFAR DATA
+    # train_image_dataset = load_cifar(data_dir=args.data_dir)
+    dataset = load_cifar(data_dir=home+'/Documents/')
 
-    def __init__(self, data):
-
-        self.data = data
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-
-        img_batch = self.data[idx]
-        img_batch = torch.from_numpy(img_batch) #.cuda()
-        img_batch = torch.clamp(img_batch, min=1e-5, max=1-1e-5)
-
-        return img_batch 
-
-
-quick = args.quick
-
-if not quick:
-    #Full dataset
-    train_image_dataset, train_question_dataset, val_image_dataset, \
-         val_question_dataset, test_image_dataset, test_question_dataset, \
-         train_indexes, val_indexes, question_idx_to_token, \
-         question_token_to_idx, q_max_len, vocab_size =  preprocess_v2(loader, vocab_file)
-
-    train_image_dataset = train_image_dataset[:50000]
-
-
-else:
-    #For quickly running it
-    if args.vws:
-        quick_check_data = home+ "/vl_data/quick_stuff.pkl"
-    else:
-        quick_check_data = home+ "/VL/two_objects_large/quick_stuff.pkl" 
-
-    with open(quick_check_data, "rb" ) as f:
-        stuff = pickle.load(f)
-        train_image_dataset, train_question_dataset, val_image_dataset, \
-             val_question_dataset, test_image_dataset, test_question_dataset, \
-             train_indexes, val_indexes, question_idx_to_token, \
-        question_token_to_idx, q_max_len, vocab_size = stuff
-
-    # img_batch, question_batch = get_batch(train_image_dataset, train_question_dataset, batch_size=4)
-
-
-# train_image_dataset = train_image_dataset[:5]
-
-
-# train_image_dataset = train_image_dataset[:22]
-dataset = MyClevrDataset(train_image_dataset)
-print (train_image_dataset.shape)
+print (len(dataset), dataset[0].shape)
 ###########################################################################################
 
 
@@ -420,37 +359,37 @@ for i in range(max_steps+1):
         img = next(iter_loader).cuda()
 
 
-    if step % 30 !=0:
+    # if step % 3 !=0:
 
-        # dequantize
-        img += torch.zeros_like(img).uniform_(0., 1./args.n_bins)
-        img = torch.clamp(img, min=1e-5, max=1-1e-5)
-        # print (torch.max(img), torch.min(img))
-        # print (args.n_bins)
-        # fasfd
-        
-        # img = img.cuda() 
-        objective = torch.zeros_like(img[:, 0, 0, 0])
-        # discretizing cost 
-        objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
-        # log_det_jacobian cost (and some prior from Split OP)
-        z, objective = model(img, objective)
-        nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
-        # Generative loss
-        nobj = torch.mean(nll)
+    # dequantize
+    img += torch.zeros_like(img).uniform_(0., 1./args.n_bins)
+    img = torch.clamp(img, min=1e-5, max=1-1e-5)
+    # print (torch.max(img), torch.min(img))
+    # print (args.n_bins)
+    # fasfd
+    
+    # img = img.cuda() 
+    objective = torch.zeros_like(img[:, 0, 0, 0])
+    # discretizing cost 
+    objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+    # log_det_jacobian cost (and some prior from Split OP)
+    z, objective = model(img, objective)
+    nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+    # Generative loss
+    nobj = torch.mean(nll)
 
 
-    else:
+    # else:
 
-        model_args = {}
-        model_args['temp'] = .5
-        model_args['batch_size'] = args.batch_size
-        img = model.sample(model_args)
-        img = torch.clamp(img, min=1e-5, max=1-1e-5).detach()
-        objective = torch.zeros_like(img[:, 0, 0, 0]) + float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
-        z, objective = model(img, objective)
-        nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
-        nobj = -torch.mean(nll)
+    #     model_args = {}
+    #     model_args['temp'] = .5
+    #     model_args['batch_size'] = args.batch_size
+    #     img = model.sample(model_args)
+    #     img = torch.clamp(img, min=1e-5, max=1-1e-5).detach()
+    #     objective = torch.zeros_like(img[:, 0, 0, 0]) + float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+    #     z, objective = model(img, objective)
+    #     nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+    #     nobj = -torch.mean(nll)
 
 
 
@@ -663,25 +602,56 @@ for i in range(max_steps+1):
 
         with torch.no_grad():
 
-            model_args = {}
-            temps = [.5,1.,1.5,2.]
-            for temp_i in range(len(temps)):
+            if args.base_dist != 'MoG':
+                model_args = {}
+                temps = [.5,1.,1.5,2.]
+                for temp_i in range(len(temps)):
 
-                model_args['temp'] = temps[temp_i]
+                    model_args['temp'] = temps[temp_i]
 
-                sample = model.sample(model_args)
+                    sample = model.sample(model_args)
+
+                    sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
+
+
+                    # print (torch.min(sample), torch.max(sample), sample.shape)
+
+                    objective = torch.zeros_like(sample[:, 0, 0, 0]) + float(-np.log(args.n_bins) * np.prod(sample.shape[1:]))
+                    z, objective = model(sample, objective)
+                    nll = (-objective) / float(np.log(2.) * np.prod(sample.shape[1:]))
+                    nobj_sample = torch.mean(nll)
+
+                    print (temps[temp_i], nobj_sample)
+
+
+                    if (sample!=sample).any():
+                        print ('nans in sample!!')
+                        # fafad
+
+                    sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
+                    grid = utils.make_grid(sample)
+                    img_file = images_dir +'plot'+str(step)+'_temp' +str(temp_i) + '.png'
+
+                    utils.save_image(grid, img_file)
+                    # print ('saved', img_file)
+                print ('saved images')
+
+            else:
+
+
+                sample = model.sample()
+
+                print (torch.min(sample), torch.max(sample), sample.shape)
 
                 sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
-
-
-                # print (torch.min(sample), torch.max(sample), sample.shape)
 
                 objective = torch.zeros_like(sample[:, 0, 0, 0]) + float(-np.log(args.n_bins) * np.prod(sample.shape[1:]))
                 z, objective = model(sample, objective)
                 nll = (-objective) / float(np.log(2.) * np.prod(sample.shape[1:]))
                 nobj_sample = torch.mean(nll)
 
-                print (temps[temp_i], nobj_sample)
+                # print (temps[temp_i], nobj_sample)
+                print ('sample objective', nobj_sample)
 
 
                 if (sample!=sample).any():
@@ -690,12 +660,11 @@ for i in range(max_steps+1):
 
                 sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
                 grid = utils.make_grid(sample)
-                img_file = images_dir +'plot'+str(step)+'_temp' +str(temp_i) + '.png'
+                img_file = images_dir +'plot'+str(step)+'.png'
 
                 utils.save_image(grid, img_file)
                 # print ('saved', img_file)
-            print ('saved images')
-
+                print ('saved images')
 
 
             if step / args.plotimages_every ==1:

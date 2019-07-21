@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.utils.weight_norm as wn
+from torch.distributions.bernoulli import Bernoulli
 
 import numpy as np
 import pdb
@@ -425,6 +426,27 @@ class Squeeze(Layer):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # ------------------------------------------------------------------------------
 # Layers involving prior
 # ------------------------------------------------------------------------------
@@ -558,6 +580,198 @@ class GaussianPrior(Layer):
         # this way, you can encode and decode back the same image. 
         return z, objective
          
+
+
+
+
+
+
+
+class MoGPrior(Layer):
+    def __init__(self, input_shape, args):
+        super(MoGPrior, self).__init__()
+
+        bs, c, h, w = input_shape
+        self.input_shape = [16, c, h, w]
+
+
+        self.mean1 = 0. #2.
+        self.mean2 = 0. # -2.
+        self.logsd = 0. #np.log(.1)
+
+    def gauss_log_prob(self, x, mean, logsd):
+        Log2PI = float(np.log(2 * np.pi))
+        # return  -0.5 * (Log2PI + 2. * logsd + ((x - mean) ** 2) / torch.exp(2. * logsd))
+
+        aaa = Log2PI + 2. * logsd 
+        var = np.exp(2. * logsd)
+        bbb = ((x - mean) ** 2) / var
+        return  -0.5 * (aaa + bbb)
+
+    def MoG_log_prob(self, x):
+
+        B = x.shape[0]
+
+        logpz_1 = self.gauss_log_prob(x, self.mean1, self.logsd) #.view(B,-1)
+        logpz_2 = self.gauss_log_prob(x, self.mean2, self.logsd) #.view(B,-1)
+
+        # log_sum_exp
+        # concat = torch.cat([logpz_1,logpz_2], 1)
+        max_ = torch.max(logpz_1, logpz_2)
+
+        logpz = torch.log(.5 * (torch.exp(logpz_1 - max_) + torch.exp(logpz_2 - max_))) + max_
+
+        logpz = logpz.view(B,-1).sum(-1)
+
+        return logpz   
+
+    def MoG_sample(self):
+
+        prob = torch.ones(self.input_shape) * .5
+        bern = Bernoulli(prob)
+        b = bern.sample().cuda()
+
+        eps = torch.zeros_like(b).normal_().cuda()
+        z1 = self.mean1 + self.logsd * eps 
+        z2 = self.mean2 + self.logsd * eps
+        z = b * z1 + (1.-b) * z2
+        return z
+
+    def forward_(self, x, objective):
+
+        
+
+        logpz = self.MoG_log_prob(x)
+        objective += logpz
+
+        return x, objective
+
+    def reverse_(self, x, objective, args=None):
+        # bs, c, h, w = self.input_shape
+
+        # if args is not None and 'temp' in args:
+        #     temp = args['temp']
+        # else:
+        #     temp =1.
+
+        # if args is not None and 'batch_size' in args:
+        #     bs = args['batch_size']
+
+
+        z = self.MoG_sample()
+        logpz = self.MoG_log_prob(z)
+         
+        objective -= logpz
+        return z, objective
+         
+
+
+
+
+class Split_MoG(Layer):
+    def __init__(self, input_shape):
+        super(Split_MoG, self).__init__()
+        bs, c, h, w = input_shape
+        self.input_shape = [16, c//2, h, w]
+        # print (self.input_shape)
+
+        self.mean1 = 0. #2.
+        self.mean2 = 0. #-2.
+        self.logsd = 0. #np.log(.1)
+
+
+    def gauss_log_prob(self, x, mean, logsd):
+        Log2PI = float(np.log(2 * np.pi))
+        # return  -0.5 * (Log2PI + 2. * logsd + ((x - mean) ** 2) / torch.exp(2. * logsd))
+
+        aaa = Log2PI + 2. * logsd 
+        var = np.exp(2. * logsd)
+        bbb = ((x - mean) ** 2) / var
+        return  -0.5 * (aaa + bbb)
+
+    def MoG_log_prob(self, x):
+
+        B = x.shape[0]
+
+        logpz_1 = self.gauss_log_prob(x, self.mean1, self.logsd) #.view(B,-1)
+        logpz_2 = self.gauss_log_prob(x, self.mean2, self.logsd) #.view(B,-1)
+
+        # log_sum_exp
+        # concat = torch.cat([logpz_1,logpz_2], 1)
+        max_ = torch.max(logpz_1, logpz_2)
+
+        logpz = torch.log(.5 * (torch.exp(logpz_1 - max_) + torch.exp(logpz_2 - max_))) + max_
+
+        logpz = logpz.view(B,-1).sum(-1)
+
+        return logpz   
+
+    def MoG_sample(self):
+
+        prob = torch.ones(self.input_shape) * .5
+        bern = Bernoulli(prob)
+        b = bern.sample().cuda()
+
+        eps = torch.zeros_like(b).normal_().cuda()
+        z1 = self.mean1 + self.logsd * eps 
+        z2 = self.mean2 + self.logsd * eps
+        z = b * z1 + (1.-b) * z2
+        return z
+
+
+    def forward_(self, x, objective):
+        bs, c, h, w = x.size()
+        z1, z2 = torch.chunk(x, 2, dim=1)
+
+        objective += self.MoG_log_prob(z2)
+        # self.sample = z2
+
+        return z1, objective
+
+
+    def reverse_(self, x, objective, args=None):
+
+        # pz = self.split2d_prior(x, args=args)
+        # mean = torch.zeros_like(x)
+        # logs = torch.zeros_like(x)
+        # pz = gaussian_diag(mean, logs)
+
+        # if args is not None and 'use_stored_sample' in args:
+        #     use_stored_sample = args['use_stored_sample']
+        # else:
+        #     use_stored_sample = 0
+
+
+        z2 = self.MoG_sample()
+        logpz = self.MoG_log_prob(z2)
+
+        # z2 = self.sample if use_stored_sample else pz.sample() 
+        # print (x.shape)
+        # print (z2.shape)
+        # fsdfa
+        # print (z2.shape)
+        # print (x.shape)
+        z = torch.cat([x, z2], dim=1)
+        objective -= logpz
+        return z, objective
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1222,11 +1436,20 @@ class Glow_(LayerList, nn.Module):
 
             if i < args.n_levels - 1: 
                 # Split Layer
-                layers += [Split(output_shapes[-1])]
+                if args.base_dist == 'MoG':
+                    layers += [Split_MoG(output_shapes[-1])]
+                else:
+                    layers += [Split(output_shapes[-1])]
+
                 C = C // 2
                 output_shapes += [(-1, C, H, W)]
 
-        layers += [GaussianPrior((B, C, H, W), args)]
+        if args.base_dist == 'MoG':
+            layers += [MoGPrior((B, C, H, W), args)]
+        else:
+            layers += [GaussianPrior((B, C, H, W), args)]
+
+
         output_shapes += [output_shapes[-1]]
 
         # # print (output_shapes)
