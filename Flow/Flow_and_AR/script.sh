@@ -10,29 +10,67 @@
 export PATH=$PATH:/h/ccremer/anaconda3/bin
 source activate test_env
 # conda info --envs
-python3 train2.py  --exp_name "quick_test" \
+python3 train2.py  --exp_name "quick_test_AR" \
 								--vws 0 \
-								--which_gpu '0' \
+								--which_gpu '1' \
 								--dataset 'cifar' \
 								--data_dir "$HOME/Documents/" \
 								--save_to_dir "$HOME/Documents/glow_clevr/" \
-								--batch_size 16 \
+								--batch_size 64 \
 								--load_step 0 \
 								--load_dir "$HOME/Documents/glow_clevr/clevr_confirmworks/params/" \
 								--print_every 200 \
 								--curveplot_every 2000 \
-								--plotimages_every 2000 \
-								--save_every 50000 \
+								--plotimages_every 200000 \
+								--save_every 20000 \
 								--max_steps 200000 \
-								--n_levels 3 \
+								--n_levels 1 \
 								--depth 16 \
-								--hidden_channels 256 \
+								--hidden_channels 128 \
 								--coupling 'affine' \
 								--permutation 'shuffle' \
-								--base_dist 'Gauss' \
-								--lr 2e-4\
-								--quick 1 \
+								--base_dist 'AR' \
+								--lr 2e-3\
+								--quick 0 \
 								--save_output 0\
+
+
+
+
+
+# #!/bin/sh
+# #SBATCH --gres=gpu:1
+# #SBATCH --partition=gpu
+# #SBATCH --cpus-per-task=2
+# #SBATCH --mem=12GB
+# #SBATCH --job-name=myJob
+# #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# # conda info --envs
+# python3 train2.py  --exp_name "quick_test_AR" \
+# 								--vws 0 \
+# 								--which_gpu '0' \
+# 								--dataset 'cifar' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 32 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/clevr_confirmworks/params/" \
+# 								--print_every 20 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 2000 \
+# 								--save_every 50000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 16 \
+# 								--hidden_channels 128 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AR' \
+# 								--lr 2e-3\
+# 								--quick 0 \
+# 								--save_output 0\
 
 
 

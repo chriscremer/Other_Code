@@ -35,6 +35,11 @@ from utils import *
 from load_data import load_clevr, load_cifar
 
 
+
+
+
+
+
 # ------------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
 # training
@@ -239,19 +244,6 @@ if save_output:
 
 
 
-###########################################################################################
-# Init Model
-# ------------------------------------------------------------------------------
-sampling_batch_size = 64
-model = Glow_((sampling_batch_size, 3, 112, 112), args).cuda()
-# print(model)
-print("number of model parameters:", sum([np.prod(p.size()) for p in model.parameters()]))
-# fasdfad
-# model = nn.DataParallel(model).cuda()
-###########################################################################################
-
-
-
 
 
 
@@ -270,6 +262,24 @@ elif args.dataset=='cifar':
 
 print (len(dataset), dataset[0].shape)
 ###########################################################################################
+
+
+
+
+
+
+###########################################################################################
+# Init Model
+# ------------------------------------------------------------------------------
+sampling_batch_size = 64
+shape = dataset[0].shape
+model = Glow_((sampling_batch_size, shape[0], shape[1], shape[2]), args).cuda()
+# print(model)
+print("number of model parameters:", sum([np.prod(p.size()) for p in model.parameters()]))
+# fasdfad
+# model = nn.DataParallel(model).cuda()
+###########################################################################################
+
 
 
 
@@ -303,7 +313,7 @@ with torch.no_grad():
         objective = torch.zeros_like(img[:, 0, 0, 0])
         _ = model(img, objective)
         break
-
+print ('data dependent init complete')
 
 if args.load_step > 0:
     model.load_params_v3(load_dir=args.load_dir, step=args.load_step, name='model_params')
@@ -341,9 +351,9 @@ data_dict['steps'] = []
 data_dict['lpx'] = []
 data_dict['lr'] = []
 data_dict['T'] = []
-data_dict['LL'] = {}
-data_dict['LL']['real_LL'] = []
-data_dict['LL']['sample_LL'] = []
+# data_dict['LL'] = {}
+# data_dict['LL']['real_LL'] = []
+# data_dict['LL']['sample_LL'] = []
 
 
 
@@ -379,23 +389,23 @@ for i in range(max_steps+1):
     nobj = torch.mean(nll)
 
 
-    print (nobj)
+    # print (nobj)
 
 
 
 
-    objective = torch.zeros_like(img[:, 0, 0, 0])
-    # discretizing cost 
-    objective += float(-np.log(args.n_bins) )#* np.prod(img.shape[1:]))
-    # log_det_jacobian cost (and some prior from Split OP)
-    z, objective = model(img, objective)
-    nll = (-objective) / float(np.log(2.) )#* np.prod(img.shape[1:]))
-    # Generative loss
-    nobj = torch.mean(nll)
+    # objective = torch.zeros_like(img[:, 0, 0, 0])
+    # # discretizing cost 
+    # objective += float(-np.log(args.n_bins) )#* np.prod(img.shape[1:]))
+    # # log_det_jacobian cost (and some prior from Split OP)
+    # z, objective = model(img, objective)
+    # nll = (-objective) / float(np.log(2.) )#* np.prod(img.shape[1:]))
+    # # Generative loss
+    # nobj = torch.mean(nll)
 
 
-    print (nobj)
-    fasfsa
+    # print (nobj)
+    # fasfsa
 
 
 
@@ -580,22 +590,22 @@ for i in range(max_steps+1):
             data_dict['lpx'].append(float(nobj.data.cpu().numpy()))
             data_dict['lr'].append(lr_sched.get_lr()[0])
             data_dict['T'].append(T)
-            data_dict['LL']['real_LL'].append(numpy(-nobj))  #batch is only 32 vs 64 for samples..
+            # data_dict['LL']['real_LL'].append(numpy(-nobj))  #batch is only 32 vs 64 for samples..
 
-            with torch.no_grad():                
+            # with torch.no_grad():                
 
-                sample = model.sample()
-                objective = torch.zeros_like(sample[:, 0, 0, 0])
-                objective += float(-np.log(args.n_bins) * np.prod(sample.shape[1:]))
-                # print (torch.min(sample), torch.max(sample))
-                sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
-                # print (torch.min(sample), torch.max(sample))
+            #     sample = model.sample()
+            #     objective = torch.zeros_like(sample[:, 0, 0, 0])
+            #     objective += float(-np.log(args.n_bins) * np.prod(sample.shape[1:]))
+            #     # print (torch.min(sample), torch.max(sample))
+            #     sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
+            #     # print (torch.min(sample), torch.max(sample))
 
-                z, objective = model(sample, objective)
-                nll = (-objective) / float(np.log(2.) * np.prod(sample.shape[1:]))
-                nobj_sample = torch.mean(nll)
+            #     z, objective = model(sample, objective)
+            #     nll = (-objective) / float(np.log(2.) * np.prod(sample.shape[1:]))
+            #     nobj_sample = torch.mean(nll)
 
-            data_dict['LL']['sample_LL'].append(numpy(-nobj_sample))
+            # data_dict['LL']['sample_LL'].append(numpy(-nobj_sample))
 
 
             # print (torch.max(img), torch.min(img), torch.max(sample), torch.min(sample))
