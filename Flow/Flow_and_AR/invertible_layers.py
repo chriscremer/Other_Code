@@ -100,15 +100,16 @@ class LayerList(Layer):
             # print ()
 
 
-            if (x!=x).any() or torch.max(x) > 99999 or torch.max(x) < -99999 or (objective!=objective).any():
-                print (layer)
+            if (x!=x).any() or torch.max(x) > 99999 or torch.min(x) < -99999 
+                    or (objective!=objective) or torch.max(objective) > 999999 or torch.min(objective) < -999999  ).any():
+                print (str(layer)[:6])
 
                 # h = layer.conv_zero(x_pre)
                 # mean, logs = h[:, 0::2], h[:, 1::2]
 
                 # print (torch.min(x_pre), torch.max(x_pre))
-                print (torch.min(x), torch.max(x))
-                print (torch.min(objective), torch.max(objective))
+                print ('x', torch.min(x), torch.max(x))
+                print ('obj', torch.min(objective), torch.max(objective))
                 # print ((x_pre!=x_pre).any(), (mean!=mean).any(), (logs!=logs).any())
                 # print ( layer.conv_zero.logs)
                 # fadfas
@@ -524,8 +525,7 @@ class AR_Prior(Layer):
 
         # self.conv = Conv2dZeroInit(2 * input_shape[1], 2 * input_shape[1], 3, padding=(3 - 1) // 2)
 
-
-        self.model = PixelCNN(nr_resnet=5, nr_filters=64, 
+        self.model = PixelCNN(nr_resnet=args.AR_resnets, nr_filters=args.AR_channels, 
                     input_channels=input_shape[1], nr_logistic_mix=2)
         # self.model = PixelCNN(nr_resnet=3, nr_filters=128, 
         #             input_channels=input_shape[1], nr_logistic_mix=2)
@@ -557,6 +557,7 @@ class AR_Prior(Layer):
         return x
 
 
+
     def forward_(self, x, objective):
         B = x.shape[0]
         # mean_and_logsd = torch.cat([torch.zeros_like(x) for _ in range(2)], dim=1)
@@ -586,14 +587,30 @@ class AR_Prior(Layer):
 
         mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
 
+
+        print (torch.min(mean), torch.max(mean))
+        print (torch.min(logsd), torch.max(logsd))
+
+        print ()
+
         # logsd = torch.clamp(logsd, min=-6., max=2.)
 
         mean = torch.tanh(mean / 100.) * 100.
 
         logsd = (torch.tanh(logsd /4.) * 4.) -2.
 
+
+        print (torch.min(mean), torch.max(mean))
+        print (torch.min(logsd), torch.max(logsd))
+
+        print ()
+
         
         LL = self.gauss_log_prob(x, mean=mean, logsd=logsd)
+
+        print (torch.min(LL), torch.max(LL))
+
+        fafds
 
         # output = self.loss_op(x,output)
         # print (LL.shape)
@@ -1113,7 +1130,7 @@ class AffineCoupling(Layer):
         h = self.NN(z1)
         shift = h[:, 0::2]
         scale = h[:, 1::2]
-        scale = torch.tanh(scale) /4. + 1.
+        scale = torch.tanh(scale/4.) /4. + 1.
 
         # scale = torch.tanh(scale) + 1.2
 
@@ -1143,7 +1160,7 @@ class AffineCoupling(Layer):
         h = self.NN(z1)
         shift = h[:, 0::2]
         scale = h[:, 1::2]
-        scale = torch.tanh(scale) /4. + 1.
+        scale = torch.tanh(scale/4.) /4. + 1.
 
 
         # scale = torch.tanh(scale) + 1.2
