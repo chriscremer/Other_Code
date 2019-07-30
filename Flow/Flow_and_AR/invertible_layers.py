@@ -101,7 +101,7 @@ class LayerList(Layer):
 
 
             if (x!=x).any() or torch.max(x) > 99999 or torch.max(x) < -99999 or (objective!=objective).any():
-                print (layer)
+                print (str(layer)[:6])
 
                 # h = layer.conv_zero(x_pre)
                 # mean, logs = h[:, 0::2], h[:, 1::2]
@@ -524,8 +524,7 @@ class AR_Prior(Layer):
 
         # self.conv = Conv2dZeroInit(2 * input_shape[1], 2 * input_shape[1], 3, padding=(3 - 1) // 2)
 
-
-        self.model = PixelCNN(nr_resnet=5, nr_filters=64, 
+        self.model = PixelCNN(nr_resnet=args.AR_resnets, nr_filters=args.AR_channels, 
                     input_channels=input_shape[1], nr_logistic_mix=2)
         # self.model = PixelCNN(nr_resnet=3, nr_filters=128, 
         #             input_channels=input_shape[1], nr_logistic_mix=2)
@@ -557,6 +556,7 @@ class AR_Prior(Layer):
         return x
 
 
+
     def forward_(self, x, objective):
         B = x.shape[0]
         # mean_and_logsd = torch.cat([torch.zeros_like(x) for _ in range(2)], dim=1)
@@ -586,11 +586,19 @@ class AR_Prior(Layer):
 
         mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
 
+
+
         # logsd = torch.clamp(logsd, min=-6., max=2.)
 
         mean = torch.tanh(mean / 100.) * 100.
 
         logsd = (torch.tanh(logsd /4.) * 4.) -2.
+
+
+        print (torch.min(mean), torch.max(mean))
+        print (torch.min(logsd), torch.max(logsd))
+        fafasd
+
 
         
         LL = self.gauss_log_prob(x, mean=mean, logsd=logsd)
