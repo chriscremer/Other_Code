@@ -1,62 +1,122 @@
 
-
 #!/bin/sh
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 #SBATCH --partition=gpu
 #SBATCH --cpus-per-task=2
-#SBATCH --mem=12GB
+#SBATCH --mem=10GB
 #SBATCH --job-name=myJob
 #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
 export PATH=$PATH:/h/ccremer/anaconda3/bin
 source activate test_env
 # conda info --envs
-python3 train2.py  --exp_name "quick_test_AR_5_gauss" \
-								--vws 0 \
+python3 train2.py  --exp_name "quick_test" \
+								--vws 1 \
 								--which_gpu '0' \
 								--dataset 'cifar' \
 								--data_dir "$HOME/Documents/" \
 								--save_to_dir "$HOME/Documents/glow_clevr/" \
-								--batch_size 64 \
-								--load_step 0 \
-								--load_dir "$HOME/Documents/glow_clevr/clevr_confirmworks/params/" \
+								--batch_size 32 \
+								--load_step 40000 \
+								--load_dir "$HOME/Documents/glow_clevr/quick_test_AR_5/params/" \
 								--print_every 200 \
 								--curveplot_every 2000 \
-								--plotimages_every 1000 \
+								--plotimages_every 2000 \
 								--save_every 20000 \
 								--max_steps 200000 \
 								--n_levels 1 \
 								--depth 32 \
 								--hidden_channels 128 \
+								--AR_resnets 5 \
+								--AR_channels 64 \
 								--coupling 'affine' \
 								--permutation 'shuffle' \
-								--base_dist 'Gauss' \
-								--lr 5e-4\
+								--base_dist 'AR' \
+								--lr 5e-5\
 								--quick 0 \
 								--save_output 0\
+
+
+
+
+
+
+
+
+
 
 
 # #!/bin/sh
 # #SBATCH --gres=gpu:1
 # #SBATCH --partition=gpu
-# #SBATCH --cpus-per-task=2
-# #SBATCH --mem=12GB
+# #SBATCH --cpus-per-task=1
+# #SBATCH --mem=8GB
 # #SBATCH --job-name=myJob
 # #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
 # export PATH=$PATH:/h/ccremer/anaconda3/bin
 # source activate test_env
 # # conda info --envs
-# python3 train2.py  --exp_name "quick_test_AR_5" \
-# 								--vws 0 \
-# 								--which_gpu '1' \
+# python3 train2.py  --exp_name "flowAR_larger" \
+# 								--vws 1 \
+# 								--which_gpu 'all' \
 # 								--dataset 'cifar' \
 # 								--data_dir "$HOME/Documents/" \
 # 								--save_to_dir "$HOME/Documents/glow_clevr/" \
-# 								--batch_size 64 \
+# 								--batch_size 32 \
 # 								--load_step 0 \
-# 								--load_dir "$HOME/Documents/glow_clevr/clevr_confirmworks/params/" \
+# 								--load_dir "$HOME/Documents/glow_clevr/quick_test_AR_5/params/" \
 # 								--print_every 200 \
 # 								--curveplot_every 2000 \
-# 								--plotimages_every 1000 \
+# 								--plotimages_every 2000 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 32 \
+# 								--hidden_channels 256 \
+# 								--AR_resnets 5 \
+# 								--AR_channels 128 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AR' \
+# 								--lr 1e-4\
+# 								--quick 0 \
+# 								--save_output 1\
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# #!/bin/sh
+# #SBATCH --gres=gpu:2
+# #SBATCH --partition=gpu
+# #SBATCH --cpus-per-task=2
+# #SBATCH --mem=10GB
+# #SBATCH --job-name=myJob
+# #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# # conda info --envs
+# python3 train2.py  --exp_name "continue_training_flowAR" \
+# 								--vws 1 \
+# 								--which_gpu 'all' \
+# 								--dataset 'cifar' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 128 \
+# 								--load_step 40000 \
+# 								--load_dir "$HOME/Documents/glow_clevr/quick_test_AR_5/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 2000 \
 # 								--save_every 20000 \
 # 								--max_steps 200000 \
 # 								--n_levels 1 \
@@ -65,9 +125,10 @@ python3 train2.py  --exp_name "quick_test_AR_5_gauss" \
 # 								--coupling 'affine' \
 # 								--permutation 'shuffle' \
 # 								--base_dist 'AR' \
-# 								--lr 5e-4\
+# 								--lr 5e-5\
 # 								--quick 0 \
-# 								--save_output 0\
+# 								--save_output 1\
+
 
 
 

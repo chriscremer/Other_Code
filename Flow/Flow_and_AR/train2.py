@@ -61,6 +61,10 @@ parser.add_argument('--depth', type=int, default=16)
 # parser.add_argument('--depth', type=int, default=16) 
 parser.add_argument('--hidden_channels', type=int, default=128) 
 
+
+parser.add_argument('--AR_resnets', type=int, default=5) 
+parser.add_argument('--AR_channels', type=int, default=64) 
+
 # parser.add_argument('--n_levels', type=int, default=5) 
 
 parser.add_argument('--norm', type=str, default='actnorm')
@@ -199,7 +203,8 @@ def plot_curve2(data_dict, exp_dir):
 ###########################################################################################
 print ('\nExp:', args.exp_name)
 print ('gpu:', args.which_gpu)
-os.environ['CUDA_VISIBLE_DEVICES'] =  args.which_gpu #'1' # '0,1' #args.which_gpu #  '0' #'1' #
+if args.which_gpu != 'all':
+    os.environ['CUDA_VISIBLE_DEVICES'] =  args.which_gpu #'1' # '0,1' #args.which_gpu #  '0' #'1' #
 
 exp_dir = args.save_to_dir + args.exp_name + '/'
 params_dir = exp_dir + 'params/'
@@ -306,19 +311,24 @@ lr_sched = torch.optim.lr_scheduler.StepLR(optim, step_size=50, gamma=0.999)
 
 
 # # data dependant init
-init_loader = torch.utils.data.DataLoader(dataset, batch_size=100, 
-                    shuffle=True, num_workers=1, drop_last=True)
-with torch.no_grad():
-    model.eval()
-    for img in init_loader:
-        img = img.cuda()
-        objective = torch.zeros_like(img[:, 0, 0, 0])
-        _ = model(img, objective)
-        break
-print ('data dependent init complete')
+if args.load_step == 0:
+    init_loader = torch.utils.data.DataLoader(dataset, batch_size=100, 
+                        shuffle=True, num_workers=1, drop_last=True)
+    with torch.no_grad():
+        model.eval()
+        for img in init_loader:
+            img = img.cuda()
+            objective = torch.zeros_like(img[:, 0, 0, 0])
+            _ = model(img, objective)
+            break
+    print ('data dependent init complete')
 
 if args.load_step > 0:
     model.load_params_v3(load_dir=args.load_dir, step=args.load_step, name='model_params')
+
+#multi gpu
+print ('gpu count', torch.cuda.device_count())
+model = torch.nn.DataParallel(model, range(torch.cuda.device_count()))
 
 # # once init is done, we leverage Data Parallel
 # model = nn.DataParallel(model).cuda()
@@ -391,6 +401,12 @@ for i in range(max_steps+1):
     nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
     # Generative loss
     nobj = torch.mean(nll)
+
+    # print (torch.min(z), torch.max(z))
+    # print (z.shape)
+    # print (torch.mean(torch.abs(z)))
+
+    # fsadfs
 
 
     # print (nobj)
@@ -590,8 +606,9 @@ for i in range(max_steps+1):
 
         if step > 5:
 
+            # RECORD DATA
             data_dict['steps'].append(step)
-            data_dictdata_dict['BPD']['Train'].append(float(nobj.data.cpu().numpy()))
+            data_dict['BPD']['Train'].append(float(nobj.data.cpu().numpy()))
             data_dict['lr'].append(lr_sched.get_lr()[0])
             data_dict['T'].append(T)
 
@@ -611,7 +628,9 @@ for i in range(max_steps+1):
                 nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
                 nobj_test = torch.mean(nll)
 
-            data_dictdata_dict['BPD']['Test'].append(numpy(nobj_test))
+
+
+            data_dict['BPD']['Test'].append(numpy(nobj_test))
 
 
             # data_dict['LL']['real_LL'].append(numpy(-nobj))  #batch is only 32 vs 64 for samples..
@@ -701,7 +720,7 @@ for i in range(max_steps+1):
             else:
 
 
-                sample = model.sample()
+                sample = model.module.sample()
 
                 print (torch.min(sample), torch.max(sample), sample.shape)
 
@@ -813,7 +832,7 @@ for i in range(max_steps+1):
             if 'model_params' in f:
                 os.remove(params_dir + f)
 
-        model.save_params_v3(params_dir, step, name='model_params')
+        model.module.save_params_v3(params_dir, step, name='model_params')
 
 
         print ('Getting Full Test Set PBD')
