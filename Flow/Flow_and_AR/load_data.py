@@ -194,9 +194,10 @@ def load_cifar(data_dir):
 
             return img_batch 
 
-    dataset = MyCIFARDataset(train_x)
+    train_x = MyCIFARDataset(train_x)
+    test_x = MyCIFARDataset(test_x)
 
-    return dataset
+    return train_x, test_x
 
 
 

@@ -10,9 +10,9 @@
 export PATH=$PATH:/h/ccremer/anaconda3/bin
 source activate test_env
 # conda info --envs
-python3 train2.py  --exp_name "quick_test_AR" \
+python3 train2.py  --exp_name "quick_test_AR_5_gauss" \
 								--vws 0 \
-								--which_gpu '1' \
+								--which_gpu '0' \
 								--dataset 'cifar' \
 								--data_dir "$HOME/Documents/" \
 								--save_to_dir "$HOME/Documents/glow_clevr/" \
@@ -21,18 +21,53 @@ python3 train2.py  --exp_name "quick_test_AR" \
 								--load_dir "$HOME/Documents/glow_clevr/clevr_confirmworks/params/" \
 								--print_every 200 \
 								--curveplot_every 2000 \
-								--plotimages_every 200000 \
+								--plotimages_every 1000 \
 								--save_every 20000 \
 								--max_steps 200000 \
 								--n_levels 1 \
-								--depth 16 \
+								--depth 32 \
 								--hidden_channels 128 \
 								--coupling 'affine' \
 								--permutation 'shuffle' \
-								--base_dist 'AR' \
-								--lr 2e-3\
+								--base_dist 'Gauss' \
+								--lr 5e-4\
 								--quick 0 \
 								--save_output 0\
+
+
+# #!/bin/sh
+# #SBATCH --gres=gpu:1
+# #SBATCH --partition=gpu
+# #SBATCH --cpus-per-task=2
+# #SBATCH --mem=12GB
+# #SBATCH --job-name=myJob
+# #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# # conda info --envs
+# python3 train2.py  --exp_name "quick_test_AR_5" \
+# 								--vws 0 \
+# 								--which_gpu '1' \
+# 								--dataset 'cifar' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 64 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/clevr_confirmworks/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 1000 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 32 \
+# 								--hidden_channels 128 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AR' \
+# 								--lr 5e-4\
+# 								--quick 0 \
+# 								--save_output 0\
 
 
 

@@ -35,6 +35,9 @@ from utils import *
 from load_data import load_clevr, load_cifar
 
 
+from plot_covariance import plot_cov
+
+
 # ------------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
 # training
@@ -239,21 +242,6 @@ if save_output:
 
 
 
-###########################################################################################
-# Init Model
-# ------------------------------------------------------------------------------
-sampling_batch_size = 64
-model = Glow_((sampling_batch_size, 3, 112, 112), args).cuda()
-# print(model)
-print("number of model parameters:", sum([np.prod(p.size()) for p in model.parameters()]))
-# fasdfad
-# model = nn.DataParallel(model).cuda()
-###########################################################################################
-
-
-
-
-
 
 
 ###########################################################################################
@@ -270,6 +258,25 @@ elif args.dataset=='cifar':
 
 print (len(dataset), dataset[0].shape)
 ###########################################################################################
+
+
+
+
+
+
+###########################################################################################
+# Init Model
+# ------------------------------------------------------------------------------
+sampling_batch_size = 64
+shape = dataset[0].shape
+model = Glow_((sampling_batch_size, shape[0], shape[1], shape[2]), args).cuda()
+# print(model)
+print("number of model parameters:", sum([np.prod(p.size()) for p in model.parameters()]))
+# fasdfad
+# model = nn.DataParallel(model).cuda()
+###########################################################################################
+
+
 
 
 
@@ -379,23 +386,23 @@ for i in range(max_steps+1):
     nobj = torch.mean(nll)
 
 
-    print (nobj)
+    # print (nobj)
 
 
 
 
-    objective = torch.zeros_like(img[:, 0, 0, 0])
-    # discretizing cost 
-    objective += float(-np.log(args.n_bins) )#* np.prod(img.shape[1:]))
-    # log_det_jacobian cost (and some prior from Split OP)
-    z, objective = model(img, objective)
-    nll = (-objective) / float(np.log(2.) )#* np.prod(img.shape[1:]))
-    # Generative loss
-    nobj = torch.mean(nll)
+    # objective = torch.zeros_like(img[:, 0, 0, 0])
+    # # discretizing cost 
+    # objective += float(-np.log(args.n_bins) )#* np.prod(img.shape[1:]))
+    # # log_det_jacobian cost (and some prior from Split OP)
+    # z, objective = model(img, objective)
+    # nll = (-objective) / float(np.log(2.) )#* np.prod(img.shape[1:]))
+    # # Generative loss
+    # nobj = torch.mean(nll)
 
 
-    print (nobj)
-    fasfsa
+    # print (nobj)
+    # fasfsa
 
 
 
@@ -624,6 +631,115 @@ for i in range(max_steps+1):
 
         with torch.no_grad():
 
+
+            def unsqueeze_bchw(x):
+                bs, c, h, w = x.size()
+                assert c >= 4 and c % 4 == 0
+
+                # taken from https://github.com/chaiyujin/glow-pytorch/blob/master/glow/modules.py
+                x = x.view(bs, c // 2 ** 2, 2, 2, h, w)
+                x = x.permute(0, 1, 4, 2, 5, 3).contiguous()
+                x = x.view(bs, c // 2 ** 2, h * 2, w * 2)
+                return x
+
+            # Covariance
+            all_zs = []
+            # all_imgs = []
+            init_loader = torch.utils.data.DataLoader(dataset, batch_size=min(64,len(dataset)), 
+                                shuffle=True, num_workers=1, drop_last=True)
+            iter_loader_init = iter(init_loader)
+            for jj in range(5):
+
+                img = next(iter_loader_init).cuda()
+                objective = torch.zeros_like(img[:, 0, 0, 0]) + float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+                z, objective = model(img, objective)
+
+                zs = []
+                for layer in model.layers:
+                    if 'Split' in str(layer)[:6]:
+                        # print (layer.sample.shape)
+                        zs.append(layer.sample)
+                zs.append(z)
+
+                # print ([x.shape for x in zs])
+
+
+                while len(zs)>1:
+                    # for ii in range(len(zs)-1,-1,-1):
+                    if zs[-1].shape[3] != zs[-2].shape[3]:
+                        last_z = zs.pop(-1)
+                        last_z = unsqueeze_bchw(last_z)
+                    else:
+                        last_z = zs.pop(-1)
+                    zs[-1] = torch.cat([zs[-1], last_z], 1)
+
+                    # print ([x.shape for x in zs])
+                    # print (zs[ii].shape)
+                    # print (unsqueeze_bchw(zs[ii]).shape)
+                    # print ()
+                z = unsqueeze_bchw(zs[0])
+
+
+                B = z.shape[0]
+                # for ii in range(len(zs)):
+                #     if ii==0:
+                #         z_concat = zs[ii].view(B,-1)
+                #     else:
+                #         z_concat = torch.cat([z_concat,zs[ii].view(B,-1)], dim=1)
+
+
+                # z_concat = torch.cat([z_concat,z.view(B,-1)], dim=1)
+                # print (z_concat.shape)
+                z = torch.transpose(z,1,2)
+                z = torch.transpose(z,2,3).contiguous()
+                all_zs.append(z.view(B,-1))
+                # all_imgs.append(img.view(B,-1))
+                # img = np.rollaxis(image, 1, 0)
+                # img = torch.transpose(img,1,2)
+                # img = torch.transpose(img,2,3).contiguous()
+                # all_imgs.append(img.view(B,-1))
+
+
+            all_zs = torch.stack(all_zs, dim=0)
+            D = all_zs.shape[2]
+            all_zs = all_zs.view(-1,D)
+            all_zs = numpy(all_zs)
+            plot_cov(all_zs, images_dir+'z_', step)
+
+            all_zs = 0
+
+
+            # all_imgs = torch.stack(all_imgs, dim=0)
+            # # print (all_imgs.shape)
+            # # fas
+            # D = all_imgs.shape[2]
+            # all_imgs = all_imgs.view(-1,D)
+            # all_imgs = numpy(all_imgs) 
+            # plot_cov(all_imgs, images_dir+'img_', step)
+
+
+
+
+
+
+
+            # print (all_zs.shape)
+            # fads
+
+            # grid = utils.make_grid(img)
+            # img_file = images_dir +'realimages.png'
+            # utils.save_image(grid, img_file)
+            # print ('saved', img_file)
+
+
+
+
+
+
+
+
+
+
             if args.base_dist != 'MoG':
                 model_args = {}
                 temps = [.5,1.,1.5,2.]
@@ -637,6 +753,7 @@ for i in range(max_steps+1):
 
 
                     # print (torch.min(sample), torch.max(sample), sample.shape)
+
 
                     objective = torch.zeros_like(sample[:, 0, 0, 0]) + float(-np.log(args.n_bins) * np.prod(sample.shape[1:]))
                     z, objective = model(sample, objective)
@@ -689,6 +806,8 @@ for i in range(max_steps+1):
                 print ('saved images')
 
 
+
+
             if step / args.plotimages_every ==1:
 
                 init_loader = torch.utils.data.DataLoader(dataset, batch_size=min(64,len(dataset)), 
@@ -699,6 +818,28 @@ for i in range(max_steps+1):
                 img_file = images_dir +'realimages.png'
                 utils.save_image(grid, img_file)
                 print ('saved', img_file)
+
+
+
+                # Img Covariance
+                all_imgs = []
+                init_loader = torch.utils.data.DataLoader(dataset, batch_size=min(64,len(dataset)), 
+                                    shuffle=True, num_workers=1, drop_last=True)
+                iter_loader_init = iter(init_loader)
+                for jj in range(5):
+
+                    img = next(iter_loader_init).cuda()
+                    B = z.shape[0]
+                    img = torch.transpose(img,1,2)
+                    img = torch.transpose(img,2,3).contiguous()
+                    all_imgs.append(img.view(B,-1))
+
+                all_imgs = torch.stack(all_imgs, dim=0)
+                D = all_imgs.shape[2]
+                all_imgs = all_imgs.view(-1,D)
+                all_imgs = numpy(all_imgs) 
+                plot_cov(all_imgs, images_dir+'img_', step)
+
 
 
             if args.plotimages_every == 1: 

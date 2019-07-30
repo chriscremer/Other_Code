@@ -258,7 +258,9 @@ if args.dataset=='clevr':
 elif args.dataset=='cifar':
     # CIFAR DATA
     # train_image_dataset = load_cifar(data_dir=args.data_dir)
-    dataset = load_cifar(data_dir=home+'/Documents/')
+    train_x, test_x = load_cifar(data_dir=home+'/Documents/')
+    dataset = train_x
+    print (len(test_x), 'test set len')
 
 print (len(dataset), dataset[0].shape)
 ###########################################################################################
@@ -348,7 +350,9 @@ t = time.time()
     
 data_dict = {}
 data_dict['steps'] = []
-data_dict['lpx'] = []
+data_dict['BPD'] = {}
+data_dict['BPD']['Train'] = []
+data_dict['BPD']['Test'] = []
 data_dict['lr'] = []
 data_dict['T'] = []
 # data_dict['LL'] = {}
@@ -587,9 +591,29 @@ for i in range(max_steps+1):
         if step > 5:
 
             data_dict['steps'].append(step)
-            data_dict['lpx'].append(float(nobj.data.cpu().numpy()))
+            data_dictdata_dict['BPD']['Train'].append(float(nobj.data.cpu().numpy()))
             data_dict['lr'].append(lr_sched.get_lr()[0])
             data_dict['T'].append(T)
+
+            with torch.no_grad():
+
+                #Get test set likelihood
+                test_loader = torch.utils.data.DataLoader(test_x, batch_size=min(100,len(dataset)), 
+                                    shuffle=True, num_workers=1, drop_last=True)
+                iter_test_loader = iter(test_loader)
+
+                img = next(iter_test_loader).cuda()
+
+                img = torch.clamp(img, min=1e-5, max=1-1e-5)
+                objective = torch.zeros_like(img[:, 0, 0, 0])
+                objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+                z, objective = model(img, objective)
+                nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+                nobj_test = torch.mean(nll)
+
+            data_dictdata_dict['BPD']['Test'].append(numpy(nobj_test))
+
+
             # data_dict['LL']['real_LL'].append(numpy(-nobj))  #batch is only 32 vs 64 for samples..
 
             # with torch.no_grad():                
@@ -617,6 +641,12 @@ for i in range(max_steps+1):
         plot_curve2(data_dict, exp_dir)
 
 
+
+
+
+    # if step % args.curveplot_every*3 ==0 and step > 0:
+
+
     if step % args.plotimages_every == 0 and step!=0:
 
         for f in os.listdir(images_dir):
@@ -634,7 +664,7 @@ for i in range(max_steps+1):
 
         with torch.no_grad():
 
-            if args.base_dist != 'MoG':
+            if args.base_dist == 'Gauss':
                 model_args = {}
                 temps = [.5,1.,1.5,2.]
                 for temp_i in range(len(temps)):
@@ -675,22 +705,22 @@ for i in range(max_steps+1):
 
                 print (torch.min(sample), torch.max(sample), sample.shape)
 
-                sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
+                # sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
 
-                objective = torch.zeros_like(sample[:, 0, 0, 0]) + float(-np.log(args.n_bins) * np.prod(sample.shape[1:]))
-                z, objective = model(sample, objective)
-                nll = (-objective) / float(np.log(2.) * np.prod(sample.shape[1:]))
-                nobj_sample = torch.mean(nll)
+                # objective = torch.zeros_like(sample[:, 0, 0, 0]) + float(-np.log(args.n_bins) * np.prod(sample.shape[1:]))
+                # z, objective = model(sample, objective)
+                # nll = (-objective) / float(np.log(2.) * np.prod(sample.shape[1:]))
+                # nobj_sample = torch.mean(nll)
 
-                # print (temps[temp_i], nobj_sample)
-                print ('sample objective', nobj_sample)
+                # # print (temps[temp_i], nobj_sample)
+                # print ('sample objective', nobj_sample)
 
 
-                if (sample!=sample).any():
-                    print ('nans in sample!!')
-                    # fafad
+                # if (sample!=sample).any():
+                #     print ('nans in sample!!')
+                #     # fafad
 
-                sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
+                # sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
                 grid = utils.make_grid(sample)
                 img_file = images_dir +'plot'+str(step)+'.png'
 
@@ -785,6 +815,32 @@ for i in range(max_steps+1):
 
         model.save_params_v3(params_dir, step, name='model_params')
 
+
+        print ('Getting Full Test Set PBD')
+        with torch.no_grad():
+
+            #Get test set likelihood
+            test_loader = torch.utils.data.DataLoader(test_x, batch_size=min(100,len(dataset)), 
+                                shuffle=False, num_workers=1, drop_last=True)
+            iter_test_loader = iter(test_loader)
+
+            LLs = []
+            while 1:
+                try:
+                    img = next(iter_test_loader).cuda()
+                except:
+                    break
+
+                img = torch.clamp(img, min=1e-5, max=1-1e-5)
+                objective = torch.zeros_like(img[:, 0, 0, 0])
+                objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+                z, objective = model(img, objective)
+                nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+                nobj = torch.mean(nll)
+
+                LLs.append(numpy(nobj))
+
+            print ('FULL Test set BPD', np.mean(LLs), np.std(LLs))
 
 
 

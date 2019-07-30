@@ -1,5 +1,4 @@
 
-
 #!/bin/sh
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
@@ -10,7 +9,7 @@
 export PATH=$PATH:/h/ccremer/anaconda3/bin
 source activate test_env
 # conda info --envs
-python3 train2.py  --exp_name "quick_test" \
+python3 train2.py  --exp_name "test_cifar_cov2" \
 								--vws 0 \
 								--which_gpu '0' \
 								--dataset 'cifar' \
@@ -27,12 +26,50 @@ python3 train2.py  --exp_name "quick_test" \
 								--n_levels 3 \
 								--depth 16 \
 								--hidden_channels 256 \
-								--coupling 'affine' \
+								--coupling 'additive' \
 								--permutation 'shuffle' \
 								--base_dist 'Gauss' \
 								--lr 2e-4\
 								--quick 1 \
 								--save_output 0\
+
+
+
+
+
+# #!/bin/sh
+# #SBATCH --gres=gpu:1
+# #SBATCH --partition=gpu
+# #SBATCH --cpus-per-task=2
+# #SBATCH --mem=12GB
+# #SBATCH --job-name=myJob
+# #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# # conda info --envs
+# python3 train2.py  --exp_name "quick_test" \
+# 								--vws 0 \
+# 								--which_gpu '1' \
+# 								--dataset 'cifar' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 16 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/clevr_confirmworks/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 1 \
+# 								--save_every 50000 \
+# 								--max_steps 200000 \
+# 								--n_levels 3 \
+# 								--depth 16 \
+# 								--hidden_channels 256 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'Gauss' \
+# 								--lr 2e-4\
+# 								--quick 1 \
+# 								--save_output 0\
 
 
 
