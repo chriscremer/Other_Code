@@ -5,7 +5,7 @@
 #SBATCH --mem=8GB
 #SBATCH --job-name=myJob
 #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
-export PATH=$PATH:/h/ccremer/anaconda3/bin
+export PATH=/h/ccremer/anaconda3/bin:$PATH
 source activate test_env
 # conda info --envs
 python3 train2.py  --exp_name "flowAR_lessflow_no_wn" \
