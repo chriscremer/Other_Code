@@ -8,7 +8,7 @@
 export PATH=/h/ccremer/anaconda3/bin:$PATH
 source activate test_env
 # conda info --envs
-python3 train2.py  --exp_name "flowAR_lessflow_no_wn" \
+python3 train2.py  --exp_name "flowAR_smallldataset" \
 								--vws 1 \
 								--which_gpu 'all' \
 								--dataset 'cifar' \
@@ -30,10 +30,10 @@ python3 train2.py  --exp_name "flowAR_lessflow_no_wn" \
 								--coupling 'affine' \
 								--permutation 'shuffle' \
 								--base_dist 'AR' \
-								--lr 1e-4\
+								--lr 1e-4 \
 								--quick 0 \
-								--dataset_size 0 \
-								--save_output 1\
+								--dataset_size 100 \
+								--save_output 1 \
 
 
 
