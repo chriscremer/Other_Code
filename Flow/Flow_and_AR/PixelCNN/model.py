@@ -33,6 +33,7 @@ class PixelCNNLayer_up(nn.Module):
         return u_list, ul_list
 
 
+
 class PixelCNNLayer_down(nn.Module):
     def __init__(self, nr_resnet, nr_filters, resnet_nonlinearity):
         super(PixelCNNLayer_down, self).__init__()
@@ -54,6 +55,7 @@ class PixelCNNLayer_down(nn.Module):
         
         return u, ul
          
+
 
 class PixelCNN(nn.Module):
     def __init__(self, nr_resnet=5, nr_filters=80, nr_logistic_mix=10, 
@@ -160,7 +162,29 @@ class PixelCNN(nn.Module):
 
             # print (len(u_list))
 
+        # print (ul.shape)
+        # fdasfs
+
+
+
+
         x_out = self.nin_out(F.elu(ul))
+
+        # CONFIRM CORRECT DEPENDENCE
+        # print (x.shape)
+        # print (x_out.shape)
+
+        # inputs = x[:,:,5,5]
+        # outputs = torch.sum(x_out[:,:,5,6])
+        # grad = torch.autograd.grad(outputs, x)[0]
+
+        # print (grad.shape)
+        # print (torch.sum(grad))
+        # faasdf
+
+
+
+        # fsdfa
 
         # print (len(u_list))
 
@@ -192,3 +216,18 @@ if __name__ == '__main__':
     out = model(x_v)
     loss = discretized_mix_logistic_loss(x_v, out)
     print('loss : %s' % loss.data[0])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

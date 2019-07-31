@@ -45,7 +45,7 @@ home = expanduser("~")
 # fsad
 
 import sys, os
-sys.path.insert(0, os.path.abspath('../PixelCNN/'))
+sys.path.insert(0, os.path.abspath('./PixelCNN/'))
 
 from utils import * 
 from model import * 
@@ -100,8 +100,8 @@ class LayerList(Layer):
             # print ()
 
 
-            if (x!=x).any() or torch.max(x) > 99999 or torch.min(x) < -99999 
-                    or (objective!=objective) or torch.max(objective) > 999999 or torch.min(objective) < -999999  ).any():
+            if ((x!=x).any() or torch.max(x) > 99999 or torch.min(x) < -99999 
+                    or (objective!=objective).any() or torch.max(objective) > 999999 or torch.min(objective) < -999999  ):
 
                 print (str(layer)[:6])
 
@@ -586,6 +586,11 @@ class AR_Prior(Layer):
         mean_and_logsd = self.model(x)
         # print (mean_and_logsd.shape)
 
+        # outputs = torch.sum(d)
+        # torch.autograd.grad(outputs, inputs)
+
+        # fsada
+
         mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
 
         # print (torch.min(mean), torch.max(mean))
@@ -661,7 +666,8 @@ class AR_Prior(Layer):
         B = bs
         mean_and_logsd = self.model(samp)
         mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
-        logsd = (torch.tanh(logsd) * 4.) -2.
+        mean = torch.tanh(mean / 100.) * 100.
+        logsd = (torch.tanh(logsd /4.) * 4.) -2.
         LL = self.gauss_log_prob(samp, mean=mean, logsd=logsd)
         LL = LL.view(B,-1).sum(-1)
         objective -= LL
@@ -1116,17 +1122,19 @@ class AdditiveCoupling(Layer):
 
 # Additive Coupling Layer
 class AffineCoupling(Layer):
-    def __init__(self, num_features, hidden_channels=128):
+    def __init__(self, num_features, args, hidden_channels=128):
         super(AffineCoupling, self).__init__()
         # assert num_features % 2 == 0
-        self.NN = NN(num_features // 2, channels_out=num_features, hidden_channels=hidden_channels)
+        self.NN = NN(num_features // 2, channels_out=num_features, hidden_channels=hidden_channels, args=args)
 
     def forward_(self, x, objective):
         z1, z2 = torch.chunk(x, 2, dim=1)
         h = self.NN(z1)
         shift = h[:, 0::2]
         scale = h[:, 1::2]
-        scale = torch.tanh(scale/4.) /4. + 1.
+        # scale = torch.tanh(scale/4.) /4. + 1.
+        scale = torch.tanh(scale) /4. + 1.
+
 
         # scale = torch.tanh(scale) + 1.2
 
@@ -1156,7 +1164,8 @@ class AffineCoupling(Layer):
         h = self.NN(z1)
         shift = h[:, 0::2]
         scale = h[:, 1::2]
-        scale = torch.tanh(scale/4.) /4. + 1.
+        # scale = torch.tanh(scale/4.) /4. + 1.
+        scale = torch.tanh(scale) /4. + 1.
 
 
         # scale = torch.tanh(scale) + 1.2
@@ -1346,9 +1355,12 @@ class LinearSplineCoupling(Layer):
 
 # ActNorm Layer with data-dependant init
 class ActNorm(Layer):
-    def __init__(self, num_features, logscale_factor=1., scale=1.):
+    def __init__(self, num_features, args, logscale_factor=1., scale=1.):
         super(Layer, self).__init__()
-        self.initialized = False
+        if args.load_step > 0:
+            self.initialized = True
+        else:
+            self.initialized = False
         self.logscale_factor = logscale_factor
         self.scale = scale
         self.register_parameter('b', nn.Parameter(torch.zeros(1, num_features, 1)))
@@ -1557,7 +1569,7 @@ class RevNetStep(LayerList):
         
 
         if args.norm == 'actnorm': 
-            layers += [ActNorm(num_channels)]
+            layers += [ActNorm(num_channels, args=args)]
         else: 
             assert not args.norm     
 
@@ -1583,7 +1595,7 @@ class RevNetStep(LayerList):
         if args.coupling == 'additive': 
             layers += [AdditiveCoupling(num_channels, hidden_channels=args.hidden_channels)]
         elif args.coupling == 'affine':
-            layers += [AffineCoupling(num_channels, hidden_channels=args.hidden_channels)]
+            layers += [AffineCoupling(num_channels, hidden_channels=args.hidden_channels, args=args)]
         elif args.coupling == 'spline':
             layers += [SplineCoupling(num_channels, hidden_channels=args.hidden_channels)]
         elif args.coupling == 'linear_spline':

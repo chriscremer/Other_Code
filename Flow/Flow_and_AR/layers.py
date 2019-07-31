@@ -6,6 +6,9 @@ import torch.nn.utils.weight_norm as wn
 import numpy as np
 import pdb
 
+
+
+
 '''
 Convolution Layer with zero initialisation
 '''
@@ -27,12 +30,12 @@ class Conv2dZeroInit(nn.Conv2d):
 Convolution Interlaced with Actnorm
 '''
 class Conv2dActNorm(nn.Module):
-    def __init__(self, channels_in, channels_out, filter_size, stride=1, padding=None):
+    def __init__(self, channels_in, channels_out, filter_size, args, stride=1, padding=None):
         from invertible_layers import ActNorm
         super(Conv2dActNorm, self).__init__()
         padding = (filter_size - 1) // 2 or padding
         self.conv = nn.Conv2d(channels_in, channels_out, filter_size, padding=padding, bias=False)
-        self.actnorm = ActNorm(channels_out)
+        self.actnorm = ActNorm(channels_out, args=args)
 
     def forward(self, x):
         x = self.conv(x)
@@ -52,14 +55,14 @@ class LinearZeroInit(nn.Linear):
 Shallow NN used for skip connection. Labelled `f` in the original repo.
 '''
 # def NN(in_channels, hidden_channels=512, channels_out=None):
-def NN(in_channels, hidden_channels=128, channels_out=None, filter_size=3):
+def NN(in_channels, args, hidden_channels=128, channels_out=None, filter_size=3):
 # def NN(in_channels, hidden_channels=256, channels_out=None):
     channels_out = channels_out or in_channels
     padding = (filter_size - 1) // 2 #or padding
     return nn.Sequential(
-        Conv2dActNorm(in_channels, hidden_channels, filter_size, stride=1, padding=padding),
+        Conv2dActNorm(in_channels, hidden_channels, filter_size, stride=1, padding=padding, args=args),
         nn.ReLU(inplace=True),
-        Conv2dActNorm(hidden_channels, hidden_channels, 1, stride=1, padding=0),
+        Conv2dActNorm(hidden_channels, hidden_channels, 1, stride=1, padding=0, args=args),
         nn.ReLU(inplace=True),
         Conv2dZeroInit(hidden_channels, channels_out, filter_size, stride=1, padding=padding))
         # Conv2dActNorm(hidden_channels, channels_out, 3, stride=1, padding=1))

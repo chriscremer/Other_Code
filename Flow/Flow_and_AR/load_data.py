@@ -13,6 +13,7 @@ from torch.utils.data import Dataset
 from preprocess_statements import preprocess_v2
 from Clevr_data_loader import ClevrDataset, ClevrDataLoader
 
+import scipy.io
 
 
 def load_clevr(batch_size, vws, quick=0):
@@ -200,6 +201,66 @@ def load_cifar(data_dir):
     return train_x, test_x
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def load_svhn(data_dir):
+
+    print ('Loading SVHN')
+    
+    mat = scipy.io.loadmat(data_dir + '/SVHN/test_32x32.mat')
+
+    # print (mat['X'].shape)
+    # print (mat['y'].shape)
+
+    svhn = mat['X'].transpose(3,2,0,1)
+    svhn = torch.from_numpy(svhn).float()
+    svhn = svhn / 256.
+    svhn = torch.clamp(svhn, min=1e-5, max=1-1e-5)
+    print ('SVHN', svhn.shape)
+
+
+
+
+    class MyCIFARDataset(Dataset):
+        """Face Landmarks dataset."""
+
+        def __init__(self, data):
+
+            self.data = data
+
+        def __len__(self):
+            return len(self.data)
+
+        def __getitem__(self, idx):
+
+            img_batch = self.data[idx]
+            # img_batch = torch.from_numpy(img_batch) #.cuda()
+            # img_batch = torch.clamp(img_batch, min=1e-5, max=1-1e-5)
+
+            return img_batch 
+
+    # train_x = MyCIFARDataset(train_x)
+    test_x = MyCIFARDataset(svhn)
+
+    return test_x
 
 
 

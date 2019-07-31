@@ -32,7 +32,7 @@ from invertible_layers import *
 from utils import * 
 
 
-from load_data import load_clevr, load_cifar
+from load_data import load_clevr, load_cifar, load_svhn
 
 
 
@@ -265,7 +265,13 @@ elif args.dataset=='cifar':
     # train_image_dataset = load_cifar(data_dir=args.data_dir)
     train_x, test_x = load_cifar(data_dir=home+'/Documents/')
     dataset = train_x
-    print (len(test_x), 'test set len')
+    # print (len(test_x), 'test set len')
+
+
+    svhn_test_x = load_svhn(data_dir=home+'/Documents/')
+    # svhn_test_x = test_x
+
+
 
 print (len(dataset), dataset[0].shape)
 ###########################################################################################
@@ -296,7 +302,7 @@ print("number of model parameters:", sum([np.prod(p.size()) for p in model.param
 # Optimizer, Param Init and Loaders
 # ------------------------------------------------------------------------------
 # set up the optimizer
-optim = optim.Adam(model.parameters(), lr=args.lr, weight_decay=.00001)
+optim = optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-9)
 # optim = optim.Adam(model.parameters(), lr=args.lr, weight_decay=.01)
 # optim = optim.Adam(model.parameters(), lr=1e-5, weight_decay=.0001)
 # scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=45, gamma=0.1)
@@ -363,6 +369,7 @@ data_dict['steps'] = []
 data_dict['BPD'] = {}
 data_dict['BPD']['Train'] = []
 data_dict['BPD']['Test'] = []
+data_dict['BPD']['SVHN'] = []
 data_dict['lr'] = []
 data_dict['T'] = []
 # data_dict['LL'] = {}
@@ -629,8 +636,26 @@ for i in range(max_steps+1):
                 nobj_test = torch.mean(nll)
 
 
+                #Get test set likelihood
+                test_loader = torch.utils.data.DataLoader(svhn_test_x, batch_size=min(100,len(dataset)), 
+                                    shuffle=True, num_workers=1, drop_last=True)
+                iter_test_loader = iter(test_loader)
+
+                img = next(iter_test_loader).cuda()
+
+                img = torch.clamp(img, min=1e-5, max=1-1e-5)
+                objective = torch.zeros_like(img[:, 0, 0, 0])
+                objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+                z, objective = model(img, objective)
+                nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+                nobj_test_svhn = torch.mean(nll)
+
+
+
+
 
             data_dict['BPD']['Test'].append(numpy(nobj_test))
+            data_dict['BPD']['SVHN'].append(numpy(nobj_test_svhn))
 
 
             # data_dict['LL']['real_LL'].append(numpy(-nobj))  #batch is only 32 vs 64 for samples..
