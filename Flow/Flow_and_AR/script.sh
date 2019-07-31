@@ -1,6 +1,6 @@
 #!/bin/sh
 #SBATCH --gres=gpu:1
-#SBATCH --partition=gpu
+#SBATCH --partition=p100
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=8GB
 #SBATCH --job-name=myJob
