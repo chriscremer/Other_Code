@@ -32,6 +32,7 @@ python3 train2.py  --exp_name "flowAR_lessflow_no_wn" \
 								--base_dist 'AR' \
 								--lr 1e-4\
 								--quick 0 \
+								--dataset_size 0 \
 								--save_output 1\
 
 

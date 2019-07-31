@@ -275,7 +275,6 @@ elif args.dataset=='cifar':
     # svhn_test_x = test_x
 
 
-
 print (len(dataset), dataset[0].shape)
 ###########################################################################################
 
