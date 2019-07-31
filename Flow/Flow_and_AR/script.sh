@@ -5,7 +5,8 @@
 #SBATCH --mem=8GB
 #SBATCH --job-name=myJob
 #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
-export PATH=/h/ccremer/anaconda3/bin:$PATH
+# export PATH=/h/ccremer/anaconda3/bin:$PATH
+export PATH=/scratch/ssd001/home/ccremer/anaconda3/bin:$PATH
 source activate test_env
 # conda info --envs
 python3 train2.py  --exp_name "flowAR_smallldataset" \
