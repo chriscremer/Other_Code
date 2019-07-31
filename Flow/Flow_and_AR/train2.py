@@ -76,6 +76,9 @@ parser.add_argument('--coupling', type=str, default='additive')
 parser.add_argument('--base_dist', type=str, default='Gauss')
 
 
+parser.add_argument('--dataset_size', type=int, default=0)
+
+
 parser.add_argument('--n_bits_x', type=int, default=8)
 # parser.add_argument('--n_epochs', type=int, default=2000)
 # parser.add_argument('--learntop', action='store_true')
@@ -263,7 +266,7 @@ if args.dataset=='clevr':
 elif args.dataset=='cifar':
     # CIFAR DATA
     # train_image_dataset = load_cifar(data_dir=args.data_dir)
-    train_x, test_x = load_cifar(data_dir=home+'/Documents/')
+    train_x, test_x = load_cifar(data_dir=home+'/Documents/', dataset_size=args.dataset_size)
     dataset = train_x
     # print (len(test_x), 'test set len')
 

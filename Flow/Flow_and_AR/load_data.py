@@ -116,7 +116,7 @@ def unpickle(file):
     return dict
 
 
-def load_cifar(data_dir):
+def load_cifar(data_dir, dataset_size=0):
 
     print ('Loading CIFAR')
     # file_ = home+'/Documents/cifar-10-batches-py/data_batch_'
@@ -180,9 +180,12 @@ def load_cifar(data_dir):
     class MyCIFARDataset(Dataset):
         """Face Landmarks dataset."""
 
-        def __init__(self, data):
+        def __init__(self, data, dataset_size=0):
 
-            self.data = data
+            if dataset_size == 0:
+                self.data = data
+            else:
+                self.data = data[:dataset_size]
 
         def __len__(self):
             return len(self.data)
@@ -195,7 +198,7 @@ def load_cifar(data_dir):
 
             return img_batch 
 
-    train_x = MyCIFARDataset(train_x)
+    train_x = MyCIFARDataset(train_x, dataset_size=dataset_size)
     test_x = MyCIFARDataset(test_x)
 
     return train_x, test_x
