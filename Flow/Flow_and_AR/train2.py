@@ -145,6 +145,14 @@ def myprint_t(text):
 def numpy(x):
     return x.data.cpu().numpy()
 
+def logmeanexp(x):
+
+    max_ = torch.max(x)
+    print (max_.shape)
+    lme = torch.log(torch.mean(torch.exp(x-max_))) + max_
+    dsfad
+    return lme
+
 
 
 def plot_curve2(data_dict, exp_dir):
@@ -293,6 +301,9 @@ model = Glow_((sampling_batch_size, shape[0], shape[1], shape[2]), args).cuda()
 print("number of model parameters:", sum([np.prod(p.size()) for p in model.parameters()]))
 # fasdfad
 # model = nn.DataParallel(model).cuda()
+for layer in model.layers:
+    if 'AR_P' in str(layer):
+        print("number of AR parameters:", sum([np.prod(p.size()) for p in layer.parameters()]))
 ###########################################################################################
 
 
@@ -304,7 +315,7 @@ print("number of model parameters:", sum([np.prod(p.size()) for p in model.param
 # Optimizer, Param Init and Loaders
 # ------------------------------------------------------------------------------
 # set up the optimizer
-optim = optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-9)
+optim = optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-10)
 # optim = optim.Adam(model.parameters(), lr=args.lr, weight_decay=.01)
 # optim = optim.Adam(model.parameters(), lr=1e-5, weight_decay=.0001)
 # scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=45, gamma=0.1)
@@ -374,6 +385,9 @@ data_dict['BPD']['Test'] = []
 data_dict['BPD']['SVHN'] = []
 data_dict['lr'] = []
 data_dict['T'] = []
+data_dict['BPD_sd'] = []
+# data_dict['BPD_LME'] = []
+
 # data_dict['LL'] = {}
 # data_dict['LL']['real_LL'] = []
 # data_dict['LL']['sample_LL'] = []
@@ -407,9 +421,14 @@ for i in range(max_steps+1):
     objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
     # log_det_jacobian cost (and some prior from Split OP)
     z, objective = model(img, objective)
-    nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+    nll_train = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
     # Generative loss
-    nobj = torch.mean(nll)
+    nobj = torch.mean(nll_train)
+
+
+    # nobj_lme = logmeanexp(nll_train)
+
+
 
     # print (torch.min(z), torch.max(z))
     # print (z.shape)
@@ -520,7 +539,10 @@ for i in range(max_steps+1):
 
 
         optim.zero_grad()
+
+
         nobj.backward()
+        # nobj_lme.backward()
 
 
 
@@ -658,6 +680,7 @@ for i in range(max_steps+1):
 
             data_dict['BPD']['Test'].append(numpy(nobj_test))
             data_dict['BPD']['SVHN'].append(numpy(nobj_test_svhn))
+            data_dict['BPD_sd'].append(np.std(numpy(nll_train)))
 
 
             # data_dict['LL']['real_LL'].append(numpy(-nobj))  #batch is only 32 vs 64 for samples..

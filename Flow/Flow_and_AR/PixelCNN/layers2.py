@@ -148,7 +148,7 @@ class gated_resnet(nn.Module):
             self.nin_skip = nin(2 * skip_connection * num_filters, num_filters)
 
         # self.dropout = nn.Dropout2d(0.5)
-        self.dropout = nn.Dropout2d(0.1)
+        # self.dropout = nn.Dropout2d(0.1)
         self.conv_out = conv_op(2 * num_filters, 2 * num_filters)
 
 
@@ -157,7 +157,7 @@ class gated_resnet(nn.Module):
         if a is not None : 
             x += self.nin_skip(self.nonlinearity(a))
         x = self.nonlinearity(x)
-        x = self.dropout(x)
+        # x = self.dropout(x)
         x = self.conv_out(x)
         a, b = torch.chunk(x, 2, dim=1)
         c3 = a * torch.sigmoid(b)
