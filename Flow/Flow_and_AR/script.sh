@@ -1,16 +1,13 @@
 #!/bin/bash
-export PATH=$HOME/ccremer/anaconda3/bin:$PATH
-# echo $PATH
-source activate test_env
-# conda activate test_env
-# conda info --envs
-#VAUNGH
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:2
 #SBATCH --partition=p100
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=12GB
 #SBATCH --job-name=myJob
 #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
+export PATH=$HOME/ccremer/anaconda3/bin:$PATH
+source activate test_env
+#VAUNGH
 python3 train3.py  --exp_name "FlowAR_larger3x" \
 								--vws 1 \
 								--which_gpu 'all' \
@@ -26,10 +23,10 @@ python3 train3.py  --exp_name "FlowAR_larger3x" \
 								--save_every 20000 \
 								--max_steps 200000 \
 								--n_levels 1 \
-								--depth 64 \
+								--depth 32 \
 								--hidden_channels 1024 \
 								--AR_resnets 5 \
-								--AR_channels 256 \
+								--AR_channels 128 \
 								--coupling 'affine' \
 								--permutation 'shuffle' \
 								--base_dist 'AR' \
@@ -122,6 +119,7 @@ python3 train3.py  --exp_name "FlowAR_larger3x" \
 # #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
 # export PATH=$PATH:/h/ccremer/anaconda3/bin
 # source activate test_env
+# conda activate test_env
 # # conda info --envs
 # python3 train2.py  --exp_name "FlowAR_larger_larger" \
 # 								--vws 1 \
