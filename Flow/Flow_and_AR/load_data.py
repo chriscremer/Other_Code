@@ -212,6 +212,73 @@ def load_cifar(data_dir, dataset_size=0):
 
 
 
+def load_cifar_adjustable(data_dir, dataset_size=0):
+
+    print ('Loading CIFAR')
+    # file_ = home+'/Documents/cifar-10-batches-py/data_batch_'
+    file_ = data_dir + '/cifar-10-batches-py/data_batch_'
+
+    for i in range(1,6):
+        file__ = file_ + str(i)
+        b1 = unpickle(file__)
+        if i ==1:
+            train_x = b1['data']
+            train_y = b1['labels']
+        else:
+            train_x = np.concatenate([train_x, b1['data']], axis=0)
+            train_y = np.concatenate([train_y, b1['labels']], axis=0)
+
+    file__ = data_dir + '/cifar-10-batches-py/test_batch'
+    b1 = unpickle(file__)
+    test_x = b1['data']
+    test_y = b1['labels']
+
+    train_x = train_x / 256.
+    test_x = test_x / 256.
+
+    train_x = torch.from_numpy(train_x).float()
+    test_x = torch.from_numpy(test_x).float()
+    train_y = torch.from_numpy(train_y)
+    test_y = torch.from_numpy(np.array(test_y))
+
+    train_x = train_x.view(-1, 3, 32, 32)
+    test_x = test_x.view(-1, 3, 32, 32)
+
+    train_x = torch.clamp(train_x, min=1e-5, max=1-1e-5)
+    test_x = torch.clamp(test_x, min=1e-5, max=1-1e-5)
+
+    class MyCIFARDataset(Dataset):
+        """Face Landmarks dataset."""
+
+        def __init__(self, data):
+
+
+            self.full_dataset = data
+            self.current_size = len(data)
+
+        def __len__(self):
+            return self.current_size
+
+        def __getitem__(self, idx):
+
+            img_batch = self.full_dataset[idx]
+            # img_batch = torch.from_numpy(img_batch) #.cuda()
+            # img_batch = torch.clamp(img_batch, min=1e-5, max=1-1e-5)
+
+            return img_batch 
+
+    train_x = MyCIFARDataset(train_x)
+    test_x = MyCIFARDataset(test_x)
+
+    return train_x, test_x
+
+
+
+
+
+
+
+
 
 
 

@@ -1,16 +1,17 @@
 #!/bin/sh
-#SBATCH --gres=gpu:2
-#SBATCH --partition=gpu
+#VAUNGH
+#SBATCH --gres=gpu:4
+#SBATCH --partition=p100
 #SBATCH --cpus-per-task=2
-#SBATCH --mem=10GB
+#SBATCH --mem=12GB
 #SBATCH --job-name=myJob
 #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
-export PATH=$PATH:/h/ccremer/anaconda3/bin
+export PATH=/scratch/ssd001/home/ccremer/anaconda3/bin:$PATH
 source activate test_env
 # conda info --envs
-python3 train2.py  --exp_name "FlowAR_larger_larger" \
+python3 train2.py  --exp_name "FlowAR_larger3x" \
 								--vws 1 \
-								--which_gpu '0' \
+								--which_gpu 'all' \
 								--dataset 'cifar' \
 								--data_dir "$HOME/Documents/" \
 								--save_to_dir "$HOME/Documents/glow_clevr/" \
@@ -23,16 +24,128 @@ python3 train2.py  --exp_name "FlowAR_larger_larger" \
 								--save_every 20000 \
 								--max_steps 200000 \
 								--n_levels 1 \
-								--depth 32 \
+								--depth 64 \
 								--hidden_channels 1024 \
 								--AR_resnets 5 \
-								--AR_channels 128 \
+								--AR_channels 256 \
 								--coupling 'affine' \
 								--permutation 'shuffle' \
 								--base_dist 'AR' \
 								--lr 1e-4\
 								--quick 0 \
 								--save_output 0\
+
+
+
+
+
+
+
+
+
+# # BOLTZ
+# python3 train_logsumexp.py  --exp_name "test_LME_largerbatch_smalldataset" \
+# 								--vws 0 \
+# 								--which_gpu '1' \
+# 								--dataset 'cifar' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 128 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/quick_test_AR_5/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 2000 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 32 \
+# 								--hidden_channels 256 \
+# 								--AR_resnets 5 \
+# 								--AR_channels 64 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AR' \
+# 								--lr 1e-4\
+# 								--quick 0 \
+# 								--save_output 0\
+# 								--dataset_size 200 \
+
+
+
+
+
+# # BOLTZ
+# python3 train_progressive.py  --exp_name "quick_test1" \
+# 								--vws 0 \
+# 								--which_gpu '0' \
+# 								--dataset 'cifar' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 16 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/quick_test_AR_5/params/" \
+# 								--print_every 1 \
+# 								--curveplot_every -1 \
+# 								--plotimages_every 20000 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 32 \
+# 								--hidden_channels 512 \
+# 								--AR_resnets 5 \
+# 								--AR_channels 90 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AR' \
+# 								--lr 1e-4\
+# 								--quick 0 \
+# 								--save_output 0\
+
+
+
+
+
+
+
+
+
+
+# #!/bin/sh
+# #SBATCH --gres=gpu:2
+# #SBATCH --partition=gpu
+# #SBATCH --cpus-per-task=2
+# #SBATCH --mem=10GB
+# #SBATCH --job-name=myJob
+# #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# # conda info --envs
+# python3 train2.py  --exp_name "FlowAR_larger_larger" \
+# 								--vws 1 \
+# 								--which_gpu '0' \
+# 								--dataset 'cifar' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 32 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/quick_test_AR_5/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 2000 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 32 \
+# 								--hidden_channels 1024 \
+# 								--AR_resnets 5 \
+# 								--AR_channels 128 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AR' \
+# 								--lr 1e-4\
+# 								--quick 0 \
+# 								--save_output 0\
 
 
 

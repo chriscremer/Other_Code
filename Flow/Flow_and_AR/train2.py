@@ -155,16 +155,16 @@ def logmeanexp(x):
 
 
 
-def plot_curve2(data_dict, exp_dir):
+def plot_curve2(results_dict, exp_dir):
 
-    rows = len(data_dict) - 1
+    rows = len(results_dict) - 1
     cols = 1
     fig = plt.figure(figsize=(8+cols,8+rows), facecolor='white') #, dpi=150)
 
-    steps = data_dict['steps']
+    steps = results_dict['steps']
     col=0
     row=0
-    for k,v in data_dict.items():
+    for k,v in results_dict.items():
         if k == 'steps':
             continue
 
@@ -377,20 +377,21 @@ model.train()
 t = time.time()
 
     
-data_dict = {}
-data_dict['steps'] = []
-data_dict['BPD'] = {}
-data_dict['BPD']['Train'] = []
-data_dict['BPD']['Test'] = []
-data_dict['BPD']['SVHN'] = []
-data_dict['lr'] = []
-data_dict['T'] = []
-data_dict['BPD_sd'] = []
-# data_dict['BPD_LME'] = []
+results_dict = {}
+results_dict['steps'] = []
+results_dict['BPD'] = {}
+results_dict['BPD']['Train'] = []
+results_dict['BPD']['Test'] = []
+results_dict['BPD']['SVHN'] = []
+results_dict['BPD']['Generated'] = []
+results_dict['lr'] = []
+results_dict['T'] = []
+results_dict['BPD_sd'] = []
+# results_dict['BPD_LME'] = []
 
-# data_dict['LL'] = {}
-# data_dict['LL']['real_LL'] = []
-# data_dict['LL']['sample_LL'] = []
+# results_dict['LL'] = {}
+# results_dict['LL']['real_LL'] = []
+# results_dict['LL']['sample_LL'] = []
 
 
 
@@ -638,10 +639,10 @@ for i in range(max_steps+1):
         if step > 5:
 
             # RECORD DATA
-            data_dict['steps'].append(step)
-            data_dict['BPD']['Train'].append(float(nobj.data.cpu().numpy()))
-            data_dict['lr'].append(lr_sched.get_lr()[0])
-            data_dict['T'].append(T)
+            results_dict['steps'].append(step)
+            results_dict['BPD']['Train'].append(float(nobj.data.cpu().numpy()))
+            results_dict['lr'].append(lr_sched.get_lr()[0])
+            results_dict['T'].append(T)
 
             with torch.no_grad():
 
@@ -675,15 +676,28 @@ for i in range(max_steps+1):
                 nobj_test_svhn = torch.mean(nll)
 
 
+                #Get generated data likelihood
+                sample = model.module.sample()
+                img = torch.clamp(sample, min=1e-5, max=1-1e-5)
+                objective = torch.zeros_like(img[:, 0, 0, 0])
+                objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+                z, objective = model(img, objective)
+                nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+                nobj_generated = torch.mean(nll)
 
 
 
-            data_dict['BPD']['Test'].append(numpy(nobj_test))
-            data_dict['BPD']['SVHN'].append(numpy(nobj_test_svhn))
-            data_dict['BPD_sd'].append(np.std(numpy(nll_train)))
 
 
-            # data_dict['LL']['real_LL'].append(numpy(-nobj))  #batch is only 32 vs 64 for samples..
+
+
+            results_dict['BPD']['Test'].append(numpy(nobj_test))
+            results_dict['BPD']['SVHN'].append(numpy(nobj_test_svhn))
+            results_dict['BPD']['Generated'].append(numpy(nobj_generated))
+            results_dict['BPD_sd'].append(np.std(numpy(nll_train)))
+
+
+            # results_dict['LL']['real_LL'].append(numpy(-nobj))  #batch is only 32 vs 64 for samples..
 
             # with torch.no_grad():                
 
@@ -698,7 +712,7 @@ for i in range(max_steps+1):
             #     nll = (-objective) / float(np.log(2.) * np.prod(sample.shape[1:]))
             #     nobj_sample = torch.mean(nll)
 
-            # data_dict['LL']['sample_LL'].append(numpy(-nobj_sample))
+            # results_dict['LL']['sample_LL'].append(numpy(-nobj_sample))
 
 
             # print (torch.max(img), torch.min(img), torch.max(sample), torch.min(sample))
@@ -706,8 +720,8 @@ for i in range(max_steps+1):
 
 
 
-    if step % args.curveplot_every ==0 and step > 0 and len(data_dict['steps']) > 2:
-        plot_curve2(data_dict, exp_dir)
+    if step % args.curveplot_every ==0 and step > 0 and len(results_dict['steps']) > 2:
+        plot_curve2(results_dict, exp_dir)
 
 
 
@@ -883,6 +897,15 @@ for i in range(max_steps+1):
                 os.remove(params_dir + f)
 
         model.module.save_params_v3(params_dir, step, name='model_params')
+
+
+
+        #save results
+        save_to=os.path.join(exp_dir, "results.pkl")
+        with open(save_to, "wb" ) as f:
+            pickle.dump(results_dict, f)
+        print ('saved results', save_to)
+
 
 
         print ('Getting Full Test Set PBD')

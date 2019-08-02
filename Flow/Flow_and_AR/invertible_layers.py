@@ -100,8 +100,10 @@ class LayerList(Layer):
             # print ()
 
 
-            if ((x!=x).any() or torch.max(x) > 99999 or torch.min(x) < -99999 
-                    or (objective!=objective).any() or torch.max(objective) > 999999 or torch.min(objective) < -999999  ):
+            # if ((x!=x).any() or torch.max(x) > 99999 or torch.min(x) < -99999 
+            #         or (objective!=objective).any() or torch.max(objective) > 999999 or torch.min(objective) < -999999  ):
+
+            if ((x!=x).any() or (objective!=objective).any()  ):
 
                 print (str(layer)[:6])
 
