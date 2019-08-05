@@ -87,8 +87,9 @@ def load_clevr(batch_size, vws, quick=0):
 
 
         # train_image_dataset = train_image_dataset[:1]
-        val_image_dataset = val_image_dataset[:1]
-        test_image_dataset = test_image_dataset[:1]
+        # val_image_dataset = val_image_dataset[:1]
+        # test_image_dataset = test_image_dataset[:1]
+        test_image_dataset = train_image_dataset
 
 
 
