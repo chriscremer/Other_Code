@@ -1,14 +1,27 @@
+<<<<<<< HEAD
 #!/bin/sh
 #SBATCH --gres=gpu:2
 #SBATCH --partition=gpu
+=======
+#!/bin/bash
+#SBATCH --gres=gpu:2
+#SBATCH --partition=p100
+>>>>>>> ddd0caf0f88e03bfede6bdc390d103dbdc1c2df2
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=10GB
 #SBATCH --job-name=myJob
 #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
+<<<<<<< HEAD
 export PATH=$PATH:/h/ccremer/anaconda3/bin
 source activate test_env
 # conda info --envs
 python3 train3.py  --exp_name "FlowAR_clevr" \
+=======
+export PATH=$HOME/ccremer/anaconda3/bin:$PATH
+source activate test_env
+#VAUNGH
+python3 train3.py  --exp_name "FlowAR_larger3x" \
+>>>>>>> ddd0caf0f88e03bfede6bdc390d103dbdc1c2df2
 								--vws 1 \
 								--which_gpu '0' \
 								--dataset 'clevr' \
@@ -24,9 +37,15 @@ python3 train3.py  --exp_name "FlowAR_clevr" \
 								--max_steps 200000 \
 								--n_levels 1 \
 								--depth 32 \
+<<<<<<< HEAD
 								--hidden_channels 512 \
 								--AR_resnets 5 \
 								--AR_channels 64 \
+=======
+								--hidden_channels 1024 \
+								--AR_resnets 5 \
+								--AR_channels 128 \
+>>>>>>> ddd0caf0f88e03bfede6bdc390d103dbdc1c2df2
 								--coupling 'affine' \
 								--permutation 'shuffle' \
 								--base_dist 'AR' \
@@ -207,6 +226,7 @@ python3 train3.py  --exp_name "FlowAR_clevr" \
 # #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
 # export PATH=$PATH:/h/ccremer/anaconda3/bin
 # source activate test_env
+# conda activate test_env
 # # conda info --envs
 # python3 train2.py  --exp_name "FlowAR_larger_larger" \
 # 								--vws 1 \
