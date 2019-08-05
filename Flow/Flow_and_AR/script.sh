@@ -1,41 +1,126 @@
-#!/bin/bash
-export PATH=$HOME/ccremer/anaconda3/bin:$PATH
-# echo $PATH
-source activate test_env
-# conda activate test_env
-# conda info --envs
-#VAUNGH
-#SBATCH --gres=gpu:4
-#SBATCH --partition=p100
+#!/bin/sh
+#SBATCH --gres=gpu:2
+#SBATCH --partition=gpu
 #SBATCH --cpus-per-task=2
-#SBATCH --mem=12GB
+#SBATCH --mem=10GB
 #SBATCH --job-name=myJob
 #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
-python3 train3.py  --exp_name "FlowAR_larger3x" \
+export PATH=$PATH:/h/ccremer/anaconda3/bin
+source activate test_env
+# conda info --envs
+python3 train3.py  --exp_name "FlowAR_clevr" \
 								--vws 1 \
-								--which_gpu 'all' \
-								--dataset 'cifar' \
+								--which_gpu '0' \
+								--dataset 'clevr' \
 								--data_dir "$HOME/Documents/" \
 								--save_to_dir "$HOME/Documents/glow_clevr/" \
-								--batch_size 32 \
+								--batch_size 8 \
 								--load_step 0 \
-								--load_dir "$HOME/Documents/glow_clevr/quick_test_AR_5/params/" \
+								--load_dir "$HOME/Documents/glow_clevr/FlowAR_larger_larger/params/" \
 								--print_every 200 \
 								--curveplot_every 2000 \
 								--plotimages_every 2000 \
 								--save_every 20000 \
 								--max_steps 200000 \
 								--n_levels 1 \
-								--depth 64 \
-								--hidden_channels 1024 \
+								--depth 32 \
+								--hidden_channels 512 \
 								--AR_resnets 5 \
-								--AR_channels 256 \
+								--AR_channels 64 \
 								--coupling 'affine' \
 								--permutation 'shuffle' \
 								--base_dist 'AR' \
 								--lr 1e-4\
 								--quick 0 \
-								--save_output 1\
+								--save_output 0\
+
+
+
+
+
+# #!/bin/sh
+# #SBATCH --gres=gpu:2
+# #SBATCH --partition=gpu
+# #SBATCH --cpus-per-task=2
+# #SBATCH --mem=10GB
+# #SBATCH --job-name=myJob
+# #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# # conda info --envs
+# python3 train2.py  --exp_name "FlowAR_larger_larger_continued" \
+# 								--vws 1 \
+# 								--which_gpu '0' \
+# 								--dataset 'cifar' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 32 \
+# 								--load_step 200000 \
+# 								--load_dir "$HOME/Documents/glow_clevr/FlowAR_larger_larger/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 2000 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 32 \
+# 								--hidden_channels 1024 \
+# 								--AR_resnets 5 \
+# 								--AR_channels 128 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AR' \
+# 								--lr 1e-5\
+# 								--quick 0 \
+# 								--save_output 0\
+
+
+
+
+
+
+
+
+
+
+# #!/bin/bash
+# export PATH=$HOME/ccremer/anaconda3/bin:$PATH
+# # echo $PATH
+# source activate test_env
+# # conda activate test_env
+# # conda info --envs
+# #VAUNGH
+# #SBATCH --gres=gpu:4
+# #SBATCH --partition=p100
+# #SBATCH --cpus-per-task=2
+# #SBATCH --mem=12GB
+# #SBATCH --job-name=myJob
+# #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
+# python3 train3.py  --exp_name "FlowAR_larger3x" \
+# 								--vws 1 \
+# 								--which_gpu 'all' \
+# 								--dataset 'cifar' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 32 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/quick_test_AR_5/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 2000 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 64 \
+# 								--hidden_channels 1024 \
+# 								--AR_resnets 5 \
+# 								--AR_channels 256 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AR' \
+# 								--lr 1e-4\
+# 								--quick 0 \
+# 								--save_output 1\
 
 
 

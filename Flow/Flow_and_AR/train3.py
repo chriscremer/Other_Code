@@ -267,21 +267,20 @@ if save_output:
 
 if args.dataset=='clevr':
     # # CLEVR DATA
-    dataset = load_clevr(batch_size=args.batch_size, vws=args.vws, quick=args.quick)
+    train_x, test_x = load_clevr(batch_size=args.batch_size, vws=args.vws, quick=args.quick)
 
 elif args.dataset=='cifar':
     # CIFAR DATA
     # train_image_dataset = load_cifar(data_dir=args.data_dir)
     train_x, test_x = load_cifar(data_dir=home+'/Documents/', dataset_size=args.dataset_size)
-    dataset = train_x
+
     # print (len(test_x), 'test set len')
-
-
     svhn_test_x = load_svhn(data_dir=home+'/Documents/')
     # svhn_test_x = test_x
+    
+# dataset = train_x
 
-
-print (len(dataset), dataset[0].shape)
+print (len(train_x), train_x[0].shape)
 ###########################################################################################
 
 
@@ -293,7 +292,7 @@ print (len(dataset), dataset[0].shape)
 # Init Model
 # ------------------------------------------------------------------------------
 sampling_batch_size = 64
-shape = dataset[0].shape
+shape = train_x[0].shape
 model = Glow_((sampling_batch_size, shape[0], shape[1], shape[2]), args).cuda()
 # print(model)
 print("number of model parameters:", sum([np.prod(p.size()) for p in model.parameters()]))
@@ -329,7 +328,7 @@ lr_sched = torch.optim.lr_scheduler.StepLR(optim, step_size=50, gamma=0.999)
 
 # # data dependant init
 if args.load_step == 0:
-    init_loader = torch.utils.data.DataLoader(dataset, batch_size=100, 
+    init_loader = torch.utils.data.DataLoader(train_x, batch_size=100, 
                         shuffle=True, num_workers=1, drop_last=True)
     with torch.no_grad():
         model.eval()
@@ -355,7 +354,7 @@ model = torch.nn.DataParallel(model, range(torch.cuda.device_count()))
 # if args.load_dir is not None: 
 #     model, optim, start_epoch = load_session(model, optim, args)
 
-loader = torch.utils.data.DataLoader(dataset, batch_size=min(args.batch_size,len(dataset)), 
+loader = torch.utils.data.DataLoader(train_x, batch_size=min(args.batch_size,len(train_x)), 
                                 shuffle=True, num_workers=0, drop_last=True)
 iter_loader = iter(loader)
 ###########################################################################################
@@ -394,7 +393,8 @@ results_dict['steps'] = []
 results_dict['BPD'] = {}
 results_dict['BPD']['Train'] = []
 results_dict['BPD']['Test'] = []
-results_dict['BPD']['SVHN'] = []
+if args.dataset=='cifar':
+    results_dict['BPD']['SVHN'] = []
 results_dict['BPD']['Generated'] = []
 results_dict['lr'] = []
 results_dict['T'] = []
@@ -407,7 +407,7 @@ for i in range(max_steps+1):
     try:
         img = next(iter_loader).cuda()
     except:
-        loader = torch.utils.data.DataLoader(dataset, batch_size=min(args.batch_size,len(dataset)), 
+        loader = torch.utils.data.DataLoader(train_x, batch_size=min(args.batch_size,len(train_x)), 
                             shuffle=True, num_workers=0, drop_last=True)
         iter_loader = iter(loader)
         img = next(iter_loader).cuda()
@@ -495,8 +495,9 @@ for i in range(max_steps+1):
 
             with torch.no_grad():
 
+                
                 #Get test set likelihood
-                test_loader = torch.utils.data.DataLoader(test_x, batch_size=min(100,len(dataset)), 
+                test_loader = torch.utils.data.DataLoader(test_x, batch_size=min(100,len(train_x)), 
                                     shuffle=True, num_workers=1, drop_last=True)
                 iter_test_loader = iter(test_loader)
 
@@ -509,20 +510,21 @@ for i in range(max_steps+1):
                 nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
                 nobj_test = torch.mean(nll)
 
+                if args.dataset=='cifar':
 
-                #Get test set likelihood
-                test_loader = torch.utils.data.DataLoader(svhn_test_x, batch_size=min(100,len(dataset)), 
-                                    shuffle=True, num_workers=1, drop_last=True)
-                iter_test_loader = iter(test_loader)
+                    #Get svhn set likelihood
+                    test_loader = torch.utils.data.DataLoader(svhn_test_x, batch_size=min(100,len(train_x)), 
+                                        shuffle=True, num_workers=1, drop_last=True)
+                    iter_test_loader = iter(test_loader)
 
-                img = next(iter_test_loader).cuda()
+                    img = next(iter_test_loader).cuda()
 
-                img = torch.clamp(img, min=1e-5, max=1-1e-5)
-                objective = torch.zeros_like(img[:, 0, 0, 0])
-                objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
-                z, objective = model(img, objective)
-                nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
-                nobj_test_svhn = torch.mean(nll)
+                    img = torch.clamp(img, min=1e-5, max=1-1e-5)
+                    objective = torch.zeros_like(img[:, 0, 0, 0])
+                    objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+                    z, objective = model(img, objective)
+                    nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+                    nobj_test_svhn = torch.mean(nll)
 
 
                 #Get generated data likelihood
@@ -536,9 +538,9 @@ for i in range(max_steps+1):
 
 
 
-
+            if args.dataset=='cifar':
+                results_dict['BPD']['SVHN'].append(numpy(nobj_test_svhn))
             results_dict['BPD']['Test'].append(numpy(nobj_test))
-            results_dict['BPD']['SVHN'].append(numpy(nobj_test_svhn))
             results_dict['BPD']['Generated'].append(numpy(nobj_generated))
             results_dict['BPD_sd'].append(np.std(numpy(nll_train)))
 
@@ -613,7 +615,7 @@ for i in range(max_steps+1):
 
             if step / args.plotimages_every ==1:
 
-                init_loader = torch.utils.data.DataLoader(dataset, batch_size=min(64,len(dataset)), 
+                init_loader = torch.utils.data.DataLoader(train_x, batch_size=min(64,len(train_x)), 
                                     shuffle=True, num_workers=1, drop_last=True)
                 iter_loader_init = iter(init_loader)
                 img = next(iter_loader_init)
@@ -651,7 +653,7 @@ for i in range(max_steps+1):
         with torch.no_grad():
 
             #Get test set likelihood
-            test_loader = torch.utils.data.DataLoader(test_x, batch_size=min(100,len(dataset)), 
+            test_loader = torch.utils.data.DataLoader(test_x, batch_size=min(100,len(train_x)), 
                                 shuffle=False, num_workers=1, drop_last=True)
             iter_test_loader = iter(test_loader)
 
