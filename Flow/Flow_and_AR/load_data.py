@@ -66,6 +66,7 @@ def load_clevr(batch_size, vws, quick=0):
              question_token_to_idx, q_max_len, vocab_size =  preprocess_v2(loader, vocab_file)
 
         train_image_dataset = train_image_dataset[:50000]
+        test_image_dataset = test_image_dataset[:10000]
 
 
     else:
@@ -85,17 +86,18 @@ def load_clevr(batch_size, vws, quick=0):
         # img_batch, question_batch = get_batch(train_image_dataset, train_question_dataset, batch_size=4)
 
 
-    # train_image_dataset = train_image_dataset[:1]
-    val_image_dataset = val_image_dataset[:1]
-    test_image_dataset = test_image_dataset[:1]
+        # train_image_dataset = train_image_dataset[:1]
+        val_image_dataset = val_image_dataset[:1]
+        test_image_dataset = test_image_dataset[:1]
 
 
 
     # train_image_dataset = train_image_dataset[:22]
-    dataset = MyClevrDataset(train_image_dataset)
+    train_x = MyClevrDataset(train_image_dataset)
+    test_x = MyClevrDataset(test_image_dataset)
 
 
-    return dataset
+    return train_x, test_x
 
 
 
