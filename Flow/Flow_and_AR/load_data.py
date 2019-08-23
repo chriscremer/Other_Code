@@ -10,20 +10,21 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from preprocess_statements import preprocess_v2
-from Clevr_data_loader import ClevrDataset, ClevrDataLoader
+# from preprocess_statements import preprocess_v2
+# from Clevr_data_loader import ClevrDataset, ClevrDataLoader
+from clevr_data_utils import ClevrDataLoader, preprocess_v2
 
 import scipy.io
 
 
-def load_clevr(batch_size, vws, quick=0):
+def load_clevr(batch_size, data_dir, quick=0):
 
     print ('Loading CLEVR')
 
-    if vws:
-        data_dir = home+ "/vl_data/two_objects_large/"  #vws
-    else:
-        data_dir = home+ "/VL/data/two_objects_no_occ/" #boltz 
+    # if vws:
+    #     data_dir = home+ "/vl_data/two_objects_large/"  #vws
+    # else:
+    #     data_dir = home+ "/VL/data/two_objects_no_occ/" #boltz 
 
     question_file = data_dir+'train.h5'
     image_file = data_dir+'train_images.h5'
@@ -36,6 +37,9 @@ def load_clevr(batch_size, vws, quick=0):
                             # 'max_samples': 70000, i dont think this actually does anythn
                             }
     loader = ClevrDataLoader(**train_loader_kwargs)
+
+
+    # print ('step 1')
 
     class MyClevrDataset(Dataset):
         """Face Landmarks dataset."""
@@ -56,46 +60,61 @@ def load_clevr(batch_size, vws, quick=0):
             return img_batch 
 
 
-    # quick = args.quick
+    # # quick = args.quick
 
-    if not quick:
-        #Full dataset
-        train_image_dataset, train_question_dataset, val_image_dataset, \
-             val_question_dataset, test_image_dataset, test_question_dataset, \
-             train_indexes, val_indexes, question_idx_to_token, \
-             question_token_to_idx, q_max_len, vocab_size =  preprocess_v2(loader, vocab_file)
+    # if quick:
+    #     print ('loading quick data')
+    #     #For quickly running it
+    #     if vws:
+    #         quick_check_data = home+ "/vl_data/quick_stuff.pkl"
+    #     else:
+    #         quick_check_data = home+ "/VL/two_objects_large/quick_stuff.pkl" 
 
-        train_image_dataset = train_image_dataset[:50000]
-        test_image_dataset = test_image_dataset[:10000]
+    #     with open(quick_check_data, "rb" ) as f:
+    #         stuff = pickle.load(f)
+    #         train_image_dataset, train_question_dataset, val_image_dataset, \
+    #              val_question_dataset, test_image_dataset, test_question_dataset, \
+    #              train_indexes, val_indexes, question_idx_to_token, \
+    #         question_token_to_idx, q_max_len, vocab_size = stuff
+
+    #     # img_batch, question_batch = get_batch(train_image_dataset, train_question_dataset, batch_size=4)
+    #     # train_image_dataset = train_image_dataset[:1]
+    #     # val_image_dataset = val_image_dataset[:1]
+    #     # test_image_dataset = test_image_dataset[:1]
+    #     test_image_dataset = train_image_dataset
 
 
+
+    # else:
+
+    if quick:
+        print ('loading quick data')
+        n_train = 500
+        n_val = 1000
     else:
-        #For quickly running it
-        if vws:
-            quick_check_data = home+ "/vl_data/quick_stuff.pkl"
-        else:
-            quick_check_data = home+ "/VL/two_objects_large/quick_stuff.pkl" 
+        n_train = 50000
+        n_val = 10000   
 
-        with open(quick_check_data, "rb" ) as f:
-            stuff = pickle.load(f)
-            train_image_dataset, train_question_dataset, val_image_dataset, \
-                 val_question_dataset, test_image_dataset, test_question_dataset, \
-                 train_indexes, val_indexes, question_idx_to_token, \
-            question_token_to_idx, q_max_len, vocab_size = stuff
-
-        # img_batch, question_batch = get_batch(train_image_dataset, train_question_dataset, batch_size=4)
+    train_image_dataset, train_question_dataset, val_image_dataset, \
+         val_question_dataset, test_image_dataset, test_question_dataset, \
+         train_indexes, val_indexes, question_idx_to_token, \
+         question_token_to_idx, q_max_len, vocab_size =  preprocess_v2(loader, vocab_file, n_train=n_train, n_val=n_val)
 
 
-        # train_image_dataset = train_image_dataset[:1]
-        # val_image_dataset = val_image_dataset[:1]
-        # test_image_dataset = test_image_dataset[:1]
-        test_image_dataset = train_image_dataset
+    print (train_image_dataset.shape)
+    print (val_image_dataset.shape)
 
+    test_image_dataset = val_image_dataset
 
+    # fdasfads
+
+    # train_image_dataset = train_image_dataset[:50000]
+    # test_image_dataset = val_image_dataset[:10000]
 
     # train_image_dataset = train_image_dataset[:22]
     train_x = MyClevrDataset(train_image_dataset)
     test_x = MyClevrDataset(test_image_dataset)
+
 
 
     return train_x, test_x

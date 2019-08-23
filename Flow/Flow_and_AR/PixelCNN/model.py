@@ -72,24 +72,27 @@ class PixelCNN(nn.Module):
         self.right_shift_pad = nn.ZeroPad2d((1, 0, 0, 0))
         self.down_shift_pad  = nn.ZeroPad2d((0, 0, 1, 0))
 
+        self.steps = 1
+
         down_nr_resnet = [nr_resnet] + [nr_resnet + 1] * 2
         self.down_layers = nn.ModuleList([PixelCNNLayer_down(down_nr_resnet[i], nr_filters, 
-                                                self.resnet_nonlinearity) for i in range(3)])
+                                                self.resnet_nonlinearity) for i in range(self.steps)])
 
         self.up_layers   = nn.ModuleList([PixelCNNLayer_up(nr_resnet, nr_filters, 
-                                                self.resnet_nonlinearity) for _ in range(3)])
+                                                self.resnet_nonlinearity) for _ in range(self.steps)])
 
-        self.downsize_u_stream  = nn.ModuleList([down_shifted_conv2d(nr_filters, nr_filters, 
-                                                    stride=(2,2)) for _ in range(2)])
+        if self.steps > 1:
+            self.downsize_u_stream  = nn.ModuleList([down_shifted_conv2d(nr_filters, nr_filters, 
+                                                        stride=(2,2)) for _ in range(2)])
 
-        self.downsize_ul_stream = nn.ModuleList([down_right_shifted_conv2d(nr_filters, 
-                                                    nr_filters, stride=(2,2)) for _ in range(2)])
-        
-        self.upsize_u_stream  = nn.ModuleList([down_shifted_deconv2d(nr_filters, nr_filters, 
-                                                    stride=(2,2)) for _ in range(2)])
-        
-        self.upsize_ul_stream = nn.ModuleList([down_right_shifted_deconv2d(nr_filters, 
-                                                    nr_filters, stride=(2,2)) for _ in range(2)])
+            self.downsize_ul_stream = nn.ModuleList([down_right_shifted_conv2d(nr_filters, 
+                                                        nr_filters, stride=(2,2)) for _ in range(2)])
+            
+            self.upsize_u_stream  = nn.ModuleList([down_shifted_deconv2d(nr_filters, nr_filters, 
+                                                        stride=(2,2)) for _ in range(2)])
+            
+            self.upsize_ul_stream = nn.ModuleList([down_right_shifted_deconv2d(nr_filters, 
+                                                        nr_filters, stride=(2,2)) for _ in range(2)])
         
         # self.u_init = down_shifted_conv2d(input_channels + 1, nr_filters, filter_size=(2,3), shift_output_down=True)
         self.u_init = down_shifted_conv2d(input_channels , nr_filters, filter_size=(2,3), shift_output_down=True)
@@ -108,42 +111,40 @@ class PixelCNN(nn.Module):
         self.init_padding = None
 
 
+
+
+
+
+
+
+
+
+
+
+
     def forward(self, x, sample=False):
 
         #this might be helpful: http://sergeiturukin.com/2017/02/24/gated-pixelcnn.html
-
-        # #Im getting rid of the padding 
-        # # similar as done in the tf repo :  
-        # if self.init_padding is None and not sample: 
-        #     xs = [int(y) for y in x.size()]
-        #     padding = Variable(torch.ones(xs[0], 1, xs[2], xs[3]), requires_grad=False)
-        #     self.init_padding = padding.cuda() if x.is_cuda else padding
-        # if sample : 
-        #     xs = [int(y) for y in x.size()]
-        #     padding = Variable(torch.ones(xs[0], 1, xs[2], xs[3]), requires_grad=False)
-        #     padding = padding.cuda() if x.is_cuda else padding
-        #     x = torch.cat((x, padding), 1)
-        # x = x if sample else torch.cat((x, self.init_padding), 1)
 
         ###      UP PASS    ###
         u_list  = [self.u_init(x)]
         ul_list = [self.ul_init[0](x) + self.ul_init[1](x)]
         # print (len(u_list))
-        for i in range(3):
+        for i in range(self.steps):
             # resnet block
             u_out, ul_out = self.up_layers[i](u_list[-1], ul_list[-1])
             # print (len(u_list))
 
+            # print (len(u_out))
+            # print (u_out[0].shape, u_out[1].shape, u_out[2].shape)
+
             u_list  += u_out
             ul_list += ul_out
-            # print (len(u_list))
 
-            if i != 2: 
-                # downscale (only twice)
-                u_list  += [self.downsize_u_stream[i](u_list[-1])]
-                ul_list += [self.downsize_ul_stream[i](ul_list[-1])]
-
-            # print (len(u_list))
+            # if i != 2: # and u_out[0].shape[2]>10: 
+            #     # downscale (only twice)
+            #     u_list  += [self.downsize_u_stream[i](u_list[-1])]
+            #     ul_list += [self.downsize_ul_stream[i](ul_list[-1])]
 
         ###    DOWN PASS    ###
         u  = u_list.pop()
@@ -151,49 +152,147 @@ class PixelCNN(nn.Module):
 
         # print (len(u_list))
         
-        for i in range(3):
+        for i in range(self.steps):
             # resnet block
             u, ul = self.down_layers[i](u, ul, u_list, ul_list)
 
-            # upscale (only twice)
-            if i != 2 :
-                u  = self.upsize_u_stream[i](u)
-                ul = self.upsize_ul_stream[i](ul)
-
-            # print (len(u_list))
-
-        # print (ul.shape)
-        # fdasfs
-
-
-
+            # # upscale (only twice)
+            # if i != 2: # and u.shape[2]>10:
+            #     u  = self.upsize_u_stream[i](u)
+            #     ul = self.upsize_ul_stream[i](ul)
 
         x_out = self.nin_out(F.elu(ul))
-
-        # CONFIRM CORRECT DEPENDENCE
-        # print (x.shape)
-        # print (x_out.shape)
-
-        # inputs = x[:,:,5,5]
-        # outputs = torch.sum(x_out[:,:,5,6])
-        # grad = torch.autograd.grad(outputs, x)[0]
-
-        # print (grad.shape)
-        # print (torch.sum(grad))
-        # faasdf
-
-
-
-        # fsdfa
-
-        # print (len(u_list))
-
-        # fasads
 
         assert len(u_list) == len(ul_list) == 0, pdb.set_trace()
 
         return x_out
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # # _regularversion
+
+    # def forward(self, x, sample=False):
+
+    #     #this might be helpful: http://sergeiturukin.com/2017/02/24/gated-pixelcnn.html
+
+    #     # #Im getting rid of the padding 
+    #     # # similar as done in the tf repo :  
+    #     # if self.init_padding is None and not sample: 
+    #     #     xs = [int(y) for y in x.size()]
+    #     #     padding = Variable(torch.ones(xs[0], 1, xs[2], xs[3]), requires_grad=False)
+    #     #     self.init_padding = padding.cuda() if x.is_cuda else padding
+    #     # if sample : 
+    #     #     xs = [int(y) for y in x.size()]
+    #     #     padding = Variable(torch.ones(xs[0], 1, xs[2], xs[3]), requires_grad=False)
+    #     #     padding = padding.cuda() if x.is_cuda else padding
+    #     #     x = torch.cat((x, padding), 1)
+    #     # x = x if sample else torch.cat((x, self.init_padding), 1)
+
+    #     ###      UP PASS    ###
+    #     u_list  = [self.u_init(x)]
+    #     ul_list = [self.ul_init[0](x) + self.ul_init[1](x)]
+    #     # print (len(u_list))
+    #     for i in range(3):
+    #         # resnet block
+    #         u_out, ul_out = self.up_layers[i](u_list[-1], ul_list[-1])
+    #         # print (len(u_list))
+
+    #         # print (len(u_out))
+    #         # print (u_out[0].shape, u_out[1].shape, u_out[2].shape)
+
+    #         u_list  += u_out
+    #         ul_list += ul_out
+    #         # print (len(u_list))
+
+
+
+    #         if i != 2: # and u_out[0].shape[2]>10: 
+    #             # downscale (only twice)
+    #             u_list  += [self.downsize_u_stream[i](u_list[-1])]
+    #             ul_list += [self.downsize_ul_stream[i](ul_list[-1])]
+
+
+
+    #         # print (len(u_list))
+
+    #     ###    DOWN PASS    ###
+    #     u  = u_list.pop()
+    #     ul = ul_list.pop()
+
+    #     # print (len(u_list))
         
+    #     for i in range(3):
+    #         # resnet block
+    #         u, ul = self.down_layers[i](u, ul, u_list, ul_list)
+
+    #         # print (u.shape)
+
+    #         # upscale (only twice)
+    #         if i != 2: # and u.shape[2]>10:
+    #             u  = self.upsize_u_stream[i](u)
+    #             ul = self.upsize_ul_stream[i](ul)
+
+    #         # print (len(u_list))
+
+    #     # print (ul.shape)
+    #     # fdasfs
+
+
+    #     # print (ul.shape)
+    #     # fsdfsa
+
+
+    #     x_out = self.nin_out(F.elu(ul))
+
+    #     # CONFIRM CORRECT DEPENDENCE
+    #     # print (x.shape)
+    #     # print (x_out.shape)
+
+    #     # inputs = x[:,:,5,5]
+    #     # outputs = torch.sum(x_out[:,:,5,6])
+    #     # grad = torch.autograd.grad(outputs, x)[0]
+
+    #     # print (grad.shape)
+    #     # print (torch.sum(grad))
+    #     # faasdf
+
+
+
+    #     # fsdfa
+
+    #     # print (len(u_list))
+
+    #     # fasads
+
+    #     assert len(u_list) == len(ul_list) == 0, pdb.set_trace()
+
+    #     return x_out
+        
+
+
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     ''' testing loss with tf version '''

@@ -14,10 +14,6 @@ from utils import *
 from os.path import expanduser
 home = expanduser("~")
 
-from Prior_Att import Att_Prior
-
-
-import torch.distributions as dist
 
 
 # import sys, os
@@ -86,6 +82,27 @@ class LayerList(Layer):
             x, objective = layer.forward_(x, objective)
 
 
+            # aa = x.clone()
+
+            # xx, objective = layer.forward_(x, objective)
+
+            # bb = x.clone()
+            # print ()
+            # print (str(layer)[:6])
+            # print(torch.mean((aa - bb)**2))
+
+            # if 'Add' in str(layer)[:6]:
+
+            #     fadads
+
+            # x = xx
+
+            # print ()
+
+
+            # if ((x!=x).any() or torch.max(x) > 99999 or torch.min(x) < -99999 
+            #         or (objective!=objective).any() or torch.max(objective) > 999999 or torch.min(objective) < -999999  ):
+
             if ((x!=x).any() or (objective!=objective).any()  ):
 
                 print (str(layer)[:6])
@@ -113,13 +130,73 @@ class LayerList(Layer):
 
 
 
+    # def forward_2(self, x, objective):
+    #     for layer in self.layers:
+
+    #         # x, objective = layer.forward_(x, objective)
+
+
+    #         aa = x.clone()
+
+
+    #         if 'Add' in str(layer)[:6]:
+
+    #             xx, objective = layer.forward_2(x, objective)
+    #             # bb = x.clone()
+
+    #             # print ()
+    #             print (str(layer)[:6], torch.mean((aa - x)**2))
+    #             print ('xx vs x', str(layer)[:6], torch.mean((xx - x)**2))
+    #             # print()
+    #             # fadads
+
+
+
+    #         else:
+
+    #             xx, objective = layer.forward_(x, objective)
+
+
+    #         x = xx
+
+
+    #     return x, objective
+
+
+
+
+
     def reverse_(self, x, objective, args=None):
         count=0
         for layer in reversed(self.layers): 
 
+            # if count ==13:
+            #     x_pre = x.clone()
+
+            # if 'Split' in str(layer):
+            #     x, objective = layer.reverse_(x, objective, use_stored_sample=True)
+
+
+            # else:
+            
 
             x, objective = layer.reverse_(x, objective, args=args)
 
+
+            # print (count, layer)
+
+
+            # if count ==13:
+            #     if (x==x_pre).all():
+            #         print ('yes')
+            #     else:
+            #         print ('no')
+            #     fsadf
+
+            # if count == 50:
+            #     print (layer.conv_zero.logs)
+
+            #     fasfa
 
             if (x!=x).any() or torch.max(x) > 999999:
                 print (count, layer)
@@ -141,6 +218,84 @@ class LayerList(Layer):
         # fsadfa
 
         return x, objective
+
+
+
+
+
+
+    # def forward_andgetlayers_(self, x, objective):
+    #     layers = []
+    #     layers.append(x)
+    #     names = []
+    #     names.append('x')
+    #     for layer in self.layers:
+    #         # print (layer)
+    #         # print (str(layer)[:10])
+    #         names.append(str(layer)[:6])
+    #         # fas
+
+    #         # aa = x.clone()
+
+    #         # xx, objective = layer.forward_(x, objective)
+
+
+    #         if 'Split' in str(layer):
+    #             xx, objective = layer.reverse_(x, objective, use_stored_sample=True)
+
+    #         else:
+    #             xx, objective = layer.reverse_(x, objective)
+
+
+    #         # bb = x.clone()
+    #         # print ()
+    #         # print (str(layer)[:6])
+    #         # print(torch.mean((aa - bb)**2))
+
+
+    #         x = xx
+
+
+    #         layers.append(x.clone())
+
+    #     # print(torch.mean((layers[3] - layers[33])**2))
+    #     # fasd
+
+
+    #     return layers, names
+
+
+
+    # def reverse_andgetlayers_(self, x, objective):
+
+        
+        
+
+    #     layers = []
+    #     layers.append(x)
+    #     for layer in reversed(self.layers): 
+
+    #         # aa = x.clone()
+
+    #         xx, objective = layer.reverse_(x, objective)
+
+
+    #         # bb = x.clone()
+    #         # print(torch.mean((aa - bb)**2))
+            
+
+    #         x = xx
+
+    #         layers.append(x.clone())
+
+
+    #     # fdsaa
+
+
+    #     return layers
+
+
+
 
 
 
@@ -365,14 +520,21 @@ class AR_Prior(Layer):
     def __init__(self, input_shape, args):
         super(AR_Prior, self).__init__()
         self.input_shape = input_shape
+        # print(args.learntop)
+        # if args.learntop: 
+        #     self.conv = Conv2dZeroInit(2 * input_shape[1], 2 * input_shape[1], 3, padding=(3 - 1) // 2)
+        # else: 
+        #     self.conv = None
 
-        print ('p(z)', self.input_shape)
-        # fdsaf
-
+        # self.conv = Conv2dZeroInit(2 * input_shape[1], 2 * input_shape[1], 3, padding=(3 - 1) // 2)
 
         self.model = PixelCNN(nr_resnet=args.AR_resnets, nr_filters=args.AR_channels, 
                     input_channels=input_shape[1], nr_logistic_mix=2)
-
+        # self.model = PixelCNN(nr_resnet=3, nr_filters=128, 
+        #             input_channels=input_shape[1], nr_logistic_mix=2)
+        # self.model = PixelCNN(nr_resnet=2, nr_filters=32, 
+        #             input_channels=input_shape[1], nr_logistic_mix=2)
+        # model = model.cuda()
 
         self.loss_op   = lambda real, fake : discretized_mix_logistic_loss(real, fake)
 
@@ -402,30 +564,88 @@ class AR_Prior(Layer):
 
     def forward_(self, x, objective):
         B = x.shape[0]
+        # mean_and_logsd = torch.cat([torch.zeros_like(x) for _ in range(2)], dim=1)
+        # # if self.conv:
 
+        # #this could just be some parameters we learn, 
+        # # doesnt need to output of conv 
+        # mean_and_logsd = self.conv(mean_and_logsd)
+
+        # mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
+
+        # logsd = torch.clamp(logsd, min=-6., max=2.)
+
+        # # print(self.conv)
+        # # # print (mean)
+        # # fdsfa
+
+        # pz = gaussian_diag(mean, logsd)
+        # objective += pz.logp(x) 
+
+        # print (x.shape)
+        # x = self.unsqueeze_bchw(x)
+
+        # print (x.shape)
         mean_and_logsd = self.model(x)
+        # print (mean_and_logsd.shape)
 
+        # outputs = torch.sum(d)
+        # torch.autograd.grad(outputs, inputs)
+
+        # fsada
 
         mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
 
+        # print (torch.min(mean), torch.max(mean))
+        # print (torch.min(logsd), torch.max(logsd))
+
+        # print ()
+
+
+        # logsd = torch.clamp(logsd, min=-6., max=2.)
 
         mean = torch.tanh(mean / 100.) * 100.
-        logsd = (torch.tanh(logsd /self.lm ) * self.lm ) - (self.lm /2.)
+
         # logsd = (torch.tanh(logsd /4.) * 4.) -2.
 
+        logsd = (torch.tanh(logsd /self.lm ) * self.lm ) - (self.lm /2.)
+
+
+
         
-        # LL = self.gauss_log_prob(x, mean=mean, logsd=logsd)
+        LL = self.gauss_log_prob(x, mean=mean, logsd=logsd)
 
-        m = dist.Cauchy(mean, torch.exp(logsd))
-        LL = m.log_prob(x)
+        # print (torch.min(LL), torch.max(LL))
 
+        # fafds
+
+        # output = self.loss_op(x,output)
+        # print (LL.shape)
 
         LL = LL.view(B,-1).sum(-1)
 
+        # fasdfa
         objective += LL
 
+        # this way, you can encode and decode back the same image. 
         return x, objective
 
+
+
+    # def sample(model):
+    #     model.train(False)
+    #     with torch.no_grad():
+
+    #         data = torch.zeros(sample_batch_size, obs[0], obs[1], obs[2])
+    #         data = data.cuda()
+    #         for i in range(obs[1]):
+    #             for j in range(obs[2]):
+    #                 # data_v = Variable(data, volatile=True)
+    #                 out   = model(data, sample=True)
+    #                 out_sample = sample_op(out)
+    #                 data[:, :, i, j] = out_sample.data[:, :, i, j]
+
+    #     return data
 
 
 
@@ -434,18 +654,8 @@ class AR_Prior(Layer):
 
     def reverse_(self, x, objective, args=None):
         bs, c, h, w = self.input_shape
-        bs = args.sample_size
-
         samp = torch.zeros(bs, c, h, w).cuda()
         for i in range(h):
-
-            if args:
-                if args.special_sample:
-                    if i%5==0:
-                        print ('h', i, '/'+str(h))
-
-
-
             for j in range(w):
                 mean_and_logsd   = self.model(samp)
                 mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
@@ -454,38 +664,8 @@ class AR_Prior(Layer):
                 # logsd = (torch.tanh(logsd /4.) * 4.) -2.
                 logsd = (torch.tanh(logsd /self.lm ) * self.lm ) - (self.lm /2.)
 
-                x_ = torch.zeros(bs, c, h, w).cuda()
-
-                if args:
-                    if args.special_sample:
-                        for ii in range (bs):
-
-                            if ii < 32:
-                                if ii < i:
-                                    eps = torch.zeros_like(mean).normal_().cuda()
-                                    x_[ii] = mean[ii] + torch.exp(logsd)[ii] * eps[ii] 
-                                else:
-                                    x_[ii] = mean[ii]
-
-                                # x_[i*j:] = mean[i*j:]
-                                # x_[:i*j] = mean[i*j:] + torch.exp(logsd)[i*j:] * torch.zeros_like(mean).normal_().cuda()[i*j:]
-                            else:
-                                if ii-32 > i:
-                                    eps = torch.zeros_like(mean).normal_().cuda()
-                                    x_[ii] = mean[ii] + torch.exp(logsd)[ii] * eps[ii] 
-                                else:
-                                    x_[ii] = mean[ii]                            
-
-
-                        # if i < args.special_h:
-                        #     x_ = mean 
-
-                    else:
-                        eps = torch.zeros_like(mean).normal_().cuda()
-                        x_ = mean + torch.exp(logsd) * eps 
-                else:
-                    eps = torch.zeros_like(mean).normal_().cuda()
-                    x_ = mean + torch.exp(logsd) * eps 
+                eps = torch.zeros_like(mean).normal_().cuda()
+                x_ = mean + torch.exp(logsd) * eps 
 
                 samp[:, :, i, j] = x_[:, :, i, j]
 
@@ -502,6 +682,34 @@ class AR_Prior(Layer):
         LL = LL.view(B,-1).sum(-1)
         objective -= LL
 
+
+
+        # if args is not None and 'temp' in args:
+        #     temp = args['temp']
+        # else:
+        #     temp =1.
+
+        # if args is not None and 'batch_size' in args:
+        #     bs = args['batch_size']
+
+
+        # mean_and_logsd = torch.cuda.FloatTensor(bs, 2 * c, h, w).fill_(0.)
+        
+        # # if self.conv: 
+        # mean_and_logsd = self.conv(mean_and_logsd)
+
+        # mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
+
+        # logsd = torch.clamp(logsd, min=-6., max=2.)
+
+
+
+
+        # pz = gaussian_diag(mean, logsd, temp=temp)
+        # z = pz.sample() if x is None else x
+        # objective -= pz.logp(z)
+
+        # this way, you can encode and decode back the same image. 
         return samp1, objective
          
 
@@ -1498,7 +1706,7 @@ class Glow_(LayerList, nn.Module):
         
         for i in range(args.n_levels):
 
-            if W > 20:
+            if W > 10:
                 # Squeeze Layer 
                 layers += [Squeeze(input_shape)]
                 C, H, W = C * 4, H // 2, W // 2
@@ -1522,31 +1730,20 @@ class Glow_(LayerList, nn.Module):
                 C = C // 2
                 output_shapes += [(-1, C, H, W)]
 
-        if args.base_dist in ['AR', 'AttPrior']:
-            # while W > 30:
-            while W > 17:
-            # while W > 10:
-                # Squeeze Layer 
-                layers += [Squeeze(input_shape)]
-                C, H, W = C * 4, H // 2, W // 2
-                output_shapes += [(-1, C, H, W)]
-                # print (output_shapes)
-                # fads
-
-        # print (len(layers))
+        while W > 30:
+            # Squeeze Layer 
+            layers += [Squeeze(input_shape)]
+            C, H, W = C * 4, H // 2, W // 2
+            output_shapes += [(-1, C, H, W)]
+            # print (output_shapes)
+            # fads
 
         if args.base_dist == 'MoG':
             layers += [MoGPrior((B, C, H, W), args)]
         elif args.base_dist == 'AR':
             layers += [AR_Prior((B, C, H, W), args)]
-        elif args.base_dist == 'Gauss':
+        else:
             layers += [GaussianPrior((B, C, H, W), args)]
-        elif args.base_dist == 'AttPrior':
-            layers += [Att_Prior((B, C, H, W), args)]
-
-        # print (len(layers))
-
-
 
 
         output_shapes += [output_shapes[-1]]
@@ -1557,28 +1754,15 @@ class Glow_(LayerList, nn.Module):
         
         # for i in range(len(output_shapes)):
         #     print (i, output_shapes[i])
-        # fdsa
+        # # fdsa
 
         self.layers = nn.ModuleList(layers)
-        # print(len(self.layers))
-        # fadsf
-
-
-
-
         self.output_shapes = output_shapes
         self.args = args
-
-
         self.flatten()
 
 
-        # count=0
-        # for layer in self.layers:
-        #     print (count, str(layer)[:6])
-        #     count+=1
 
-        # fdad
 
 
     def forward(self, *inputs):
@@ -1643,15 +1827,6 @@ class Glow_(LayerList, nn.Module):
         torch.save(self.state_dict(), save_to)
         print ('saved params', save_to)
         
-
-
-
-
-
-
-
-
-
 
 
 

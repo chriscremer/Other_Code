@@ -24,8 +24,8 @@ import matplotlib.pyplot as plt
 from os.path import expanduser
 home = expanduser("~")
 
-import sys, os
-sys.path.insert(0, os.path.abspath(home+'/Other_Code/VLVAE/CLEVR/utils'))
+# import sys, os
+# sys.path.insert(0, os.path.abspath(home+'/Other_Code/VLVAE/CLEVR/utils'))
 
 
 from invertible_layers import * 
@@ -33,6 +33,7 @@ from utils import *
 
 
 from load_data import load_clevr, load_cifar, load_svhn
+
 
 
 
@@ -100,8 +101,10 @@ parser.add_argument('--max_steps', type=int, default=200000)
 
 parser.add_argument('--dataset', type=str)
 parser.add_argument('--quick', type=int, default=0)
-parser.add_argument('--vws', type=int, default=1)
 parser.add_argument('--save_output', type=int, default=0)
+
+# parser.add_argument('--vws', type=int, default=1)
+parser.add_argument('--machine', type=str, default='vws', choices=['vws', 'boltz', 'vector', 'vaughn'])  
 
 # parser.add_argument('--data_dir', type=str, default='../pixelcnn-pp')
 parser.add_argument('--data_dir', type=str, default=home +'/Documents')
@@ -214,7 +217,7 @@ def plot_curve2(results_dict, exp_dir):
 ###########################################################################################
 print ('\nExp:', args.exp_name)
 print ('gpu:', args.which_gpu)
-if args.which_gpu != 'all':
+if args.which_gpu != 'all' and args.machine not in ['vector', 'vaughn']:
     os.environ['CUDA_VISIBLE_DEVICES'] =  args.which_gpu #'1' # '0,1' #args.which_gpu #  '0' #'1' #
 
 exp_dir = args.save_to_dir + args.exp_name + '/'
@@ -264,10 +267,16 @@ if save_output:
 
 ###########################################################################################
 # LOAD DATA
-
+print ('\nLoading Data')
 if args.dataset=='clevr':
+
     # # CLEVR DATA
-    train_x, test_x = load_clevr(batch_size=args.batch_size, vws=args.vws, quick=args.quick)
+    if args.machine in ['vws', 'vector', 'vaughn']:
+        data_dir = home+ "/vl_data/two_objects_large/"  #vws
+    else:
+        data_dir = home+ "/VL/data/two_objects_no_occ/" #boltz 
+    
+    train_x, test_x = load_clevr(batch_size=args.batch_size, data_dir=data_dir, quick=args.quick)
 
 elif args.dataset=='cifar':
     # CIFAR DATA
@@ -280,7 +289,11 @@ elif args.dataset=='cifar':
     
 # dataset = train_x
 
-print (len(train_x), train_x[0].shape)
+print ('Batch size', args.batch_size)
+print ('Training Set', len(train_x), train_x[0].shape)
+print ('Test Set', len(test_x), test_x[0].shape)
+# print (torch.min(train_x[0]), torch.max(train_x[0]))
+# print (torch.min(test_x[0]), torch.max(test_x[0]))
 ###########################################################################################
 
 
@@ -291,6 +304,7 @@ print (len(train_x), train_x[0].shape)
 ###########################################################################################
 # Init Model
 # ------------------------------------------------------------------------------
+print ('\nInitializing Model')
 sampling_batch_size = 64
 shape = train_x[0].shape
 model = Glow_((sampling_batch_size, shape[0], shape[1], shape[2]), args).cuda()
@@ -298,10 +312,14 @@ model = Glow_((sampling_batch_size, shape[0], shape[1], shape[2]), args).cuda()
 print("number of model parameters:", sum([np.prod(p.size()) for p in model.parameters()]))
 # fasdfad
 # model = nn.DataParallel(model).cuda()
+# count =0
 for layer in model.layers:
-    if 'AR_P' in str(layer):
+    # print (count, str(layer)[:6])
+    # count+=1
+    if 'Att' in str(layer) or 'AR_P' in str(layer):
         print("number of AR parameters:", sum([np.prod(p.size()) for p in layer.parameters()]))
 ###########################################################################################
+
 
 
 
@@ -311,6 +329,7 @@ for layer in model.layers:
 ###########################################################################################
 # Optimizer, Param Init and Loaders
 # ------------------------------------------------------------------------------
+print ('Optimizer, Param Init and Loaders')
 # set up the optimizer
 optim = optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-10)
 # optim = optim.Adam(model.parameters(), lr=args.lr, weight_decay=.01)
@@ -383,6 +402,7 @@ iter_loader = iter(loader)
 ###########################################################################################
 # training loop
 # ------------------------------------------------------------------------------
+print ('\nTraining Beginning')
 max_steps = args.max_steps
 model.train()
 t = time.time()
@@ -391,6 +411,7 @@ t = time.time()
 results_dict = {}
 results_dict['steps'] = []
 results_dict['BPD'] = {}
+results_dict['BPD']['Train_Noisy'] = []
 results_dict['BPD']['Train'] = []
 results_dict['BPD']['Test'] = []
 if args.dataset=='cifar':
@@ -401,8 +422,8 @@ results_dict['T'] = []
 results_dict['BPD_sd'] = []
 
 
-for i in range(max_steps+1):
-    step = i + args.load_step
+for step_not_including_load in range(max_steps+1):
+    step = step_not_including_load + args.load_step
 
     try:
         img = next(iter_loader).cuda()
@@ -413,11 +434,13 @@ for i in range(max_steps+1):
         img = next(iter_loader).cuda()
 
 
+    # if step % 4 != 1:
     # dequantize
     img += torch.zeros_like(img).uniform_(0., 1./args.n_bins)
     img = torch.clamp(img, min=1e-5, max=1-1e-5)
     objective = torch.zeros_like(img[:, 0, 0, 0])
-    # discretizing cost 
+    # discretizing cost - NO! its just from the scaling. 
+    # We scale [0,255] to [0,1] so by chage of var formula, we gotta do this 
     objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
     # log_det_jacobian cost (and some prior from Split OP)
     z, objective = model(img, objective)
@@ -425,36 +448,49 @@ for i in range(max_steps+1):
     # Generative loss
     nobj = torch.mean(nll_train)
 
+    nobj_opt = nobj
+
+    # else:
+
+    #     with torch.no_grad():
+    #         #Get generated data 
+    #         args.sample_size = args.batch_size 
+    #         args.special_sample = False
+    #         sample = model.module.sample(args)
+    #         # print (sample.shape)
+
+    #     img = torch.clamp(sample, min=1e-5, max=1-1e-5)
+    #     objective = torch.zeros_like(img[:, 0, 0, 0])
+    #     objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+    #     z, objective = model(img, objective)
+    #     nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+    #     nobj_generated = torch.mean(nll)
+
+    #     nobj_opt = -nobj_generated
 
 
 
-    if (nobj!=nobj).any():
+    if (nobj_opt!=nobj_opt).any():
         print ('step', step, '  -nans in obj!!')
         print ('z', (z!=z).any())
-        print (nobj)
-
-
+        print (nobj_opt)
         fafad
 
 
     # if I dont just want to plot
     if args.plotimages_every != 1: 
-
         optim.zero_grad()
-        nobj.backward()
-
+        nobj_opt.backward()
         torch.nn.utils.clip_grad_value_(model.parameters(), 5)
         # torch.nn.utils.clip_grad_value_(model.parameters(), 1)
-
         torch.nn.utils.clip_grad_norm_(model.parameters(), 100)
         # torch.nn.utils.clip_grad_norm_(model.parameters(), 20)
-
-
-
         optim.step()
         lr_sched.step()
-
         ###########################################################################################
+
+
+
 
 
 
@@ -475,60 +511,64 @@ for i in range(max_steps+1):
 
     ###########################################################################################
     if step %args.print_every == 0:
+
         T=time.time() - t
-        # print(step, 'T:{:.1f}'.format(T), 
-        #         'C:{:.2f}'.format(float(nobj.data.cpu().numpy())), 
-        #         'lr', lr_sched.get_lr()[0])
-        myprint( (step, 'T:{:.1f}'.format(T), 
-                'C:{:.2f}'.format(float(nobj.data.cpu().numpy())), 
-                'lr', lr_sched.get_lr()[0]) ) 
         t = time.time()
+    
+        with torch.no_grad():
 
 
-        if step > 5:
+            #Get non-noisy train set likelihood
+            test_loader = torch.utils.data.DataLoader(train_x, batch_size=min(100,len(train_x)), 
+                                shuffle=True, num_workers=1, drop_last=True)
+            iter_test_loader = iter(test_loader)
+            img = next(iter_test_loader).cuda()
+            img = torch.clamp(img, min=1e-5, max=1-1e-5)
+            objective = torch.zeros_like(img[:, 0, 0, 0])
+            objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+            z, objective = model(img, objective)
+            nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+            nobj_train = torch.mean(nll)
 
-            # RECORD DATA
-            results_dict['steps'].append(step)
-            results_dict['BPD']['Train'].append(float(nobj.data.cpu().numpy()))
-            results_dict['lr'].append(lr_sched.get_lr()[0])
-            results_dict['T'].append(T)
 
-            with torch.no_grad():
+            
+            #Get test set likelihood
+            test_loader = torch.utils.data.DataLoader(test_x, batch_size=min(100,len(test_x)), 
+                                shuffle=True, num_workers=1, drop_last=True)
+            iter_test_loader = iter(test_loader)
+            img = next(iter_test_loader).cuda()
+            img = torch.clamp(img, min=1e-5, max=1-1e-5)
+            objective = torch.zeros_like(img[:, 0, 0, 0])
+            objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+            z, objective = model(img, objective)
+            nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+            nobj_test = torch.mean(nll)
 
-                
-                #Get test set likelihood
-                test_loader = torch.utils.data.DataLoader(test_x, batch_size=min(100,len(train_x)), 
+
+
+
+            if args.dataset=='cifar':
+                #Get svhn set likelihood
+                test_loader = torch.utils.data.DataLoader(svhn_test_x, batch_size=min(100,len(svhn_test_x)), 
                                     shuffle=True, num_workers=1, drop_last=True)
                 iter_test_loader = iter(test_loader)
-
                 img = next(iter_test_loader).cuda()
-
                 img = torch.clamp(img, min=1e-5, max=1-1e-5)
                 objective = torch.zeros_like(img[:, 0, 0, 0])
                 objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
                 z, objective = model(img, objective)
                 nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
-                nobj_test = torch.mean(nll)
+                nobj_test_svhn = torch.mean(nll)
 
-                if args.dataset=='cifar':
 
-                    #Get svhn set likelihood
-                    test_loader = torch.utils.data.DataLoader(svhn_test_x, batch_size=min(100,len(train_x)), 
-                                        shuffle=True, num_workers=1, drop_last=True)
-                    iter_test_loader = iter(test_loader)
 
-                    img = next(iter_test_loader).cuda()
 
-                    img = torch.clamp(img, min=1e-5, max=1-1e-5)
-                    objective = torch.zeros_like(img[:, 0, 0, 0])
-                    objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
-                    z, objective = model(img, objective)
-                    nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
-                    nobj_test_svhn = torch.mean(nll)
-
+            if step > 125 and args.plotimages_every != 1:
 
                 #Get generated data likelihood
-                sample = model.module.sample()
+                args.sample_size = sampling_batch_size
+                args.special_sample = False #True #False
+                sample = model.module.sample(args)
                 img = torch.clamp(sample, min=1e-5, max=1-1e-5)
                 objective = torch.zeros_like(img[:, 0, 0, 0])
                 objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
@@ -537,12 +577,30 @@ for i in range(max_steps+1):
                 nobj_generated = torch.mean(nll)
 
 
+                # RECORD DATA
+                results_dict['steps'].append(step)
+                results_dict['BPD']['Train_Noisy'].append(numpy(nobj))
+                results_dict['BPD']['Train'].append(numpy(nobj_train))
+                results_dict['lr'].append(lr_sched.get_lr()[0])
+                results_dict['T'].append(T)
+                results_dict['BPD']['Test'].append(numpy(nobj_test))
+                results_dict['BPD']['Generated'].append(numpy(nobj_generated))
+                results_dict['BPD_sd'].append(np.std(numpy(nll_train)))
+                if args.dataset=='cifar':
+                    results_dict['BPD']['SVHN'].append(numpy(nobj_test_svhn))
 
-            if args.dataset=='cifar':
-                results_dict['BPD']['SVHN'].append(numpy(nobj_test_svhn))
-            results_dict['BPD']['Test'].append(numpy(nobj_test))
-            results_dict['BPD']['Generated'].append(numpy(nobj_generated))
-            results_dict['BPD_sd'].append(np.std(numpy(nll_train)))
+
+        
+        # print(step, 'T:{:.1f}'.format(T), 
+        #         'C:{:.2f}'.format(float(nobj.data.cpu().numpy())), 
+        #         'lr', lr_sched.get_lr()[0])
+        myprint( (step, 'T:{:.1f}'.format(T), 
+                'C:{:.2f}'.format(numpy(nobj)), 
+                'C_train:{:.2f}'.format(numpy(nobj_train)), 
+                'C_test:{:.2f}'.format(numpy(nobj_test)), 
+                'lr', lr_sched.get_lr()[0]) ) 
+
+
 
 
 
@@ -565,55 +623,60 @@ for i in range(max_steps+1):
 
         with torch.no_grad():
 
-            if args.base_dist == 'Gauss':
-                model_args = {}
-                temps = [.5,1.,1.5,2.]
-                for temp_i in range(len(temps)):
+            # if args.base_dist == 'Gauss':
+            #     model_args = {}
+            #     temps = [.5,1.,1.5,2.]
+            #     for temp_i in range(len(temps)):
 
-                    model_args['temp'] = temps[temp_i]
+            #         model_args['temp'] = temps[temp_i]
 
-                    sample = model.sample(model_args)
+            #         sample = model.sample(model_args)
 
-                    sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
-
-
-                    # print (torch.min(sample), torch.max(sample), sample.shape)
-
-                    objective = torch.zeros_like(sample[:, 0, 0, 0]) + float(-np.log(args.n_bins) * np.prod(sample.shape[1:]))
-                    z, objective = model(sample, objective)
-                    nll = (-objective) / float(np.log(2.) * np.prod(sample.shape[1:]))
-                    nobj_sample = torch.mean(nll)
-
-                    print (temps[temp_i], nobj_sample)
+            #         sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
 
 
-                    if (sample!=sample).any():
-                        print ('nans in sample!!')
-                        # fafad
+            #         # print (torch.min(sample), torch.max(sample), sample.shape)
 
-                    sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
-                    grid = utils.make_grid(sample)
-                    img_file = images_dir +'plot'+str(step)+'_temp' +str(temp_i) + '.png'
+            #         objective = torch.zeros_like(sample[:, 0, 0, 0]) + float(-np.log(args.n_bins) * np.prod(sample.shape[1:]))
+            #         z, objective = model(sample, objective)
+            #         nll = (-objective) / float(np.log(2.) * np.prod(sample.shape[1:]))
+            #         nobj_sample = torch.mean(nll)
 
-                    utils.save_image(grid, img_file)
-                    # print ('saved', img_file)
-                print ('saved images')
-
-            else:
+            #         print (temps[temp_i], nobj_sample)
 
 
-                sample = model.module.sample()
+            #         if (sample!=sample).any():
+            #             print ('nans in sample!!')
+            #             # fafad
 
-                # sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
-                grid = utils.make_grid(sample)
-                img_file = images_dir +'plot'+str(step)+'.png'
+            #         sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
+            #         grid = utils.make_grid(sample)
+            #         img_file = images_dir +'plot'+str(step)+'_temp' +str(temp_i) + '.png'
 
-                utils.save_image(grid, img_file)
-                # print ('saved', img_file)
-                print ('saved images')
+            #         utils.save_image(grid, img_file)
+            #         # print ('saved', img_file)
+            #     print ('saved images')
+
+            # else:
+
+            args.special_sample = False #True #False
+            args.special_h = 8 #24
+
+            args.sample_size = sampling_batch_size
+            sample = model.module.sample(args)
 
 
-            if step / args.plotimages_every ==1:
+            # sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
+            grid = utils.make_grid(sample)
+            img_file = images_dir +'plot'+str(step)+'.png'
+
+            utils.save_image(grid, img_file)
+            # print ('saved', img_file)
+            print ('saved image', img_file)
+
+
+
+            if ( ((step_not_including_load/args.plotimages_every) ==1 ) or (args.plotimages_every ==1 and step_not_including_load==0)) and args.plotimages_every != 1:
 
                 init_loader = torch.utils.data.DataLoader(train_x, batch_size=min(64,len(train_x)), 
                                     shuffle=True, num_workers=1, drop_last=True)
@@ -625,13 +688,24 @@ for i in range(max_steps+1):
                 print ('saved', img_file)
 
 
+                init_loader = torch.utils.data.DataLoader(test_x, batch_size=min(64,len(train_x)), 
+                                    shuffle=True, num_workers=1, drop_last=True)
+                iter_loader_init = iter(init_loader)
+                img = next(iter_loader_init)
+                grid = utils.make_grid(img)
+                img_file = images_dir +'realimages_test.png'
+                utils.save_image(grid, img_file)
+                print ('saved', img_file)
+
+
             if args.plotimages_every == 1: 
                 dfadfdasf
 
 
 
+
     ###########################################################################################
-    if step % args.save_every ==0 and i > 0:
+    if step % args.save_every ==0 and step_not_including_load > 0:
 
         for f in os.listdir(params_dir):
             if 'model_params' in f:
@@ -684,6 +758,45 @@ print ('Done.')
 
 
 
+            # print ('Getting Full Test Set PBD')
+            # #Get test set likelihood
+            # test_loader = torch.utils.data.DataLoader(test_x, batch_size=min(100,len(train_x)), 
+            #                     shuffle=False, num_workers=1, drop_last=True)
+            # iter_test_loader = iter(test_loader)
+
+            # LLs = []
+            # count = 0
+            # while 1:
+            #     try:
+            #         img = next(iter_test_loader).cuda()
+            #     except:
+            #         break
+
+            #     count += len(img)
+
+
+            #     img += torch.zeros_like(img).uniform_(0., 1./args.n_bins)
+
+
+            #     grid = utils.make_grid(img)
+            #     img_file = images_dir +'realimages'+str(count)+'.png'
+            #     utils.save_image(grid, img_file)
+            #     print ('saved', img_file)
+
+
+            #     img = torch.clamp(img, min=1e-5, max=1-1e-5)
+            #     objective = torch.zeros_like(img[:, 0, 0, 0])
+            #     objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+            #     z, objective = model(img, objective)
+            #     nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+            #     nobj = torch.mean(nll)
+
+            #     LLs.append(numpy(nobj))
+
+            #     print (count, np.mean(LLs), np.std(LLs), numpy(nobj))
+
+            # print ('FULL Test set BPD', np.mean(LLs), np.std(LLs))
+            # fsdafa
 
 
 
@@ -692,6 +805,15 @@ print ('Done.')
 
 
 
+
+            # if step_not_including_load == 1:
+            #     if (img == img11).all():
+            #         print ('yer')
+            #         ffas
+            #     else:
+            #         print ('ner')
+            #         fadfad
+            # img11 = img.clone()
 
 
 

@@ -1,16 +1,22 @@
-
+#!/bin/sh
+#VECTOR CLUSTER
+#SBATCH --gres=gpu:1
+#SBATCH --partition=gpu
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=10GB
+#SBATCH --job-name=myJob
+#SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
 export PATH=$PATH:/h/ccremer/anaconda3/bin
 source activate test_env
-# conda info --envs
-python3 train3.py  --exp_name "FlowAR_clevr" \
-								--vws 1 \
+python3 train3.py  --exp_name "FlowAR_clevr_cauchy" \
+								--machine 'vector' \
 								--which_gpu '0' \
 								--dataset 'clevr' \
 								--data_dir "$HOME/Documents/" \
 								--save_to_dir "$HOME/Documents/glow_clevr/" \
 								--batch_size 8 \
-								--load_step 20000 \
-								--load_dir "$HOME/Documents/glow_clevr/FlowAR_clevr/params/" \
+								--load_step 0 \
+								--load_dir "$HOME/Documents/glow_clevr/FlowAR_larger_larger/params/" \
 								--print_every 200 \
 								--curveplot_every 2000 \
 								--plotimages_every 2000 \
@@ -20,13 +26,392 @@ python3 train3.py  --exp_name "FlowAR_clevr" \
 								--depth 32 \
 								--hidden_channels 512 \
 								--AR_resnets 5 \
-								--AR_channels 64 \
+								--AR_channels 128 \
 								--coupling 'affine' \
 								--permutation 'shuffle' \
 								--base_dist 'AR' \
-								--lr 6e-5\
+								--lr 1e-4 \
 								--quick 0 \
-								--save_output 0\
+								--save_output 0 \
+
+
+
+
+
+
+
+# #!/bin/sh
+# #VECTOR CLUSTER
+# #SBATCH --gres=gpu:1
+# #SBATCH --partition=gpu
+# #SBATCH --cpus-per-task=2
+# #SBATCH --mem=10GB
+# #SBATCH --job-name=myJob
+# #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# python3 train3.py  --exp_name "FlowAR_clevr_test2" \
+# 								--machine 'vector' \
+# 								--which_gpu '0' \
+# 								--dataset 'clevr' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 8 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/FlowAR_larger_larger/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 2000 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 32 \
+# 								--hidden_channels 512 \
+# 								--AR_resnets 5 \
+# 								--AR_channels 128 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AR' \
+# 								--lr 1e-4 \
+# 								--quick 0 \
+# 								--save_output 0 \
+
+
+
+
+
+
+
+
+# #!/bin/sh
+# #VECTOR CLUSTER
+# #SBATCH --gres=gpu:1
+# #SBATCH --partition=gpu
+# #SBATCH --cpus-per-task=2
+# #SBATCH --mem=10GB
+# #SBATCH --job-name=myJob
+# #SBATCH --output=/h/ccremer/Documents/glow_clevr/slurm_outputs/slurm_%j.out
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# python3 train3.py  --exp_name "FlowAR_clevr_test_minsamples" \
+# 								--machine 'vector' \
+# 								--which_gpu '0' \
+# 								--dataset 'clevr' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 16 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/FlowAR_larger_larger/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 2000 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 32 \
+# 								--hidden_channels 256 \
+# 								--AR_resnets 5 \
+# 								--AR_channels 64 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AR' \
+# 								--lr 1e-4 \
+# 								--quick 0 \
+# 								--save_output 0 \
+
+
+
+
+
+
+
+# # VWS
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# python3 train3.py  --exp_name "FlowAR_larger_larger_sample" \
+# 								--vws 1 \
+# 								--which_gpu '0' \
+# 								--dataset 'cifar' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 32 \
+# 								--load_step 200000 \
+# 								--load_dir "$HOME/Documents/glow_clevr/FlowAR_larger_larger/params/" \
+# 								--print_every 10 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 1 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 32 \
+# 								--hidden_channels 1024 \
+# 								--AR_resnets 5 \
+# 								--AR_channels 128 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AR' \
+# 								--lr 1e-5\
+# 								--quick 0 \
+# 								--save_output 0\
+
+
+
+
+
+
+
+
+
+
+
+
+
+# # VWS
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# # conda info --envs
+# python3 train3.py  --exp_name "FlowAR_clevr_testatt2" \
+# 								--vws 1 \
+# 								--which_gpu '0' \
+# 								--dataset 'clevr' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 8 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/FlowAR_clevr_sdlowerlimit/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 2000 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 32 \
+# 								--hidden_channels 512 \
+# 								--AR_resnets 3 \
+# 								--AR_channels 64 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AttPrior' \
+# 								--lr 1e-4\
+# 								--quick 0 \
+# 								--save_output 0\
+
+
+
+
+
+
+
+
+# # VWS
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# # conda info --envs
+# python3 train3.py  --exp_name "FlowAR_clevr_testatt" \
+# 								--vws 1 \
+# 								--which_gpu '0' \
+# 								--dataset 'clevr' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 8 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/FlowAR_clevr_sdlowerlimit/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 2000 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 32 \
+# 								--hidden_channels 512 \
+# 								--AR_resnets 3 \
+# 								--AR_channels 64 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AttPrior' \
+# 								--lr 1e-4\
+# 								--quick 1 \
+# 								--save_output 0\
+
+
+
+
+
+
+# # VWS
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# # conda info --envs
+# python3 train3.py  --exp_name "FlowAR_clevr_squeezedoutput" \
+# 								--vws 1 \
+# 								--which_gpu '0' \
+# 								--dataset 'clevr' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 8 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/FlowAR_clevr_sdlowerlimit/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 2000 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 32 \
+# 								--hidden_channels 512 \
+# 								--AR_resnets 3 \
+# 								--AR_channels 64 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AR' \
+# 								--lr 1e-4\
+# 								--quick 1 \
+# 								--save_output 0\
+
+
+
+
+
+
+
+
+
+
+# # VWS
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# # conda info --envs
+# python3 train3.py  --exp_name "FlowAR_clevr_sdlowerlimit" \
+# 								--vws 1 \
+# 								--which_gpu '0' \
+# 								--dataset 'clevr' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 8 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/FlowAR_clevr/params/" \
+# 								--print_every 400 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 4000 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 32 \
+# 								--hidden_channels 512 \
+# 								--AR_resnets 5 \
+# 								--AR_channels 64 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AR' \
+# 								--lr 1e-4\
+# 								--quick 0 \
+# 								--save_output 0\
+
+
+
+
+
+
+# # VWS
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# python3 train3.py  --exp_name "FlowAR_larger_larger_continued_quick" \
+# 								--vws 1 \
+# 								--which_gpu '0' \
+# 								--dataset 'cifar' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 32 \
+# 								--load_step 200000 \
+# 								--load_dir "$HOME/Documents/glow_clevr/FlowAR_larger_larger/params/" \
+# 								--print_every 1 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 1 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 32 \
+# 								--hidden_channels 1024 \
+# 								--AR_resnets 5 \
+# 								--AR_channels 128 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AR' \
+# 								--lr 1e-5\
+# 								--quick 0 \
+# 								--save_output 0\
+
+
+
+
+
+
+
+# # VWS
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# # conda info --envs
+# python3 train3.py  --exp_name "FlowAR_clevr_quickviz" \
+# 								--vws 1 \
+# 								--which_gpu '0' \
+# 								--dataset 'clevr' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 8 \
+# 								--load_step 200000 \
+# 								--load_dir "$HOME/Documents/glow_clevr/FlowAR_clevr/params/" \
+# 								--print_every 1 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 2000 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 32 \
+# 								--hidden_channels 512 \
+# 								--AR_resnets 5 \
+# 								--AR_channels 64 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AR' \
+# 								--lr 6e-10\
+# 								--quick 1 \
+# 								--save_output 0\
+
+
+
+
+
+
+
+
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# # conda info --envs
+# python3 train3.py  --exp_name "FlowAR_clevr" \
+# 								--vws 1 \
+# 								--which_gpu '0' \
+# 								--dataset 'clevr' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 8 \
+# 								--load_step 20000 \
+# 								--load_dir "$HOME/Documents/glow_clevr/FlowAR_clevr/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 2000 \
+# 								--plotimages_every 2000 \
+# 								--save_every 20000 \
+# 								--max_steps 200000 \
+# 								--n_levels 1 \
+# 								--depth 32 \
+# 								--hidden_channels 512 \
+# 								--AR_resnets 5 \
+# 								--AR_channels 64 \
+# 								--coupling 'affine' \
+# 								--permutation 'shuffle' \
+# 								--base_dist 'AR' \
+# 								--lr 6e-5\
+# 								--quick 0 \
+# 								--save_output 0\
 
 
 
