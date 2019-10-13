@@ -35,19 +35,23 @@ import torch.nn as nn
 
 # from scipy.misc import toimage
 
-# from vae import VAE
-# from inference_net import Inference_Net
+from vae import VAE
+from inference_net import Inference_Net
 
-from vae_grid import VAE
+
+# from vae_grid import VAE
+# from inference_net_grid import Inference_Q
+
 
 # from inference_net_grid import Inference_Net
-from inference_net_grid import Inference_Q
-
 # fdsfas
 
 # print (sys.path)
 
 # fdsaf
+
+def gather_flat_grad(loss_grad):
+    return torch.cat([p.view(-1) for p in loss_grad]) #g_vector
 
 def unpickle(file):
 
@@ -137,11 +141,11 @@ def train(model, train_x, train_y, valid_x, valid_y,
 
     list_recorded_values = [ 
             'all_steps', 'all_warmup',
-            'all_train_elbos', 'all_valid_elbos', 'all_svhn_elbos', 
-            'all_train_logpx', 'all_valid_logpx', 'all_svhn_logpx', 
-            'all_train_logpz', 'all_valid_logpz', 'all_svhn_logpz', 
-            'all_train_logqz', 'all_valid_logqz', 'all_svhn_logqz', 
-            'all_train_bpd', 'all_valid_bpd', 'all_svhn_bpd', 
+            'all_train_elbos', #'all_valid_elbos', #'all_svhn_elbos', 
+            'all_train_logpx', #'all_valid_logpx', #'all_svhn_logpx', 
+            'all_train_logpz', #'all_valid_logpz', #'all_svhn_logpz', 
+            'all_train_logqz', #'all_valid_logqz', #'all_svhn_logqz', 
+            'all_train_bpd', #'all_valid_bpd', #'all_svhn_bpd', 
     ]
 
     for label in list_recorded_values:
@@ -177,13 +181,45 @@ def train(model, train_x, train_y, valid_x, valid_y,
             # fasdf
 
 
-            model.optimizer_x.zero_grad()
-            # outputs = model.forward(x=batch.cuda(), warmup=warmup) 
+            # if thign: 
+            #     model.optimizer_x.zero_grad()
+            #     # outputs = model.forward(x=batch.cuda(), warmup=warmup) 
+            #     outputs = model_parallel.forward(x=batch.cuda(), warmup=warmup) 
+            #     loss = -outputs['welbo']
+            #     loss.backward()
+            #     model.optimizer_x.step()
+            #     model.scheduler_x.step()
+
+            # else:
+
+
             outputs = model_parallel.forward(x=batch.cuda(), warmup=warmup) 
             loss = -outputs['welbo']
+            # grad__ = torch.autograd.grad(loss, model_parallel.module.decoder_params[0], create_graph=True)
+            # flat_grad = gather_flat_grad(grad__)
+            # # print (flat_grad.shape)
+            # flat_grad_norm = torch.sqrt(torch.sum(flat_grad**2)) / 20
+            # loss = loss + flat_grad_norm
+            flat_grad_norm = 0
+            model.optimizer_enc.zero_grad()
+            loss.backward(retain_graph=True)
+            model.optimizer_enc.step()
+
+
+            outputs = model_parallel.forward(x=batch.cuda(), warmup=warmup) 
+            loss = -outputs['welbo']
+            model.optimizer_dec.zero_grad()
             loss.backward()
-            model.optimizer_x.step()
-            model.scheduler_x.step()
+            model.optimizer_dec.step()
+
+
+
+            # print(len(grad__))
+            # for iii in range(len(grad__)):
+            #     print(grad__[iii].shape)
+
+
+            # dfads
 
 
             # #just a test
@@ -191,24 +227,24 @@ def train(model, train_x, train_y, valid_x, valid_y,
             # loss2 = svhn_outputs['welbo']
             # loss = loss + loss2*.1
 
-            # if step % 2 ==0:
-            if step % 1 ==0:
+            # # if step % 2 ==0:
+            # if step % 1 ==0:
 
-                infnet_valid.optimizer_x.zero_grad()
-                valid_outputs = model.forward(x=get_batch(valid_x, batch_size).cuda(), warmup=1., inf_net=infnet_valid) 
-                loss = -valid_outputs['welbo']
-                loss.backward()
-                infnet_valid.optimizer_x.step()
-                infnet_valid.scheduler_x.step()
+            #     infnet_valid.optimizer_x.zero_grad()
+            #     valid_outputs = model.forward(x=get_batch(valid_x, batch_size).cuda(), warmup=1., inf_net=infnet_valid) 
+            #     loss = -valid_outputs['welbo']
+            #     loss.backward()
+            #     infnet_valid.optimizer_x.step()
+            #     infnet_valid.scheduler_x.step()
 
-                infnet_svhn.optimizer_x.zero_grad()
-                svhn_outputs = model.forward(x=get_batch(svhn, batch_size).cuda(), warmup=1., inf_net=infnet_svhn) 
-                loss = -svhn_outputs['welbo']
-                loss.backward()
-                infnet_svhn.optimizer_x.step()
-                infnet_svhn.scheduler_x.step()
+            #     infnet_svhn.optimizer_x.zero_grad()
+            #     svhn_outputs = model.forward(x=get_batch(svhn, batch_size).cuda(), warmup=1., inf_net=infnet_svhn) 
+            #     loss = -svhn_outputs['welbo']
+            #     loss.backward()
+            #     infnet_svhn.optimizer_x.step()
+            #     infnet_svhn.scheduler_x.step()
 
-            # outputs = svhn_outputs
+            # # outputs = svhn_outputs
 
 
 
@@ -224,11 +260,13 @@ def train(model, train_x, train_y, valid_x, valid_y,
                     'lpx:{:.4f}'.format(outputs['logpx'].data.item()),
                     'lpz:{:.4f}'.format(outputs['logpz'].data.item()),
                     'lqz:{:.4f}'.format(outputs['logqz'].data.item()),
-                    'lpx_v:{:.4f}'.format(valid_outputs['logpx'].data.item()),
-                    'lpz_v:{:.4f}'.format(valid_outputs['logpz'].data.item()),
-                    'lqz_v:{:.4f}'.format(valid_outputs['logqz'].data.item()),
+                    # 'lpx_v:{:.4f}'.format(valid_outputs['logpx'].data.item()),
+                    # 'lpz_v:{:.4f}'.format(valid_outputs['logpz'].data.item()),
+                    # 'lqz_v:{:.4f}'.format(valid_outputs['logqz'].data.item()),
                     'warmup:{:.4f}'.format(warmup),
+                    'flat_grad_norm:{:.2f}'.format(flat_grad_norm),
                     ))
+                fsdfa
 
                 start_time = time.time()
 
@@ -245,24 +283,24 @@ def train(model, train_x, train_y, valid_x, valid_y,
                     all_dict['all_steps'].append(step+load_step)
                     all_dict['all_warmup'].append(warmup)
                     all_dict['all_train_elbos'].append(outputs['elbo'].data.item())
-                    all_dict['all_valid_elbos'].append(valid_outputs['elbo'].data.item())
-                    all_dict['all_svhn_elbos'].append(svhn_outputs['elbo'].data.item())
+                    # all_dict['all_valid_elbos'].append(valid_outputs['elbo'].data.item())
+                    # all_dict['all_svhn_elbos'].append(svhn_outputs['elbo'].data.item())
 
                     all_dict['all_train_logpx'].append(outputs['logpx'].data.item())
-                    all_dict['all_valid_logpx'].append(valid_outputs['logpx'].data.item())
-                    all_dict['all_svhn_logpx'].append(svhn_outputs['logpx'].data.item())
+                    # all_dict['all_valid_logpx'].append(valid_outputs['logpx'].data.item())
+                    # all_dict['all_svhn_logpx'].append(svhn_outputs['logpx'].data.item())
         
                     all_dict['all_train_logpz'].append(outputs['logpz'].data.item())
-                    all_dict['all_valid_logpz'].append(valid_outputs['logpz'].data.item())
-                    all_dict['all_svhn_logpz'].append(svhn_outputs['logpz'].data.item())
+                    # all_dict['all_valid_logpz'].append(valid_outputs['logpz'].data.item())
+                    # all_dict['all_svhn_logpz'].append(svhn_outputs['logpz'].data.item())
 
                     all_dict['all_train_logqz'].append(outputs['logqz'].data.item())
-                    all_dict['all_valid_logqz'].append(valid_outputs['logqz'].data.item())
-                    all_dict['all_svhn_logqz'].append(svhn_outputs['logqz'].data.item())
+                    # all_dict['all_valid_logqz'].append(valid_outputs['logqz'].data.item())
+                    # all_dict['all_svhn_logqz'].append(svhn_outputs['logqz'].data.item())
 
                     all_dict['all_train_bpd'].append(LL_to_BPD(outputs['elbo'].data.item()))
-                    all_dict['all_valid_bpd'].append(LL_to_BPD(valid_outputs['elbo'].data.item()))
-                    all_dict['all_svhn_bpd'].append(LL_to_BPD(svhn_outputs['elbo'].data.item()))
+                    # all_dict['all_valid_bpd'].append(LL_to_BPD(valid_outputs['elbo'].data.item()))
+                    # all_dict['all_svhn_bpd'].append(LL_to_BPD(svhn_outputs['elbo'].data.item()))
 
             if step % trainingplot_steps==0 and step > 0 and len(all_dict['all_train_elbos']) > 2:
                 plot_curves(model, save_dir, all_dict)
@@ -271,7 +309,9 @@ def train(model, train_x, train_y, valid_x, valid_y,
 
                 model.save_params_v3(save_dir=params_dir, step=step+load_step)
                 infnet_valid.save_params_v3(save_dir=params_dir, step=step+load_step, name='valid')
-                infnet_svhn.save_params_v3(save_dir=params_dir, step=step+load_step, name='svhn')
+                # infnet_svhn.save_params_v3(save_dir=params_dir, step=step+load_step, name='svhn')
+
+
 
             if step % viz_steps==0 and step > 0: 
 
@@ -279,13 +319,13 @@ def train(model, train_x, train_y, valid_x, valid_y,
                 with torch.no_grad():
                     train_recon = model.forward(x=train_x[:10].cuda(), warmup=1.)['x_recon']
                     valid_recon = model.forward(x=valid_x[:10].cuda(), warmup=1., inf_net=infnet_valid)['x_recon']
-                    svhn_recon = model.forward(x=svhn[:10].cuda(), warmup=1., inf_net=infnet_svhn)['x_recon']
+                    # svhn_recon = model.forward(x=svhn[:10].cuda(), warmup=1., inf_net=infnet_svhn)['x_recon']
                     sample_prior = model.sample_prior(z=z_prior)
                 model.train()
 
                 vizualize(images_dir, step+load_step, train_real=train_x[:10], train_recon=train_recon,
                                             valid_real=valid_x[:10], valid_recon=valid_recon,
-                                            svhn_real=svhn[:10], svhn_recon=svhn_recon,
+                                            svhn_real=valid_x[:10], svhn_recon=valid_recon,
                                             prior_samps=sample_prior)
 
 
@@ -309,9 +349,9 @@ def eval_model(model, train_x, train_y, valid_x, valid_y,
     LLs_valid = compute_LL(model, valid_x[:n_data], k=k)
     print ('Valid', np.mean(LLs_valid), np.std(LLs_valid))
     print()
-    LLs_svhn = compute_LL(model, svhn[:n_data], k=k, inf_net=infnet_svhn)
-    print ('SVHN', np.mean(LLs_svhn), np.std(LLs_svhn))
-    print()
+    # LLs_svhn = compute_LL(model, svhn[:n_data], k=k, inf_net=infnet_svhn)
+    # print ('SVHN', np.mean(LLs_svhn), np.std(LLs_svhn))
+    # print()
 
     plt.hist([LLs_train, LLs_valid, LLs_svhn])
     plt_path = save_dir+'LL_hist.png'
@@ -322,8 +362,8 @@ def eval_model(model, train_x, train_y, valid_x, valid_y,
 
     with torch.no_grad():
         train_recon = model.forward(x=train_x[:10].cuda(), warmup=1.)['x_recon']
-        valid_recon = model.forward(x=valid_x[:10].cuda(), warmup=1.)['x_recon']
-        svhn_recon = model.forward(x=svhn[:10].cuda(), warmup=1., inf_net=infnet_svhn)['x_recon']
+        # valid_recon = model.forward(x=valid_x[:10].cuda(), warmup=1.)['x_recon']
+        # svhn_recon = model.forward(x=svhn[:10].cuda(), warmup=1., inf_net=infnet_svhn)['x_recon']
         sample_prior = model.sample_prior(z=z_prior)
 
     # svhn_outputs = model.forward(x=svhn[:10].cuda(), warmup=1.)
@@ -331,8 +371,8 @@ def eval_model(model, train_x, train_y, valid_x, valid_y,
     # fsafd
 
     vizualize(images_dir, load_step, train_real=train_x[:10], train_recon=train_recon,
-                                valid_real=valid_x[:10], valid_recon=valid_recon,
-                                svhn_real=svhn[:10], svhn_recon=svhn_recon,
+                                valid_real=valid_x[:10], valid_recon=train_recon,
+                                svhn_real=svhn[:10], svhn_recon=train_recon,
                                 prior_samps=sample_prior)
 
 
@@ -764,7 +804,7 @@ if __name__ == "__main__":
     # parser.add_argument('--num_val_samples', default=None, type=int)
 
     parser.add_argument('--input_size', default=32, type=int)
-    parser.add_argument('--x_enc_size', default=500, type=int)
+    parser.add_argument('--x_enc_size', default=384, type=int)
     parser.add_argument('--z_size', default=50, type=int)
     parser.add_argument('--batch_size', default=64, type=int)
 
@@ -937,21 +977,21 @@ if __name__ == "__main__":
 
 
 
-    print ('SVHN')
-    import scipy.io
-    mat = scipy.io.loadmat(args.data_dir + '/SVHN/test_32x32.mat')
+    # print ('SVHN')
+    # import scipy.io
+    # mat = scipy.io.loadmat(args.data_dir + '/SVHN/test_32x32.mat')
 
-    # print (mat['X'].shape)
-    # print (mat['y'].shape)
+    # # print (mat['X'].shape)
+    # # print (mat['y'].shape)
 
-    svhn = mat['X'].transpose(3,2,0,1)
-    svhn = torch.from_numpy(svhn).float()
-    svhn = svhn / 256.
-    svhn = torch.clamp(svhn, min=1e-5, max=1-1e-5)
-    print (svhn.shape)
-    # print (torch.min(svhn))
-    # print (torch.max(svhn))
-    # fsdfa
+    # svhn = mat['X'].transpose(3,2,0,1)
+    # svhn = torch.from_numpy(svhn).float()
+    # svhn = svhn / 256.
+    # svhn = torch.clamp(svhn, min=1e-5, max=1-1e-5)
+    # print (svhn.shape)
+    # # print (torch.min(svhn))
+    # # print (torch.max(svhn))
+    # # fsdfa
 
 
 
@@ -970,27 +1010,30 @@ if __name__ == "__main__":
 
 
 
-    print ('\nInit inf net svhn')
-    # infnet_svhn = Inference_Net(args_dict)
-    infnet_svhn = Inference_Q(args_dict)
-    infnet_svhn.cuda()
-    if args.model_load_step>0:
-        infnet_svhn.load_params_v3(save_dir=args.params_load_dir, step=args.model_load_step, name='svhn')
-    # print(vae)
-    # fdsa
-    print ('inf net Initilized\n')
+    # print ('\nInit inf net svhn')
+    # # infnet_svhn = Inference_Net(args_dict)
+    # infnet_svhn = Inference_Q(args_dict)
+    # infnet_svhn.cuda()
+    # if args.model_load_step>0:
+    #     infnet_svhn.load_params_v3(save_dir=args.params_load_dir, step=args.model_load_step, name='svhn')
+    # # print(vae)
+    # # fdsa
+    # print ('inf net Initilized\n')
 
 
 
-    print ('\nInit inf net validaiton')
-    # infnet_valid = Inference_Net(args_dict)
-    infnet_valid = Inference_Q(args_dict)
-    infnet_valid.cuda()
-    if args.model_load_step>0:
-        infnet_valid.load_params_v3(save_dir=args.params_load_dir, step=args.model_load_step, name='valid')
-    # print(vae)
-    # fdsa
-    print ('inf net Initilized\n')
+    # print ('\nInit inf net validaiton')
+    # # infnet_valid = Inference_Net(args_dict)
+    # infnet_valid = Inference_Q(args_dict)
+    # infnet_valid.cuda()
+    # if args.model_load_step>0:
+    #     infnet_valid.load_params_v3(save_dir=args.params_load_dir, step=args.model_load_step, name='valid')
+    # # print(vae)
+    # # fdsa
+    # print ('inf net Initilized\n')
+
+
+
 
 
 
@@ -1079,23 +1122,6 @@ if __name__ == "__main__":
 
 
 
-
-
-
-
-
-
-# Example:
-
-#python3 train_jointVAE.py --multi 1 --max_beta 1 --train_classifier 0 --w_logpy 1000 --w_logpx .1 --joint_inf 0 --flow 1  --exp_name flow_qy --quick_check 1 --model_load_step 100000
-
-# python3 train_jointVAE.py --multi 1 --max_beta 1 --train_classifier 1 --w_logpy 1000 --w_logpx .1 --joint_inf 0 --z_size 20 --exp_name gaus_qy
-
-# python3 train_jointVAE.py --multi 1 --max_beta 1 --train_classifier 1 --w_logpy 1000 --w_logpx .1 --joint_inf 0 --z_size 20 --quick_check 1 
-
-# python3 train_jointVAE.py --multi 1 --max_beta 1 --train_classifier 1 --w_logpy 1000 --w_logpx .1 --joint_inf 0 --quick_check 1 --flow 1 --z_size 20
-
-# python3 train_jointVAE_v21.py --multi 1 --max_beta 1 --train_classifier 1 --w_logpy 20 --w_logpx .01 --joint_inf 0 --quick_check 1
 
 
 

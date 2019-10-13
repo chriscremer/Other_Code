@@ -1,6 +1,4 @@
 
-
-
 from os.path import expanduser
 home = expanduser("~")
 
@@ -323,12 +321,3 @@ plt.close(fig)
 
 
 fasdfa
-
-
-
-
-
-
-
-
-
