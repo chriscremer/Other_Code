@@ -49,8 +49,9 @@ import nvidia_smi
 
 # from nets import NN
 # from nets import NN2
-from nets import NN3 as NN
+from nets import NN4 as NN
 # from unets import UNet 
+
 
 
 
@@ -251,6 +252,25 @@ def plot_curve2(results_dict, exp_dir):
 
 
 
+def load_params_v3(model, save_dir, step):
+    save_to=os.path.join(save_dir, "model_params" + str(step)+".pt")
+    state_dict = torch.load(save_to)
+    # # # print (state_dict)
+    # for key, val in state_dict.items():
+    #     print (key)
+    # fddsf
+    model.load_state_dict(state_dict)
+    print ('loaded params', save_to)
+
+
+def save_params_v3(model, save_dir, step):
+    save_to=os.path.join(save_dir, "model_params" + str(step)+".pt")
+    torch.save(model.state_dict(), save_to)
+    print ('saved params', save_to)
+    
+
+
+
 
 
 
@@ -375,7 +395,7 @@ print (shape)
 
 
 ###########################################################################################
-# Init Model
+# Init Model, Optimizer, and Loaders
 # ------------------------------------------------------------------------------
 print ('\nInitializing Model')
 batch_size = args.batch_size
@@ -398,18 +418,7 @@ print("number of model parameters:", sum([np.prod(p.size()) for p in model.param
 #         print("number of AR parameters:", sum([np.prod(p.size()) for p in layer.parameters()]) / 1e6, 'Mil')
 
 get_gpu_mem('Model takes')
-###########################################################################################
 
-
-
-
-
-
-
-###########################################################################################
-# Optimizer, Param Init and Loaders
-# ------------------------------------------------------------------------------
-print ('Optimizer, Param Init and Loaders')
 # set up the optimizer
 optim = optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-10)
 # # optim = optim.Adam(model.parameters(), lr=args.lr, weight_decay=.01)
@@ -478,8 +487,8 @@ t = time.time()
 results_dict = {}
 results_dict['steps'] = []
 results_dict['loss'] = []
-results_dict['NLL'] = []
-results_dict['C2'] = []
+# results_dict['NLL'] = []
+# results_dict['C2'] = []
 # results_dict['BPD'] = {}
 # results_dict['BPD']['Train_Noisy'] = []
 # results_dict['BPD']['Train'] = []
@@ -534,12 +543,22 @@ for step_not_including_load in range(max_steps+1):
     img_preds = []
     img_preds_masked = []
     img_logsd_preds = []
-    error_preds = []
+    img_logsd_preds_vals = []
+    # error_preds = []
     true_error = []
     true_error_vals = []
 
-    k = 100
-    n_steps = 5
+    # k = 100
+    # n_steps = 5
+
+    if (step % args.plotimages_every == 0 or step %args.print_every == 0 ):
+        n_steps = 5
+        k = 100
+    else:
+        n_steps = np.random.randint(low=1, high=5)
+        k = np.random.randint(low=10, high=500)
+
+    
 
     for i_order in range(n_steps):
 
@@ -550,9 +569,19 @@ for step_not_including_load in range(max_steps+1):
 
         # print (input_.requires_grad)
         
-        mean, logsd, NLL_pred = model(input_)
+        # mean, logsd, NLL_pred = model(input_)
+        mean, logsd = model(input_)
         # logsd = torch.ones_like(logsd) * .1
 
+        # alpha = torch.exp(mean)
+        # beta = torch.exp(logsd)
+
+        # dist = torch.distributions.beta.Beta(concentration1=alpha, concentration0=beta)
+
+        # aa = dist.sample()
+
+        # print (aa.shape)
+        # fdas
 
 
         # grad = torch.autograd.grad(outputs=mean[0][0][55][55], inputs=input_)[0]
@@ -567,6 +596,7 @@ for step_not_including_load in range(max_steps+1):
 
 
         NLL_pixelavg = -torch.mean(logprob, dim=1)
+        logsd_pixelavg = torch.mean(logsd, dim=1)
 
         # print (NLL_pixelavg)
 
@@ -577,18 +607,18 @@ for step_not_including_load in range(max_steps+1):
         # print (torch.sum(allseenpixels_mask))
         
 
-        # Error prediction
-        error_pred_cost = (NLL_pixelavg.detach() - NLL_pred)**2
-        error_pred_cost = error_pred_cost * (1.-allseenpixels_mask.view(B,112,112))
-        # error_pred_cost = torch.sum(error_pred_cost.view(B,-1), dim=1)  
-        error_pred_cost = torch.mean(error_pred_cost)  
+        # # Error prediction
+        # error_pred_cost = (NLL_pixelavg.detach() - NLL_pred)**2
+        # error_pred_cost = error_pred_cost * (1.-allseenpixels_mask.view(B,112,112))
+        # # error_pred_cost = torch.sum(error_pred_cost.view(B,-1), dim=1)  
+        # error_pred_cost = torch.mean(error_pred_cost)  
 
 
         # Compute lieklihood on the pixels we sample, if its the last one, youre smapling all remaining pixels
         if i_order != n_steps-1:
             
             # Get top error pixels - ie defining sampling order
-            NLL_pred_scaled = NLL_pred - torch.min(NLL_pred) #shift so 0 is lowest
+            NLL_pred_scaled = logsd_pixelavg - torch.min(logsd_pixelavg) #shift so 0 is lowest
             NLL_pred_scaled = NLL_pred_scaled * (1.-allseenpixels_mask.view(B,112,112))  #remove the pixels that are revealed
             NLL_pred_scaled = NLL_pred_scaled.view(B,-1)
 
@@ -639,9 +669,9 @@ for step_not_including_load in range(max_steps+1):
 
 
         if i_order == n_steps-1:
-            total_cost += sample_NLL *.001+ error_pred_cost 
-            total_NLL += sample_NLL *.001
-            total_error_pred_cost += error_pred_cost 
+            total_cost += sample_NLL *.001 #+ error_pred_cost 
+            # total_NLL += sample_NLL *.001
+            # total_error_pred_cost += error_pred_cost 
 
 
         # if i_order == 0:
@@ -654,7 +684,8 @@ for step_not_including_load in range(max_steps+1):
         img_preds.append( torch.clamp(mean, min=1e-5, max=1-1e-5)) #.detach() )
         img_preds_masked.append(img_mean_pred_masked)
         img_logsd_preds.append( torch.mean(logsd, dim=1).detach())
-        error_preds.append(NLL_pred.view(B,1,112,112))
+        img_logsd_preds_vals.append( torch.mean(logsd).detach())
+        # error_preds.append(NLL_pred.view(B,1,112,112))
         true_error.append(NLL_pixelavg.detach().view(B,1,112,112))
         true_error_vals.append(numpy(torch.mean(NLL_pixelavg)))
 
@@ -754,8 +785,8 @@ for step_not_including_load in range(max_steps+1):
                 # RECORD DATA
                 results_dict['steps'].append(step)
                 results_dict['loss'].append(numpy(nobj))
-                results_dict['NLL'].append(numpy(total_NLL))
-                results_dict['C2'].append(numpy(total_error_pred_cost))
+                # results_dict['NLL'].append(numpy(total_NLL))
+                # results_dict['C2'].append(numpy(total_error_pred_cost))
                 # results_dict['BPD']['Train_Noisy'].append(numpy(nobj))
                 # results_dict['BPD']['Train'].append(numpy(nobj_train))
                 # results_dict['lr'].append(lr_sched.get_lr()[0])
@@ -775,9 +806,9 @@ for step_not_including_load in range(max_steps+1):
         #         'C:{:.2f}'.format(float(nobj.data.cpu().numpy())), 
         #         'lr', lr_sched.get_lr()[0])
         myprint( (step, 'T:{:.1f}'.format(T), 
-                'C:{:.2f}'.format(numpy(nobj)),
-                'NLL:{:.2f}'.format(numpy(total_NLL)),
-                'C2:{:.2f}'.format(numpy(total_error_pred_cost)), ) ) 
+                'C:{:.2f}'.format(numpy(nobj)),))
+                # 'NLL:{:.2f}'.format(numpy(total_NLL)),
+                # 'C2:{:.2f}'.format(numpy(total_error_pred_cost)), ) ) 
                 # 'C_train:{:.2f}'.format(numpy(nobj_train)), 
                 # 'C_test:{:.2f}'.format(numpy(nobj_test)), 
                 # 'lr', lr_sched.get_lr()[0]) ) 
@@ -832,27 +863,30 @@ for step_not_including_load in range(max_steps+1):
             input_ = torch.zeros_like(img).cuda()
             allseenpixels_mask = torch.zeros(B,1,112*112).cuda()
 
-            k = 100
-            n_steps = 5
+            k_sample = 1
+            n_steps_sample = 5
 
-            for i_order in range(n_steps):
+            for i_order in range(n_steps_sample):
         
-                mean, logsd, NLL_pred = model(input_)
+                # mean, logsd, NLL_pred = model(input_)
+                mean, logsd = model(input_)
+
+                logsd_pixelavg = torch.mean(logsd, dim=1)
 
 
-                if i_order != n_steps-1:
+                if i_order != n_steps_sample-1:
 
                     # Get top error pixels - ie defining sampling order
-                    NLL_pred_scaled = NLL_pred - torch.min(NLL_pred) #shift so 0 is lowest
+                    NLL_pred_scaled = logsd_pixelavg - torch.min(logsd_pixelavg) #shift so 0 is lowest
                     NLL_pred_scaled = NLL_pred_scaled * (1.-allseenpixels_mask.view(B,112,112))  #remove the pixels that are revealed
                     NLL_pred_scaled = NLL_pred_scaled.view(B,-1)
 
-                    values, indices = torch.topk(NLL_pred_scaled, k=k*5, dim=1, largest=True, sorted=True) 
+                    values, indices = torch.topk(NLL_pred_scaled, k=k_sample*5, dim=1, largest=True, sorted=True) 
 
                     # Take random set of k
-                    idx = torch.randperm(k*5) 
+                    idx = torch.randperm(k_sample*5) 
                     indices = indices[:,idx]
-                    indices = indices[:,:k]
+                    indices = indices[:,:k_sample]
 
                     # Make a mask out of it 
                     sampled_pixels_mask = torch.zeros_like(NLL_pred_scaled).cuda()
@@ -921,9 +955,9 @@ for step_not_including_load in range(max_steps+1):
                 # ax.legend()
                 ax.set_aspect('equal')
 
-                # if legend:
-                #     h1,l1 = cs.legend_elements()
-                #     ax.legend(h1, l1, fontsize = 'x-small', loc=5)
+                # # if legend:
+                # h1,l1 = cs.legend_elements()
+                # ax.legend(h1, l1, fontsize = 'x-small', loc=5)
 
 
 
@@ -961,8 +995,9 @@ for step_not_including_load in range(max_steps+1):
 
 
 
-            cols = 5
-            rows = 8
+            # cols = min(3,n_steps)
+            cols = n_steps
+            rows = 7
 
             fig = plt.figure(figsize=(7+cols,2+rows), facecolor='white', dpi=150)
 
@@ -979,24 +1014,27 @@ for step_not_including_load in range(max_steps+1):
 
 
 
+            #removing this for now sicne n steps could be less than 3. need to fix that. ie make sampels always have 5 stpes 
             make_contour_subplot(rows=rows, cols=cols, row=0, col=2, image=grad[0].view(1,112,112), text='Grad')
+
             # make_image_subplot(rows=rows, cols=cols, row=0, col=3, image=grad_nonzero[0].view(1,112,112), text='Grad Non Zero')
 
 
 
-            
+        
+
 
 
 
             for ii in range(cols):
 
-                make_image_subplot(rows=rows, cols=cols, row=1, col=ii, image=inputs[ii][img_idx], text='Masked Input')
+                make_image_subplot(rows=rows, cols=cols, row=1, col=ii, image=inputs[ii][img_idx], text='Masked Input '+str(n_steps)+' '+str(k))
                 make_image_subplot(rows=rows, cols=cols, row=2, col=ii, image=img_preds[ii][img_idx], text='Img Mean Pred')
-                make_contour_subplot(rows=rows, cols=cols, row=3, col=ii, image=error_preds[ii][img_idx], text='Error Pred') 
-                make_contour_subplot(rows=rows, cols=cols, row=4, col=ii, image=true_error[ii][img_idx], text='True Error '+'{:.3f}'.format(true_error_vals[ii]))
-                make_contour_subplot(rows=rows, cols=cols, row=5, col=ii, image=img_logsd_preds[ii][img_idx], text='Img LogSD Pred')
-                make_image_subplot(rows=rows, cols=cols, row=6, col=ii, image=img_preds_masked[ii][img_idx], text='Img Mean Pred Masked')
-                make_image_subplot(rows=rows, cols=cols, row=7, col=ii, image=samp_images[ii][img_idx], text='Sample')
+                # make_contour_subplot(rows=rows, cols=cols, row=3, col=ii, image=error_preds[ii][img_idx], text='Error Pred') 
+                make_contour_subplot(rows=rows, cols=cols, row=3, col=ii, image=img_logsd_preds[ii][img_idx], text='Img LogSD Pred '+'{:.3f}'.format(img_logsd_preds_vals[ii]))
+                make_contour_subplot(rows=rows, cols=cols, row=4, col=ii, image=true_error[ii][img_idx], text='NLL '+'{:.3f}'.format(true_error_vals[ii]))
+                make_image_subplot(rows=rows, cols=cols, row=5, col=ii, image=img_preds_masked[ii][img_idx], text='Img Mean Pred Masked')
+                make_image_subplot(rows=rows, cols=cols, row=6, col=ii, image=samp_images[ii][img_idx], text='Sample')
 
                 
 
@@ -1044,50 +1082,75 @@ for step_not_including_load in range(max_steps+1):
 
 
 
-    # ###########################################################################################
-    # if step % args.save_every ==0 and step_not_including_load > 0:
+    ###########################################################################################
+    if step % args.save_every ==0 and step_not_including_load > 0:
 
-    #     for f in os.listdir(params_dir):
-    #         if 'model_params' in f:
-    #             os.remove(params_dir + f)
+        # for f in os.listdir(params_dir):
+        #     if 'model_params' in f:
+        #         os.remove(params_dir + f)
 
-    #     model.module.save_params_v3(params_dir, step, name='model_params')
+        # model.module.save_params_v3(params_dir, step, name='model_params')
 
-
-
-    #     #save results
-    #     save_to=os.path.join(exp_dir, "results.pkl")
-    #     with open(save_to, "wb" ) as f:
-    #         pickle.dump(results_dict, f)
-    #     print ('saved results', save_to)
+        save_params_v3(model=model, save_dir=params_dir, step=step)
 
 
 
-    #     print ('Getting Full Test Set PBD')
-    #     with torch.no_grad():
+        # def load_params_v3(model, save_dir, step):
+        #     save_to=os.path.join(save_dir, "model_params" + str(step)+".pt")
+        #     state_dict = torch.load(save_to)
+        #     # # # print (state_dict)
+        #     # for key, val in state_dict.items():
+        #     #     print (key)
+        #     # fddsf
+        #     model.load_state_dict(state_dict)
+        #     print ('loaded params', save_to)
 
-    #         #Get test set likelihood
-    #         test_loader = torch.utils.data.DataLoader(test_x, batch_size=min(100,len(train_x)), 
-    #                             shuffle=False, num_workers=1, drop_last=True)
-    #         iter_test_loader = iter(test_loader)
 
-    #         LLs = []
-    #         while 1:
-    #             try:
-    #                 img = next(iter_test_loader).cuda()
-    #             except:
-    #                 break
+        # def save_params_v3(model, save_dir, step):
+        #     save_to=os.path.join(save_dir, "model_params" + str(step)+".pt")
+        #     torch.save(model.state_dict(), save_to)
+        #     print ('saved params', save_to)
+            
 
-    #             img = torch.clamp(img, min=1e-5, max=1-1e-5)
-    #             objective = torch.zeros_like(img[:, 0, 0, 0])
-    #             objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
-    #             z, objective = model(img, objective)
-    #             nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
-    #             nobj = torch.mean(nll)
 
-    #             LLs.append(numpy(nobj))
 
-    #         print ('FULL Test set BPD', np.mean(LLs), np.std(LLs))
+
+
+
+
+        # #save results
+        # save_to=os.path.join(exp_dir, "results.pkl")
+        # with open(save_to, "wb" ) as f:
+        #     pickle.dump(results_dict, f)
+        # print ('saved results', save_to)
+
+
+
+        # print ('Getting Full Test Set PBD')
+        # with torch.no_grad():
+
+        #     #Get test set likelihood
+        #     test_loader = torch.utils.data.DataLoader(test_x, batch_size=min(100,len(train_x)), 
+        #                         shuffle=False, num_workers=1, drop_last=True)
+        #     iter_test_loader = iter(test_loader)
+
+        #     LLs = []
+        #     while 1:
+        #         try:
+        #             img = next(iter_test_loader).cuda()
+        #         except:
+        #             break
+
+        #         img = torch.clamp(img, min=1e-5, max=1-1e-5)
+        #         objective = torch.zeros_like(img[:, 0, 0, 0])
+        #         objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+        #         z, objective = model(img, objective)
+        #         nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+        #         nobj = torch.mean(nll)
+
+        #         LLs.append(numpy(nobj))
+
+        #     print ('FULL Test set BPD', np.mean(LLs), np.std(LLs))
 
 
 
