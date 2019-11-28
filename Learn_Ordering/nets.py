@@ -673,7 +673,7 @@ import numpy as np
 
 
 class Res_Global(nn.Module):
-    def __init__(self, in_channels, hidden_channels=128): #, channels_out=None): #, filter_size=3):
+    def __init__(self, in_channels, global_filter_size, hidden_channels=128): #, channels_out=None): #, filter_size=3):
         super(Res_Global, self).__init__()
 
         filter_size = 5 #7
@@ -682,9 +682,9 @@ class Res_Global(nn.Module):
 
         self.pad = nn.ReflectionPad2d(2)
         self.conv1 = nn.Conv2d(in_channels, hidden_channels, filter_size, stride=stride, padding=0)
-        self.conv2 = nn.Conv2d(hidden_channels, hidden_channels, 28, stride=1, padding=0)
+        self.conv2 = nn.Conv2d(hidden_channels, hidden_channels, global_filter_size, stride=1, padding=0)
         self.upsample = nn.UpsamplingNearest2d(scale_factor=stride)
-        self.conv3 = nn.ConvTranspose2d(hidden_channels, hidden_channels, 28, stride=1, padding=0)
+        self.conv3 = nn.ConvTranspose2d(hidden_channels, hidden_channels, global_filter_size, stride=1, padding=0)
         self.conv4 = nn.Conv2d(hidden_channels, in_channels, filter_size, stride=1, padding=0)
 
     def forward(self, x):
@@ -749,14 +749,20 @@ class Res_Local(nn.Module):
 
 
 class NN4(nn.Module):
-    def __init__(self, in_channels, hidden_channels=128, channels_out=None): #, filter_size=3):
+    def __init__(self, in_channels, hidden_channels=128, channels_out=None, k=4, input_size=32): 
         super(NN4, self).__init__()
 
         filter_size = 5 #7
         padding = (filter_size - 1) // 2 #or padding
         stride = 2
 
-        k = 4
+        k = k
+
+        if input_size == 32:
+        	global_filter_size = 8
+        if input_size == 112:
+        	global_filter_size = 28
+
         
         self.pad1 = nn.ReflectionPad2d(1)
         self.pad2 = nn.ReflectionPad2d(2)
@@ -765,9 +771,9 @@ class NN4(nn.Module):
         self.upsample = nn.UpsamplingNearest2d(scale_factor=stride)
 
         self.conv1 = nn.Conv2d(in_channels, hidden_channels, filter_size, stride=stride, padding=0)
-        self.resnet1 = Res_Global(hidden_channels, hidden_channels) #, hidden_channels)
+        self.resnet1 = Res_Global(hidden_channels, global_filter_size, hidden_channels) #, hidden_channels)
         self.resnet2 = Res_Local(hidden_channels, hidden_channels) #, hidden_channels)
-        self.resnet22 = Res_Global(hidden_channels, hidden_channels) #, hidden_channels)
+        self.resnet22 = Res_Global(hidden_channels, global_filter_size, hidden_channels) #, hidden_channels)
         self.resnet3 = Res_Local(hidden_channels, hidden_channels) 
         # self.resnet4 = Res_Global(hidden_channels, hidden_channels) 
         self.conv_postup = nn.Conv2d(hidden_channels, hidden_channels*2, 5) 

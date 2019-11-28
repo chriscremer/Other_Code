@@ -1,31 +1,246 @@
 
 
 
-
-
-
 # VWS
 export PATH=$PATH:/h/ccremer/anaconda3/bin
 source activate test_env
-python3 train9.py  --exp_name "learn_ordering_clevr_3" \
+python3 train10.py  --exp_name "learn_ordering_train10_cifar_NLL" \
 								--machine 'vws' \
 								--which_gpu '0' \
-								--dataset 'clevr' \
+								--dataset 'cifar' \
 								--data_dir "$HOME/Documents/" \
 								--save_to_dir "$HOME/Documents/glow_clevr/" \
 								--batch_size 8 \
-								--load_step 0 \
-								--load_dir "$HOME/Documents/glow_clevr/learn_ordering_clevr_newversion_beta_2_alldata_continued/params/" \
+								--load_step 200000 \
+								--load_dir "$HOME/Documents/glow_clevr/learn_ordering_train10_cifar/params/" \
 								--print_every 200 \
 								--curveplot_every 5000 \
 								--plotimages_every 10000 \
 								--save_every 10000 \
 								--max_steps 200000 \
 								--lr 1e-4 \
-								--quick 0 \
+								--quick 1 \
 								--save_output 0 \
 								--sample 0 \
-								--NLL_plot 0 \
+								--NLL_plot 1 \
+								--n_mixtures 8 \
+
+
+
+# # VWS
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# python3 train10.py  --exp_name "learn_ordering_train10_cifar" \
+# 								--machine 'vws' \
+# 								--which_gpu '0' \
+# 								--dataset 'cifar' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 8 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/learn_ordering_train10_3/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 5000 \
+# 								--plotimages_every 10000 \
+# 								--save_every 10000 \
+# 								--max_steps 200000 \
+# 								--lr 1e-4 \
+# 								--quick 1 \
+# 								--save_output 0 \
+# 								--sample 0 \
+# 								--NLL_plot 0 \
+# 								--n_mixtures 8 \
+
+
+
+
+# # VWS
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# python3 train10.py  --exp_name "learn_ordering_train10_3_sampleandNLL" \
+# 								--machine 'vws' \
+# 								--which_gpu '0' \
+# 								--dataset 'clevr' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 8 \
+# 								--load_step 80000 \
+# 								--load_dir "$HOME/Documents/glow_clevr/learn_ordering_train10_3/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 5000 \
+# 								--plotimages_every 10000 \
+# 								--save_every 10000 \
+# 								--max_steps 200000 \
+# 								--lr 1e-4 \
+# 								--quick 1 \
+# 								--save_output 0 \
+# 								--sample 0 \
+# 								--NLL_plot 1 \
+# 								--n_mixtures 8 \
+
+
+
+
+# # VWS
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# python3 train10.py  --exp_name "learn_ordering_train10_3" \
+# 								--machine 'vws' \
+# 								--which_gpu '0' \
+# 								--dataset 'clevr' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 8 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/learn_ordering_clevr_newversion_beta_2_alldata_continued/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 5000 \
+# 								--plotimages_every 10000 \
+# 								--save_every 10000 \
+# 								--max_steps 200000 \
+# 								--lr 1e-4 \
+# 								--quick 0 \
+# 								--save_output 0 \
+# 								--sample 0 \
+# 								--NLL_plot 0 \
+# 								--n_mixtures 8 \
+
+
+
+# # VWS
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# python3 train10.py  --exp_name "learn_ordering_train10_2_sampleandNLL" \
+# 								--machine 'vws' \
+# 								--which_gpu '0' \
+# 								--dataset 'clevr' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 8 \
+# 								--load_step 40000 \
+# 								--load_dir "$HOME/Documents/glow_clevr/learn_ordering_train10_2/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 5000 \
+# 								--plotimages_every 10000 \
+# 								--save_every 10000 \
+# 								--max_steps 200000 \
+# 								--lr 1e-4 \
+# 								--quick 1 \
+# 								--save_output 0 \
+# 								--sample 0 \
+# 								--NLL_plot 1 \
+# 								--n_mixtures 8 \
+
+
+
+
+
+
+
+# # VWS
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# python3 train10.py  --exp_name "learn_ordering_train10_sampleandNLL" \
+# 								--machine 'vws' \
+# 								--which_gpu '0' \
+# 								--dataset 'clevr' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 8 \
+# 								--load_step 20000 \
+# 								--load_dir "$HOME/Documents/glow_clevr/learn_ordering_train10/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 5000 \
+# 								--plotimages_every 10000 \
+# 								--save_every 10000 \
+# 								--max_steps 200000 \
+# 								--lr 1e-4 \
+# 								--quick 1 \
+# 								--save_output 0 \
+# 								--sample 1 \
+# 								--NLL_plot 0 \
+# 								--n_mixtures 4 \
+
+
+
+
+
+# # VWS
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# python3 train10.py  --exp_name "learn_ordering_train10_sampleandNLL" \
+# 								--machine 'vws' \
+# 								--which_gpu '0' \
+# 								--dataset 'clevr' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 8 \
+# 								--load_step 20000 \
+# 								--load_dir "$HOME/Documents/glow_clevr/learn_ordering_train10/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 5000 \
+# 								--plotimages_every 10000 \
+# 								--save_every 10000 \
+# 								--max_steps 200000 \
+# 								--lr 1e-4 \
+# 								--quick 1 \
+# 								--save_output 0 \
+# 								--sample 0 \
+# 								--NLL_plot 1 \
+# 								--n_mixtures 4 \
+
+
+# # VWS
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# python3 train9.py  --exp_name "learn_ordering_train10" \
+# 								--machine 'vws' \
+# 								--which_gpu '0' \
+# 								--dataset 'clevr' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 8 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/learn_ordering_clevr_newversion_beta_2_alldata_continued/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 5000 \
+# 								--plotimages_every 10000 \
+# 								--save_every 10000 \
+# 								--max_steps 200000 \
+# 								--lr 1e-4 \
+# 								--quick 0 \
+# 								--save_output 0 \
+# 								--sample 0 \
+# 								--NLL_plot 0 \
+# 								--n_mixtures 4 \
+
+
+
+
+
+
+# # VWS
+# export PATH=$PATH:/h/ccremer/anaconda3/bin
+# source activate test_env
+# python3 train9.py  --exp_name "learn_ordering_clevr_3" \
+# 								--machine 'vws' \
+# 								--which_gpu '0' \
+# 								--dataset 'clevr' \
+# 								--data_dir "$HOME/Documents/" \
+# 								--save_to_dir "$HOME/Documents/glow_clevr/" \
+# 								--batch_size 8 \
+# 								--load_step 0 \
+# 								--load_dir "$HOME/Documents/glow_clevr/learn_ordering_clevr_newversion_beta_2_alldata_continued/params/" \
+# 								--print_every 200 \
+# 								--curveplot_every 5000 \
+# 								--plotimages_every 10000 \
+# 								--save_every 10000 \
+# 								--max_steps 200000 \
+# 								--lr 1e-4 \
+# 								--quick 0 \
+# 								--save_output 0 \
+# 								--sample 0 \
+# 								--NLL_plot 0 \
 
 
 
