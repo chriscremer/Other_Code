@@ -174,7 +174,7 @@ def optimize_local_gaussian_mean_logvar(logposterior, model, x):
     last_100 = []
     best_last_100_avg = -1
     consecutive_worse = 0
-    for epoch in range(1, 999999):
+    for epoch in range(1, 9999): # 999999):
 
         if quick:
         # if 1:
@@ -203,7 +203,12 @@ def optimize_local_gaussian_mean_logvar(logposterior, model, x):
 
         # elbo, logpxz, logqz = self.forward(batch, k=k)
 
-        loss = -(torch.mean(logpx-logqz))
+        # loss = -(torch.mean( 10* logpx-logqz))
+        loss = -(torch.mean( logpx-logqz))
+        # print (torch.mean( logpx))
+        # print (torch.mean( logqz))
+        # fadaf
+
 
         loss_np = loss.data.cpu().numpy()
         # print (epoch, loss_np)
@@ -222,15 +227,22 @@ def optimize_local_gaussian_mean_logvar(logposterior, model, x):
             else:
                 consecutive_worse +=1 
                 # print(consecutive_worse)
-                if consecutive_worse> 10:
+                if consecutive_worse> 20:
                     # print ('done')
                     break
 
-            # print (epoch, last_100_avg, consecutive_worse,mean)
+            print (epoch, last_100_avg, consecutive_worse,mean)
             # print (torch.mean(logpx))
 
             last_100 = []
 
+        if epoch %1000 ==0:
+            # print (logpx)
+            # print (logqz)
+            print (torch.mean( logpx))
+            print (torch.mean( logqz))
+            print (torch.std( logpx))
+            print (torch.std( logqz))
 
         # if epoch%display_epoch==0:
         #     print ('Train Epoch: {}/{}'.format(epoch, epochs),
@@ -264,7 +276,7 @@ def optimize_local_gaussian_mean_logvar(logposterior, model, x):
     # elbo_ = torch.log(torch.mean(torch.exp(elbo - max_), 0)) + max_ #[B]
     # iwae = torch.mean(elbo_)
 
-    return mean, logvar
+    return mean, logvar, z
 
 
 
@@ -1481,7 +1493,8 @@ def optimize_local_expressive_only_sample_2(logposterior, model, x):
 
         h = F.tanh(params[0](z1))
         mew_ = params[1](h)
-        sig_ = F.sigmoid(params[2](h))+1.#) #[PB,Z]
+        # sig_ = F.sigmoid(params[2](h))+1.#) #[PB,Z]
+        sig_ = torch.exp(params[2](h))+1.#) #[PB,Z]
 
         z = z.view(-1, model.z_size)
         mask = mask.view(1, -1)
@@ -1510,7 +1523,8 @@ def optimize_local_expressive_only_sample_2(logposterior, model, x):
 
         h = F.tanh(params[0](z1))
         mew_ = params[1](h)
-        sig_ = F.sigmoid(params[2](h))+1.#) #[PB,Z]
+        # sig_ = F.sigmoid(params[2](h))+1.#) #[PB,Z]
+        sig_ = torch.exp(params[2](h))+1.#) #[PB,Z]
 
         z = z.view(-1, model.z_size)
         mask = mask.view(1, -1)
@@ -1561,7 +1575,8 @@ def optimize_local_expressive_only_sample_2(logposterior, model, x):
                     'z_size': z_size,
                     'act_func': F.tanh,# F.relu,
                     'n_flows': 2,
-                    'flow_hidden_size': 30
+                    # 'flow_hidden_size': 30
+                    'flow_hidden_size': 120
                 }
 
 
@@ -1569,7 +1584,7 @@ def optimize_local_expressive_only_sample_2(logposterior, model, x):
     # B = x.shape[0]
     B = x.size()[0] #batch size
 
-    n_flows = 2 #hyper_config['n_flows']
+    n_flows = 2 # 8 #2 #hyper_config['n_flows']
 
     z_size = model.z_size
     x_size = model.x_size
@@ -1598,10 +1613,10 @@ def optimize_local_expressive_only_sample_2(logposterior, model, x):
 
 
 
-    optimizer = optim.Adam(all_params, lr=.01)
+    optimizer = optim.Adam(all_params, lr=.001)
 
 
-    P = 50
+    P = 100
     k = P
 
 
@@ -1621,7 +1636,7 @@ def optimize_local_expressive_only_sample_2(logposterior, model, x):
 
 
         optimizer.zero_grad()
-        loss = -(torch.mean(logpx-logq))
+        loss = -(torch.mean(2. * logpx-logq))
         loss_np = loss.data.cpu().numpy()
         # print ()
 
@@ -1639,7 +1654,7 @@ def optimize_local_expressive_only_sample_2(logposterior, model, x):
             else:
                 consecutive_worse +=1 
                 # print(consecutive_worse)
-                if consecutive_worse> 10:
+                if consecutive_worse> 50:
                     # print ('done')
                     break
 
@@ -1650,6 +1665,7 @@ def optimize_local_expressive_only_sample_2(logposterior, model, x):
 
 
             last_100 = []
+
 
 
     #Sample

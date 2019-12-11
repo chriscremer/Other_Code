@@ -199,6 +199,8 @@ def plot_isocontours2_exp_norm(ax, func, xlimits=[-6, 6], ylimits=[-6, 6],
         plt.legend(nm, lbl, fontsize=4) 
 
 
+    # ax.patch.set_edgecolor('black')
+
     ax.set_yticks([])
     ax.set_xticks([])
     plt.gca().set_aspect('equal', adjustable='box')
