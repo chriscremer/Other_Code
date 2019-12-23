@@ -54,9 +54,9 @@ def plot_isocontours_new(ax, func, xlimits=[-6, 6], ylimits=[-6, 6],
     # cs = plt.contourf(X, Y, Z, cmap=cmap, alpha=alpha)
 
     if len(levels) > 0:
-        cs = plt.contour(X, Y, Z, cmap=cmap, alpha=alpha, levels=levels)
+        cs = plt.contour(X, Y, Z, cmap=cmap, alpha=alpha, levels=levels, linewidths=1.)
     else:
-        cs = plt.contour(X, Y, Z, cmap=cmap, alpha=alpha)
+        cs = plt.contour(X, Y, Z, cmap=cmap, alpha=alpha, linewidths=1.)
 
 
     # levels = []

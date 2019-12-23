@@ -203,8 +203,8 @@ def optimize_local_gaussian_mean_logvar(logposterior, model, x):
 
         # elbo, logpxz, logqz = self.forward(batch, k=k)
 
-        # loss = -(torch.mean( 10* logpx-logqz))
-        loss = -(torch.mean( logpx-logqz))
+        loss = -(torch.mean( ogpx-logqz))
+        # loss = -(torch.mean( logpx-logqz))
         # print (torch.mean( logpx))
         # print (torch.mean( logqz))
         # fadaf
@@ -921,6 +921,8 @@ def optimize_local_expressive_only_sample(logposterior, model, x):
             loss.backward()
             optimizer.step()
 
+            # print (loss)
+
             last_100.append(loss_np)
             if epoch % 100 ==0:
 
@@ -935,7 +937,7 @@ def optimize_local_expressive_only_sample(logposterior, model, x):
                         # print ('done')
                         break
 
-                # print (epoch, last_100_avg, consecutive_worse)
+                print (epoch, last_100_avg, consecutive_worse)
                 # print(z[0])
                 # print (torch.mean(logpx).data.cpu().numpy())
                 # print (torch.mean(logqz0).data.cpu().numpy(),torch.mean(logqv0).data.cpu().numpy(),torch.mean(logdetsum).data.cpu().numpy(),torch.mean(logrvT).data.cpu().numpy())
@@ -1636,7 +1638,7 @@ def optimize_local_expressive_only_sample_2(logposterior, model, x):
 
 
         optimizer.zero_grad()
-        loss = -(torch.mean(2. * logpx-logq))
+        loss = -(torch.mean( logpx-logq))
         loss_np = loss.data.cpu().numpy()
         # print ()
 

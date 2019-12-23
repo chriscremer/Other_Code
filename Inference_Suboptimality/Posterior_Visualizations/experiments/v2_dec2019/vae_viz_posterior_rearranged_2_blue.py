@@ -54,7 +54,12 @@ from plotting_functions import plot_kde
 from optimize_local import optimize_local_expressive_only_sample
 from optimize_local import optimize_local_expressive_only_sample_2
 
-from optimize_local import optimize_local_gaussian_mean_logvar
+# from optimize_local import optimize_local_gaussian_mean_logvar
+
+
+from optimize_local2 import optimize_local_gaussian_mean_logvar
+from optimize_local2 import optimize_local_flow1
+
 
 
 
@@ -277,7 +282,12 @@ if __name__ == "__main__":
 
     # ffg_samps = [70]
     # ffg_samps = [63]
-    ffg_samps = [24]
+
+    # ffg_samps = [24]  # this one was decent but coulnt get flow working on it 
+
+    # ffg_samps = list(range(175,183))
+
+    ffg_samps = [179] 
 
 
 
@@ -298,7 +308,7 @@ if __name__ == "__main__":
     #annotate
     ax = plt.subplot2grid((rows,cols), (0,0), frameon=False)
     # ax.annotate('True Posterior', xytext=(.1, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Blue', size='large')
-    ax.annotate('True\nPosterior', xytext=(x_text, y_text), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Black')#, size='large')
+    ax.annotate('   True\nPosterior', xytext=(x_text, y_text), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Black')#, size='large')
     ax.set_yticks([])
     ax.set_xticks([])
     plt.gca().set_aspect('equal', adjustable='box')
@@ -306,7 +316,7 @@ if __name__ == "__main__":
 
     ax = plt.subplot2grid((rows,cols), (1,0), frameon=False)
     # ax.annotate('Amortized\nFFG', xytext=(.1, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Green', size='large')
-    ax.annotate('Amortized\nFFG', xytext=(x_text, y_text), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Black')#, size='large')
+    ax.annotate('        Amortized\nFactorized Gaussian', xytext=(x_text, y_text), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Black')#, size='large')
     ax.set_yticks([])
     ax.set_xticks([])
     plt.gca().set_aspect('equal', adjustable='box')
@@ -314,7 +324,7 @@ if __name__ == "__main__":
 
     ax = plt.subplot2grid((rows,cols), (2,0), frameon=False)
     # ax.annotate('Optimal\nFFG', xytext=(.1, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Purple', size='large')
-    ax.annotate('Optimal\nFFG', xytext=(x_text, y_text), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Black')#, size='large')
+    ax.annotate('         Optimized\nFactorized Gaussian', xytext=(x_text, y_text), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Black')#, size='large')
     ax.set_yticks([])
     ax.set_xticks([])
     plt.gca().set_aspect('equal', adjustable='box')
@@ -322,7 +332,7 @@ if __name__ == "__main__":
 
     ax = plt.subplot2grid((rows,cols), (3,0), frameon=False)
     # ax.annotate('Optimal\nFlow', xytext=(.1, .5), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Red', size='large')
-    ax.annotate('Optimal\nFlow', xytext=(x_text, y_text), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Black')#, size='large')
+    ax.annotate('Optimized Flow', xytext=(x_text, y_text), xy=(.5, .5), textcoords='axes fraction', family='serif', color='Black')#, size='large')
     ax.set_yticks([])
     ax.set_xticks([])
     plt.gca().set_aspect('equal', adjustable='box')
@@ -393,14 +403,16 @@ if __name__ == "__main__":
         # xlimits = [-2,2]
         # ylimits = [-2,2]
 
-        zzzz = .25
-        xlimits=[center_val_x-zzzz, center_val_x+zzzz]
-        ylimits=[center_val_y-zzzz, center_val_y+zzzz]
 
-        # if samp_i == 0:
-        #     zzzz = .25
-        #     xlimits=[center_val_x-zzzz, center_val_x+zzzz]
-        #     ylimits=[center_val_y-zzzz, center_val_y+zzzz]
+
+        # zzzz = .25 #55
+        # xlimits=[center_val_x-zzzz, center_val_x+zzzz]
+        # ylimits=[center_val_y-zzzz, center_val_y+zzzz]
+
+        if samp_i == 0:
+            zzzz = .15
+            xlimits=[center_val_x-zzzz, center_val_x+zzzz]
+            ylimits=[center_val_y-.1, center_val_y+.33]
 
         # if samp_i == 1:
         #     xxxx = .2
@@ -429,13 +441,13 @@ if __name__ == "__main__":
         # plot_isocontours(ax, func, cmap='Reds',xlimits=xlimits,ylimits=ylimits)
         func = lambda zs: model.logposterior_func(samp_torch,zs)
 
-        levels = np.linspace(10., 120., 10)
-        print (levels)
-        # levels = []
+        # levels = np.linspace(10., 120., 10)
+        # print (levels)
+        levels = []
         # legend = True
 
         # plot_isocontours2_exp_norm(ax, func, cmap='Greens', legend=legend,xlimits=xlimits,ylimits=ylimits)
-        levels = plot_isocontours_new(ax, func, cmap='Greens', legend=legend, xlimits=xlimits,ylimits=ylimits, levels=levels)
+        _ = plot_isocontours_new(ax, func, cmap='Greens', legend=legend, xlimits=xlimits,ylimits=ylimits, levels=levels)
 
 
 
@@ -460,7 +472,7 @@ if __name__ == "__main__":
             func = lambda zs: model.logposterior_func(samp_torch,zs)
 
             # plot_isocontours2_exp_norm(ax, func, cmap='Greens', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=.2)
-            _ = plot_isocontours_new(ax, func, cmap='Greens', legend=False,xlimits=xlimits,ylimits=ylimits,alpha=.2, levels=levels)
+            _ = plot_isocontours_new(ax, func, cmap='Greens', legend=False,xlimits=xlimits,ylimits=ylimits,alpha=1., levels=levels)
 
             # plot_isocontours2_exp_norm(ax, func, cmap='Blues', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
 
@@ -491,7 +503,7 @@ if __name__ == "__main__":
 
 
 
-        plot_optimal= 0
+        plot_optimal= 1
         if plot_optimal: 
 
 
@@ -500,7 +512,7 @@ if __name__ == "__main__":
             row +=1
             ax = plt.subplot2grid((rows,cols), (row, samp_i+1), frameon=False)
             func = lambda zs: model.logposterior_func(samp_torch,zs)
-            plot_isocontours2_exp_norm(ax, func, cmap='Greens', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=.2)
+            plot_isocontours2_exp_norm(ax, func, cmap='Greens', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
             # plot_isocontours2_exp_norm(ax, func, cmap='Blues', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
 
 
@@ -550,7 +562,7 @@ if __name__ == "__main__":
             row +=1
             ax = plt.subplot2grid((rows,cols), (row, samp_i+1), frameon=False)
             func = lambda zs: model.logposterior_func(samp_torch,zs)
-            plot_isocontours2_exp_norm(ax, func, cmap='Greens', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=.2)
+            plot_isocontours2_exp_norm(ax, func, cmap='Greens', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
             # plot_isocontours2_exp_norm(ax, func, cmap='Blues', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
 
 
@@ -567,17 +579,20 @@ if __name__ == "__main__":
             print ('optimiznig local flow', samp_i)
             # z = optimize_local_expressive_only_sample(logposterior, model, x, save_to=save_to, load_from=load_from)
 
-            z = optimize_local_expressive_only_sample_2(logposterior, model, x)
+            # z = optimize_local_expressive_only_sample_2(logposterior, model, x)
+
+            z = optimize_local_expressive_only_sample(logposterior, model, x)
 
             z = z.view(-1,z_size)
             z = z.data.cpu().numpy()
-
-            # print (z)
-
-
             # plot_kde(ax,samps=z,xlimits=xlimits,ylimits=ylimits,cmap='Reds')
             plot_kde(ax,samps=z,xlimits=xlimits,ylimits=ylimits,cmap='Blues')
 
+
+
+            # flow = optimize_local_flow1(logposterior, model, x)
+            # func = lambda zs: flow.logprob(torch.Tensor(zs).cuda())
+            # _ = plot_isocontours_new(ax, func, cmap='Blues',xlimits=xlimits,ylimits=ylimits, legend=False, levels=[])
 
 
 

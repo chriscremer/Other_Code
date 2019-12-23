@@ -1,6 +1,7 @@
-
+ #this tries to learn the partitioning of dimensions
 
 #using bernoulli distribution and unbiased grad estimator
+
 
 
 import sys, os

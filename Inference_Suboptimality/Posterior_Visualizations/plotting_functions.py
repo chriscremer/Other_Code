@@ -955,7 +955,7 @@ def plot_kde(ax, samps, xlimits=[-6, 6], ylimits=[-6, 6],
     f = np.reshape(kernel(positions).T, X.shape)
 
     # cfset = ax.contourf(X, Y, f, cmap=cmap)
-    cfset = ax.contour(X, Y, f, cmap=cmap)
+    cfset = ax.contour(X, Y, f, cmap=cmap, linewidths=1.)
 
 
     ax.set_yticks([])
