@@ -471,6 +471,7 @@ def train2(self, max_steps, load_step,
             'acc0', 'acc1', 'acc2', 'acc3',
             'acc0_prior', 'acc1_prior', 'acc2_prior', 'acc3_prior',
             'aa_prior_classifier_acc', 'aa_prior_acc',
+            'logpx_give_y_train', 'logpx_give_y_val'
     ]
 
     all_dict['all_steps'] = []
@@ -768,11 +769,15 @@ def train2(self, max_steps, load_step,
             add_to_dict(recent_dict, 'all_train_elbos', outputs['elbo'].data.item())
             add_to_dict(recent_dict, 'all_valid_elbos', val_outputs['elbo'].data.item())
 
+            add_to_dict(recent_dict, 'logpx_give_y_train', outputs['elbo_qy'].data.item())
+            add_to_dict(recent_dict, 'logpx_give_y_val', val_outputs['elbo_qy'].data.item())
+
             add_to_dict(recent_dict, 'all_logpxs', outputs['logpx'].data.item())
             add_to_dict(recent_dict, 'all_logpys', outputs['logpy'].data.item())
             add_to_dict(recent_dict, 'all_logpzs', outputs['logpz'].data.item())
             add_to_dict(recent_dict, 'all_logqzs', outputs['logqz'].data.item())
             add_to_dict(recent_dict, 'all_logqzys', outputs['logqzy'].data.item())
+
 
             add_to_dict(recent_dict, 'all_logpxs_val', val_outputs['logpx'].data.item())
             add_to_dict(recent_dict, 'all_logpys_val', val_outputs['logpy'].data.item())
@@ -1038,7 +1043,7 @@ def plot_curves(self, save_dir, all_dict):
                             size=6, family='serif')
 
 
-    rows = 13
+    rows = 14
     if self.train_prior_classifier:
         rows +=1
     cols = 2
@@ -1056,6 +1061,17 @@ def plot_curves(self, save_dir, all_dict):
                     'Valid: {:.2f}'.format( all_dict['all_valid_elbos'][-1])], 
         ylabel='ELBO', show_ticks=True, colspan=text_col_width, rowspan=1, title=1)
     row+=1
+
+
+
+    make_curve_subplot(self, rows, cols, row=row, col=col, steps=steps, 
+        values_list=[all_dict['logpx_give_y_train'], all_dict['logpx_give_y_val']], 
+        label_list=['Train: {:.2f}'.format( all_dict['logpx_give_y_train'][-1]), 
+                    'Valid: {:.2f}'.format( all_dict['logpx_give_y_val'][-1])], 
+        ylabel='ELBO qy', show_ticks=True, colspan=text_col_width, rowspan=1, title=0)
+    row+=1
+
+
 
     if self.joint_inf:
         training_inf_dist = r'$A(y_T,y_{\hat{x}}), q(z|x_T,y_T)$: '
@@ -1076,20 +1092,20 @@ def plot_curves(self, save_dir, all_dict):
                     all_dict['all_x_inf_acc'], all_dict['all_x_inf_acc_k1'], all_dict['all_x_inf_acc_entangle'], 
                     all_dict['all_y_inf_acc_k1'], all_dict['all_y_inf_acc'], all_dict['all_y_inf_acc_entangle'], 
                     all_dict['all_prior_acc'], all_dict['all_prior_acc2'],], 
-        label_list=[r'$A(y_T,y_{x_T})$:   '+'{:.2f}'.format(all_dict['all_real_acc'][-1]), 
-                    r'$A(y_V,y_{x_V})$:   '+'{:.2f}'.format( all_dict['all_real_val_acc'][-1]),
-                    training_inf_dist +'{:.2f}'.format(all_dict['all_recon_acc'][-1]),
-                    val_inf_dist +'{:.2f}'.format(all_dict['all_recon_acc_val'][-1]),
-                    training_inf_dist_y+'{:.2f}'.format( all_dict['all_y_recon_acc'][-1]),
-                    val_inf_dist_y+'{:.2f}'.format( all_dict['all_y_recon_acc_val'][-1]),
-                    r'$p(\hat{y}_V|x_V), z \sim q(z|x_V)$: '+'{:.2f}'.format( all_dict['all_x_inf_acc'][-1]),
-                    r'$p(y_V|\hat{x}_V), z \sim q(z|x_V)$: '+'{:.2f}'.format( all_dict['all_x_inf_acc_k1'][-1]),
-                    r'$p(\hat{y}_V|\hat{x}_V), z \sim q(z|x_V)$: '+'{:.2f}'.format( all_dict['all_x_inf_acc_entangle'][-1]),
-                    r'$p(\hat{y}_V|x_V), z \sim q(z|y_V)$: '+'{:.2f}'.format( all_dict['all_y_inf_acc_k1'][-1]),
-                    r'$p(y_V|\hat{x}_V), z \sim q(z|y_V)$:'+'{:.2f}'.format( all_dict['all_y_inf_acc'][-1]),
-                    r'$p(\hat{y}_V|\hat{x}_V), z \sim q(z|y_V)$: '+'{:.2f}'.format( all_dict['all_y_inf_acc_entangle'][-1]),
-                    r'$p(\hat{y}|\hat{x}), z \sim p(z)$:    '+'{:.2f}'.format( all_dict['all_prior_acc'][-1]),
-                    r'$p(\hat{y}|\hat{x}), z \sim N(0,.5)$:    '+'{:.2f}'.format( all_dict['all_prior_acc2'][-1]),
+        label_list=[r'$A(y_T,y_{x_T})$:   '+'{:.4f}'.format(all_dict['all_real_acc'][-1]), 
+                    r'$A(y_V,y_{x_V})$:   '+'{:.4f}'.format( all_dict['all_real_val_acc'][-1]),
+                    training_inf_dist +'{:.4f}'.format(all_dict['all_recon_acc'][-1]),
+                    val_inf_dist +'{:.4f}'.format(all_dict['all_recon_acc_val'][-1]),
+                    training_inf_dist_y+'{:.4f}'.format( all_dict['all_y_recon_acc'][-1]),
+                    val_inf_dist_y+'{:.4f}'.format( all_dict['all_y_recon_acc_val'][-1]),
+                    r'$p(\hat{y}_V|x_V), z \sim q(z|x_V)$: '+'{:.4f}'.format( all_dict['all_x_inf_acc'][-1]),
+                    r'$p(y_V|\hat{x}_V), z \sim q(z|x_V)$: '+'{:.4f}'.format( all_dict['all_x_inf_acc_k1'][-1]),
+                    r'$p(\hat{y}_V|\hat{x}_V), z \sim q(z|x_V)$: '+'{:.4f}'.format( all_dict['all_x_inf_acc_entangle'][-1]),
+                    r'$p(\hat{y}_V|x_V), z \sim q(z|y_V)$: '+'{:.4f}'.format( all_dict['all_y_inf_acc_k1'][-1]),
+                    r'$p(y_V|\hat{x}_V), z \sim q(z|y_V)$:'+'{:.4f}'.format( all_dict['all_y_inf_acc'][-1]),
+                    r'$p(\hat{y}_V|\hat{x}_V), z \sim q(z|y_V)$: '+'{:.4f}'.format( all_dict['all_y_inf_acc_entangle'][-1]),
+                    r'$p(\hat{y}|\hat{x}), z \sim p(z)$:    '+'{:.4f}'.format( all_dict['all_prior_acc'][-1]),
+                    r'$p(\hat{y}|\hat{x}), z \sim N(0,.5)$:    '+'{:.4f}'.format( all_dict['all_prior_acc2'][-1]),
                     ], 
         color_list=[color_defaults[0], color_defaults[0],
                     color_defaults[1], color_defaults[1],
@@ -1369,8 +1385,9 @@ def vizualize(self, images, questions,
         make_text_subplot(self, rows, cols, row=1, col=1, text=sentence+'\n\nClassifier:\n'+sentence_classifier)
         sentence = get_sentence2(training_recon_q_sampled_words[img_i])
         dist = training_recon_q_dist[img_i]
+
         for i in range(len(dist)):
-            make_bar_subplot(self, rows, cols, row=1, col=2+i, range_=range(self.vocab_size), values_=dist[i], text=sentence[i], sampled_word=training_recon_q_sampled_words[img_i][i])
+            make_bar_subplot(self, rows, cols, row=1, col=2+i, range_=range(self.vocab_size), values_=dist[i].cpu(), text=sentence[i], sampled_word=training_recon_q_sampled_words[img_i][i])
 
         #Row 2
         make_image_subplot(self, rows, cols, row=2, col=0, image=val_img_batch[img_i], text='Validation Recon')
@@ -1384,7 +1401,7 @@ def vizualize(self, images, questions,
         sentence = get_sentence2(val_recon_q_sampled_words[img_i])
         dist = val_recon_q_dist[img_i]
         for i in range(len(dist)):
-            make_bar_subplot(self, rows, cols, row=3, col=2+i, range_=range(self.vocab_size), values_=dist[i], text=sentence[i], sampled_word=val_recon_q_sampled_words[img_i][i])
+            make_bar_subplot(self, rows, cols, row=3, col=2+i, range_=range(self.vocab_size), values_=dist[i].cpu(), text=sentence[i], sampled_word=val_recon_q_sampled_words[img_i][i])
 
         #Row 4
         make_image_subplot(self, rows, cols, row=4, col=0, image=prior_img[img_i], text='Prior Samples')
@@ -1394,7 +1411,7 @@ def vizualize(self, images, questions,
         sentence = get_sentence2(prior_sampled_words[img_i])
         dist = prior_q_dist[img_i]
         for i in range(len(dist)):
-            make_bar_subplot(self, rows, cols, row=4, col=2+i, range_=range(self.vocab_size), values_=dist[i], text=sentence[i], sampled_word=prior_sampled_words[img_i][i])
+            make_bar_subplot(self, rows, cols, row=4, col=2+i, range_=range(self.vocab_size), values_=dist[i].cpu(), text=sentence[i], sampled_word=prior_sampled_words[img_i][i])
 
         #Row 5
         make_image_subplot(self, rows, cols, row=5, col=0, image=prior_img[img_i+1], text='')
@@ -1404,7 +1421,7 @@ def vizualize(self, images, questions,
         sentence = get_sentence2(prior_sampled_words[img_i+1])
         dist = prior_q_dist[img_i+1]
         for i in range(len(dist)):
-            make_bar_subplot(self, rows, cols, row=5, col=2+i, range_=range(self.vocab_size), values_=dist[i], text=sentence[i], sampled_word=prior_sampled_words[img_i+1][i])
+            make_bar_subplot(self, rows, cols, row=5, col=2+i, range_=range(self.vocab_size), values_=dist[i].cpu(), text=sentence[i], sampled_word=prior_sampled_words[img_i+1][i])
 
 
         # plt.tight_layout()

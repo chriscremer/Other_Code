@@ -1312,7 +1312,7 @@ def vizualize(self, images, questions,
         sentence = get_sentence2(training_recon_q_sampled_words[img_i])
         dist = training_recon_q_dist[img_i]
         for i in range(len(dist)):
-            make_bar_subplot(self, rows, cols, row=1, col=2+i, range_=range(self.vocab_size), values_=dist[i], text=sentence[i], sampled_word=training_recon_q_sampled_words[img_i][i])
+            make_bar_subplot(self, rows, cols, row=1, col=2+i, range_=range(self.vocab_size), values_=dist[i].cpu(), text=sentence[i], sampled_word=training_recon_q_sampled_words[img_i][i].cpu())
 
         #Row 2
         make_image_subplot(self, rows, cols, row=2, col=0, image=val_img_batch[img_i], text='Validation Recon')
@@ -1326,7 +1326,7 @@ def vizualize(self, images, questions,
         sentence = get_sentence2(val_recon_q_sampled_words[img_i])
         dist = val_recon_q_dist[img_i]
         for i in range(len(dist)):
-            make_bar_subplot(self, rows, cols, row=3, col=2+i, range_=range(self.vocab_size), values_=dist[i], text=sentence[i], sampled_word=val_recon_q_sampled_words[img_i][i])
+            make_bar_subplot(self, rows, cols, row=3, col=2+i, range_=range(self.vocab_size), values_=dist[i].cpu(), text=sentence[i], sampled_word=val_recon_q_sampled_words[img_i][i].cpu())
 
         #Row 4
         make_image_subplot(self, rows, cols, row=4, col=0, image=prior_img[img_i], text='Prior Samples')
@@ -1336,7 +1336,7 @@ def vizualize(self, images, questions,
         sentence = get_sentence2(prior_sampled_words[img_i])
         dist = prior_q_dist[img_i]
         for i in range(len(dist)):
-            make_bar_subplot(self, rows, cols, row=4, col=2+i, range_=range(self.vocab_size), values_=dist[i], text=sentence[i], sampled_word=prior_sampled_words[img_i][i])
+            make_bar_subplot(self, rows, cols, row=4, col=2+i, range_=range(self.vocab_size), values_=dist[i].cpu(), text=sentence[i], sampled_word=prior_sampled_words[img_i][i].cpu())
 
         #Row 5
         make_image_subplot(self, rows, cols, row=5, col=0, image=prior_img[img_i+1], text='')
@@ -1346,7 +1346,7 @@ def vizualize(self, images, questions,
         sentence = get_sentence2(prior_sampled_words[img_i+1])
         dist = prior_q_dist[img_i+1]
         for i in range(len(dist)):
-            make_bar_subplot(self, rows, cols, row=5, col=2+i, range_=range(self.vocab_size), values_=dist[i], text=sentence[i], sampled_word=prior_sampled_words[img_i+1][i])
+            make_bar_subplot(self, rows, cols, row=5, col=2+i, range_=range(self.vocab_size), values_=dist[i].cpu(), text=sentence[i], sampled_word=prior_sampled_words[img_i+1][i].cpu())
 
 
         # plt.tight_layout()
@@ -1632,6 +1632,9 @@ if __name__ == "__main__":
     parser.add_argument('--textAR', type=int, default=1)
 
     parser.add_argument('--ssl_type', type=str, default='0')
+    parser.add_argument('--qy_detach', type=int, default=1)
+
+
 
 
     args = parser.parse_args()
