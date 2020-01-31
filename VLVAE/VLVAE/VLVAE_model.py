@@ -18,6 +18,17 @@ from torch.distributions import Beta
 
 
 
+def weight(warmup, weight):
+
+    if warmup ==1.:
+        return 1.
+
+    else:
+        return weight * (1.-warmup) +  1* warmup
+
+
+
+
 
 class VLVAE(nn.Module):
     def __init__(self, kwargs):
@@ -297,6 +308,9 @@ class VLVAE(nn.Module):
         # q: [B,L] 
         # inf type: 0 is both, 1 is only x, 2 is only y
         # dec type: 0 is both, 1 is only x, 2 is only y
+
+        # w_logpx = weight(warmup, self.w_logpx)
+        # w_logpy = weight(warmup, self.w_logpy)
 
         outputs = {}
 
@@ -666,10 +680,17 @@ class VLVAE(nn.Module):
         logpx = logpx * self.w_logpx 
 
 
+        #z_x under prior 
+        logpz = lognormal(z_x.detach(), torch.zeros(self.B, self.z_size).cuda(), 
+                            torch.zeros(self.B, self.z_size).cuda())
+
 
         outputs['logqzy'] = torch.mean(logqzy)
+        outputs['logpz_x_under_pz'] = torch.mean(logpz)
         outputs['welbo'] = torch.mean(logpy + logpz_y - logqz_y)
         outputs['logpx_give_y'] = torch.mean(logpx + logqzy - logqz_x)
+
+
 
 
 

@@ -1,6 +1,9 @@
 
 
-/home/ccremer/anaconda3/bin/python ../training_code/train_qys.py --exp_name "qy_true_3flows_moreplots" \
+
+
+
+/home/ccremer/anaconda3/bin/python ../training_code/train_qys.py --exp_name "qy_clevr_eval" \
 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
 								--w_logpy 200 --w_logpx .02 --max_beta 1 --z_size 50 \
 								--data_dir "$HOME/VL/data/two_objects_no_occ/" \
@@ -9,17 +12,513 @@
 								--train_classifier 0 \
 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
 								--classifier_load_step 150000 \
-								--which_gpu '3' \
+								--which_gpu '1' \
 								--params_load_dir "$HOME/Documents/VLVAE_exps/vlvae_agg_detach_qy1/params/" \
 								--model_load_step 400000 \
-								--display_step 100 --trainingplot_steps 1000 --viz_steps 4000 \
-								--start_storing_data_step 2001 --save_params_step 999999999 \
+								--display_step 100 --trainingplot_steps 1000 --viz_steps 10000 \
+								--start_storing_data_step 2001 --save_params_step 20000 \
 								--ssl_type '0' \
 								--textAR 1 \
 								--max_steps 400000 \
 								--qy_detach 1 \
-								--qy_type 'true' \
-								--learn_prior 0
+								--qy_type 'agg' \
+								--learn_prior 0 \
+								--seed 2 \
+								--eval_qy 1
+
+
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_jointVAE.py --exp_name "vlvae_clevr_eval_attach_detach" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --w_logqy 1 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/"  \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '1' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/vlvae_agg_detach_qy1/params/" \
+# 								--model_load_step 400000 \
+# 								--display_step 500 --trainingplot_steps 2000 --viz_steps 10000 \
+# 								--start_storing_data_step 2001 --save_params_step 40000 \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1 \
+# 								--seed 2 \
+# 								--eval_attach_vs_detach 1
+
+
+
+
+
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_qys.py --exp_name "qy_clevr_agg_seed2" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/" \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '3' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/vlvae_agg_detach_qy1/params/" \
+# 								--model_load_step 400000 \
+# 								--display_step 100 --trainingplot_steps 1000 --viz_steps 10000 \
+# 								--start_storing_data_step 2001 --save_params_step 20000 \
+# 								--ssl_type '0' \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1 \
+# 								--qy_type 'agg' \
+# 								--learn_prior 0 \
+# 								--seed 2
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_qys.py --exp_name "qy_clevr_true_seed2" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/" \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '1' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/vlvae_agg_detach_qy1/params/" \
+# 								--model_load_step 400000 \
+# 								--display_step 100 --trainingplot_steps 1000 --viz_steps 10000 \
+# 								--start_storing_data_step 2001 --save_params_step 20000 \
+# 								--ssl_type '0' \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1 \
+# 								--qy_type 'true' \
+# 								--learn_prior 0 \
+# 								--seed 2
+
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_qys.py --exp_name "qy_clevr_true_seed1" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/" \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '0' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/vlvae_agg_detach_qy1/params/" \
+# 								--model_load_step 400000 \
+# 								--display_step 100 --trainingplot_steps 1000 --viz_steps 10000 \
+# 								--start_storing_data_step 2001 --save_params_step 20000 \
+# 								--ssl_type '0' \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1 \
+# 								--qy_type 'true' \
+# 								--learn_prior 0 \
+# 								--seed 1
+
+
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_qys.py --exp_name "qy_clevr_agg_seed1" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/" \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '2' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/vlvae_agg_detach_qy1/params/" \
+# 								--model_load_step 400000 \
+# 								--display_step 100 --trainingplot_steps 1000 --viz_steps 10000 \
+# 								--start_storing_data_step 2001 --save_params_step 20000 \
+# 								--ssl_type '0' \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1 \
+# 								--qy_type 'agg' \
+# 								--learn_prior 0 \
+# 								--seed 1
+
+
+
+
+
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_jointVAE.py --exp_name "vlvae_clevr_detach_seed2" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --w_logqy 1 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/"  \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '1' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/fig1_2D_train/params/" \
+# 								--model_load_step 0 \
+# 								--display_step 500 --trainingplot_steps 2000 --viz_steps 10000 \
+# 								--start_storing_data_step 2001 --save_params_step 40000 \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1 \
+# 								--seed 2
+
+
+
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_jointVAE.py --exp_name "vlvae_clevr_attach_seed2" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --w_logqy 1 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/"  \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '0' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/fig1_2D_train/params/" \
+# 								--model_load_step 0 \
+# 								--display_step 500 --trainingplot_steps 2000 --viz_steps 10000 \
+# 								--start_storing_data_step 2001 --save_params_step 40000 \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 0 \
+# 								--seed 2
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_jointVAE.py --exp_name "vlvae_clevr_attach_seed1" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --w_logqy 1 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/"  \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '1' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/fig1_2D_train/params/" \
+# 								--model_load_step 0 \
+# 								--display_step 500 --trainingplot_steps 2000 --viz_steps 10000 \
+# 								--start_storing_data_step 2001 --save_params_step 40000 \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 0 \
+# 								--seed 1
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_jointVAE.py --exp_name "vlvae_clevr_detach_seed1" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --w_logqy 1 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/"  \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '2' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/fig1_2D_train/params/" \
+# 								--model_load_step 0 \
+# 								--display_step 500 --trainingplot_steps 2000 --viz_steps 10000 \
+# 								--start_storing_data_step 2001 --save_params_step 40000 \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1 \
+# 								--seed 1
+
+
+
+
+
+
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_jointVAE.py --exp_name "vlvae_clevr_weightanneal" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --w_logqy 1 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/"  \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '2' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/fig1_2D_train/params/" \
+# 								--model_load_step 0 \
+# 								--display_step 500 --trainingplot_steps 2000 --viz_steps 10000 \
+# 								--start_storing_data_step 2001 --save_params_step 40000 \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1 
+
+
+
+
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_jointVAE.py --exp_name "vlvae_clevr_noweighting_noisyimage" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 1 --w_logpx 1 --w_logqy 1 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/"  \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '2' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/fig1_2D_train/params/" \
+# 								--model_load_step 0 \
+# 								--display_step 500 --trainingplot_steps 2000 --viz_steps 10000 \
+# 								--start_storing_data_step 2001 --save_params_step 40000 \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1
+
+
+
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_jointVAE.py --exp_name "vlvae_clevr_noweighting" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 1 --w_logpx 1 --w_logqy 1 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/"  \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '3' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/fig1_2D_train/params/" \
+# 								--model_load_step 0 \
+# 								--display_step 500 --trainingplot_steps 2000 --viz_steps 10000 \
+# 								--start_storing_data_step 2001 --save_params_step 40000 \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1
+
+
+
+
+
+
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_qys.py --exp_name "qy_agg_new2" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/" \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '0' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/vlvae_agg_detach_qy1/params/" \
+# 								--model_load_step 400000 \
+# 								--display_step 100 --trainingplot_steps 1000 --viz_steps 10000 \
+# 								--start_storing_data_step 2001 --save_params_step 20000 \
+# 								--ssl_type '0' \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1 \
+# 								--qy_type 'agg' \
+# 								--learn_prior 0
+
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_qys.py --exp_name "qy_true_new2" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/" \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '1' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/vlvae_agg_detach_qy1/params/" \
+# 								--model_load_step 400000 \
+# 								--display_step 100 --trainingplot_steps 1000 --viz_steps 10000 \
+# 								--start_storing_data_step 2001 --save_params_step 20000 \
+# 								--ssl_type '0' \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1 \
+# 								--qy_type 'true' \
+# 								--learn_prior 0
+
+
+							
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_qys.py --exp_name "qy_true_2flows_BN" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/" \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '1' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/vlvae_agg_detach_qy1/params/" \
+# 								--model_load_step 400000 \
+# 								--display_step 100 --trainingplot_steps 1000 --viz_steps 4000 \
+# 								--start_storing_data_step 2001 --save_params_step 999999999 \
+# 								--ssl_type '0' \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1 \
+# 								--qy_type 'true' \
+# 								--learn_prior 0
+
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_qys.py --exp_name "qy_agg_2flows_BN" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/" \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '0' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/vlvae_agg_detach_qy1/params/" \
+# 								--model_load_step 400000 \
+# 								--display_step 100 --trainingplot_steps 1000 --viz_steps 4000 \
+# 								--start_storing_data_step 2001 --save_params_step 999999999 \
+# 								--ssl_type '0' \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1 \
+# 								--qy_type 'agg' \
+# 								--learn_prior 0
+
+
+
+
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_qys.py --exp_name "qy_true_6flows_moreplots" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/" \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '2' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/vlvae_agg_detach_qy1/params/" \
+# 								--model_load_step 400000 \
+# 								--display_step 100 --trainingplot_steps 1000 --viz_steps 4000 \
+# 								--start_storing_data_step 2001 --save_params_step 999999999 \
+# 								--ssl_type '0' \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1 \
+# 								--qy_type 'true' \
+# 								--learn_prior 0
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_qys.py --exp_name "qy_agg_6flows_moreplots" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/" \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '1' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/vlvae_agg_detach_qy1/params/" \
+# 								--model_load_step 400000 \
+# 								--display_step 100 --trainingplot_steps 1000 --viz_steps 4000 \
+# 								--start_storing_data_step 2001 --save_params_step 999999999 \
+# 								--ssl_type '0' \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1 \
+# 								--qy_type 'agg' \
+# 								--learn_prior 0
+
+
+
+
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_qys.py --exp_name "qy_agg_3flows_moreplots" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/" \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '0' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/vlvae_agg_detach_qy1/params/" \
+# 								--model_load_step 400000 \
+# 								--display_step 100 --trainingplot_steps 1000 --viz_steps 4000 \
+# 								--start_storing_data_step 2001 --save_params_step 999999999 \
+# 								--ssl_type '0' \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1 \
+# 								--qy_type 'agg' \
+# 								--learn_prior 0
+
+
+
+
+# /home/ccremer/anaconda3/bin/python ../training_code/train_qys.py --exp_name "qy_true_3flows_moreplots" \
+# 								--multi 1 --singlev2 0 --joint_inf 0  --flow_int 1 --batch_size 20 \
+# 								--w_logpy 200 --w_logpx .02 --max_beta 1 --z_size 50 \
+# 								--data_dir "$HOME/VL/data/two_objects_no_occ/" \
+# 								--save_to_dir "$HOME/Documents/VLVAE_exps/" \
+# 								--just_classifier 0 \
+# 								--train_classifier 0 \
+# 								--classifier_load_params_dir "$HOME/Documents/VLVAE_exps/two_object_classifier_params/" \
+# 								--classifier_load_step 150000 \
+# 								--which_gpu '3' \
+# 								--params_load_dir "$HOME/Documents/VLVAE_exps/vlvae_agg_detach_qy1/params/" \
+# 								--model_load_step 400000 \
+# 								--display_step 100 --trainingplot_steps 1000 --viz_steps 4000 \
+# 								--start_storing_data_step 2001 --save_params_step 999999999 \
+# 								--ssl_type '0' \
+# 								--textAR 1 \
+# 								--max_steps 400000 \
+# 								--qy_detach 1 \
+# 								--qy_type 'true' \
+# 								--learn_prior 0
 
 
 

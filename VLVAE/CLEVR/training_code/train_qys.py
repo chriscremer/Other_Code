@@ -561,6 +561,208 @@ def get_entropy(dist, k_entropy):
 
 
 
+
+
+
+
+def eval_qy(model, image_dataset, question_dataset, classifier):
+
+    class new_qy(nn.Module):
+        def __init__(self, original_model):
+            super(new_qy, self).__init__()
+
+            self.y_enc_size = original_model.y_enc_size
+            self.linear_hidden_size = original_model.linear_hidden_size
+            self.act_func = original_model.act_func
+            self.z_size = original_model.z_size
+
+            # q(z|y)
+            self.encoder_rnn2_2 = nn.GRU(input_size=original_model.embed_size, hidden_size=original_model.y_enc_size, num_layers=1, 
+                                        dropout=0, batch_first=True, bidirectional=False).cuda()
+            self.qzy_fc1_2 = nn.Linear(original_model.y_enc_size, original_model.linear_hidden_size).cuda()
+            # self.qzy_bn1_2 = nn.BatchNorm1d(original_model.linear_hidden_size).cuda()
+            self.qzy_fc2_2 = nn.Linear(original_model.linear_hidden_size, original_model.linear_hidden_size).cuda()
+            self.qzy_fc22_2 = nn.Linear(original_model.linear_hidden_size, original_model.linear_hidden_size).cuda()
+            self.qzy_fc23_2 = nn.Linear(original_model.linear_hidden_size, original_model.linear_hidden_size).cuda()
+            self.qzy_fc3_2 = nn.Linear(original_model.linear_hidden_size, original_model.z_size*2).cuda()
+            # self.flow_cond_2 = Flow1_Cond(args.z_size, n_flows=6, h_size=200).cuda()
+            # self.flow_cond_2 = Flow1(args.z_size, n_flows=3).cuda()
+            self.flow_cond_2 = Flow1(args.z_size, n_flows=2).cuda()
+
+
+            # flow_cond
+            # flow_optimizer = optim.Adam(flow_cond.parameters(), lr=.0004, weight_decay=.0000001)
+
+            y_inf_net_params = [list(self.encoder_rnn2_2.parameters()) + list(self.qzy_fc1_2.parameters()) 
+                                # + list(self.qzy_bn1_2.parameters())
+                                 + list(self.qzy_fc2_2.parameters())
+                                    + list(self.qzy_fc3_2.parameters()) + list(self.flow_cond_2.parameters())]
+
+
+            # self.qy_optimizer = optim.Adam(y_inf_net_params[0], lr=.0001, weight_decay=.0000001)
+            self.qy_optimizer = optim.Adam(y_inf_net_params[0], lr=.0004, weight_decay=.0000001)
+            print ('qy inited')
+
+
+
+        def encode_attributes2_2(self, embed):
+            h0 = torch.zeros(1, embed.shape[0], self.y_enc_size).type_as(embed.data)
+            out, ht = self.encoder_rnn2_2(embed, h0)
+            return out[:,-1] 
+
+
+        def inference_net_y_2(self, y_enc):
+
+            input_ = y_enc
+            padded_input = torch.cat([y_enc, torch.zeros(y_enc.shape[0], self.linear_hidden_size-self.y_enc_size).cuda()], 1)
+
+            # out = self.act_func(self.qzy_bn1_2(self.qzy_fc1_2(input_)))
+            out = self.act_func(self.qzy_fc1_2(input_))
+            out = self.qzy_fc2_2(out)
+            res = out + padded_input 
+
+            out = self.act_func(self.qzy_fc22_2(out))
+            out = self.qzy_fc23_2(out)
+            res = out + res 
+
+            # out = self.act_func(self.qzy_bn2(self.qzy_fc3(res)))
+            # out = self.qzy_fc4(out)
+            # res = out + res 
+
+            out = self.qzy_fc3_2(res)
+            mean = out[:,:self.z_size]
+            logvar = out[:,self.z_size:]
+            logvar = torch.clamp(logvar, min=-15., max=10.)
+            return mean, logvar
+
+
+        # def flowlogprob2(self, q):
+        #     embed = self.encoder_embed(q)
+        #     y_enc = self.encode_attributes2_2(embed)
+        #     mu, logvar = self.inference_net_y_2(y_enc)
+        #     logqzy = self.flow_cond_2.logprob(z.detach(), mu, logvar) 
+        #     return logqzy
+
+
+        def load_params_v3(self, save_dir, step):
+            save_to=os.path.join(save_dir, "qy_params" + str(step)+".pt")
+            state_dict = torch.load(save_to)
+            # # # print (state_dict)
+            # for key, val in state_dict.items():
+            #     print (key)
+            # fddsf
+            self.load_state_dict(state_dict)
+            print ('loaded params', save_to)
+
+
+        def save_params_v3(self, save_dir, step):
+            save_to=os.path.join(save_dir, "qy_params" + str(step)+".pt")
+            torch.save(self.state_dict(), save_to)
+            print ('saved params', save_to)
+    
+
+
+
+
+
+    qy = new_qy(model)
+    
+
+    batch_size = 50
+
+    model.B = batch_size
+
+    # models = ['qy_agg_new', 'qy_clevr_agg_seed1', 'qy_clevr_agg_seed2']
+    models = ['qy_true_new', 'qy_clevr_true_seed1', 'qy_clevr_true_seed2']
+
+    correctness = []
+    logpx_given_y = []
+
+    for m in models:
+        print (m)
+        path = home + "/Documents/VLVAE_exps/"+m+"/params/"
+        qy.load_params_v3(save_dir=path, step=560000)
+
+        model.eval()
+        qy.eval()
+
+        with torch.no_grad():
+
+            n = len(question_dataset)
+            print (n)
+
+            correctness_model = []
+            logpx_given_y_model = []
+
+            i=0
+            while i < n:
+
+                idx = list(range(i,i+batch_size))
+
+                img_batch = image_dataset[idx]
+                question_batch = question_dataset[idx]
+
+                img_batch = torch.clamp(torch.from_numpy(img_batch), min=1e-5, max=1-1e-5).cuda()
+                question_batch = question_batch.cuda()
+
+                # outputs = model.forward(x=img_batch, q=question_batch, inf_type=1, dec_type=0)
+
+
+
+                # if 'true' in m:
+                #     outputs = model.forward_qy2(x=img_batch, q=question_batch, inf_type=2, dec_type=2, qy=qy) 
+
+                # elif 'agg' in m:
+                #     outputs = model.forward_qy2(x=img_batch, q=question_batch, inf_type=1, dec_type=0, qy=qy)
+
+
+                outputs2, alpha, word_preds, sampled_words = model.forward_qy2(x=img_batch, q=question_batch, qy=qy, generate=True)
+                # _, qy_real_image_gen_words_acc_val = classifier.classifier_loss(x=val_img_batch, attributes=sampled_words.detach())
+                _, qy_gen_image_real_words_acc_val = classifier.classifier_loss(x=alpha.detach(), attributes=question_batch)
+                # _, qy_gen_image_gen_words_acc_val = classifier.classifier_loss(x=alpha.detach(), attributes=sampled_words.detach())
+
+                logpx_give_y_val = outputs2['logpx_give_y']
+
+
+
+                correctness_model.append(qy_gen_image_real_words_acc_val.data.item())
+                logpx_given_y_model.append(logpx_give_y_val.data.item())
+
+
+                if i %500 ==0:
+                    print (i, np.mean(correctness_model), np.mean(logpx_given_y_model))
+
+                i += batch_size
+
+        correctness.append(np.mean(correctness_model))
+        logpx_given_y.append(np.mean(logpx_given_y_model))
+
+    print (np.mean(correctness), np.std(correctness))
+    print (np.mean(logpx_given_y), np.std(logpx_given_y))
+
+
+    fasda
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def train2(self, max_steps, load_step, 
                 train_image_dataset, train_question_dataset,
                 val_image_dataset, val_question_dataset,
@@ -590,7 +792,7 @@ def train2(self, max_steps, load_step,
             'aa_prior_classifier_acc', 'aa_prior_acc',
 
 
-            'loss', 'logqzy',
+            'loss', 'logqzy', 'logpzx',
             'qy_real_image_gen_words_acc','qy_gen_image_real_words_acc', 'qy_gen_image_gen_words_acc',
             'qy_real_image_gen_words_acc_val','qy_gen_image_real_words_acc_val', 'qy_gen_image_gen_words_acc_val',
             'logpx_give_y_train',
@@ -656,10 +858,12 @@ def train2(self, max_steps, load_step,
                 self.qzy_fc1_2 = nn.Linear(original_model.y_enc_size, original_model.linear_hidden_size).cuda()
                 # self.qzy_bn1_2 = nn.BatchNorm1d(original_model.linear_hidden_size).cuda()
                 self.qzy_fc2_2 = nn.Linear(original_model.linear_hidden_size, original_model.linear_hidden_size).cuda()
+                self.qzy_fc22_2 = nn.Linear(original_model.linear_hidden_size, original_model.linear_hidden_size).cuda()
+                self.qzy_fc23_2 = nn.Linear(original_model.linear_hidden_size, original_model.linear_hidden_size).cuda()
                 self.qzy_fc3_2 = nn.Linear(original_model.linear_hidden_size, original_model.z_size*2).cuda()
                 # self.flow_cond_2 = Flow1_Cond(args.z_size, n_flows=6, h_size=200).cuda()
-                self.flow_cond_2 = Flow1(args.z_size, n_flows=3).cuda()
-                # self.flow_cond_2 = Flow1(args.z_size, n_flows=6).cuda()
+                # self.flow_cond_2 = Flow1(args.z_size, n_flows=3).cuda()
+                self.flow_cond_2 = Flow1(args.z_size, n_flows=2).cuda()
 
 
                 # flow_cond
@@ -701,6 +905,10 @@ def train2(self, max_steps, load_step,
                 out = self.qzy_fc2_2(out)
                 res = out + padded_input 
 
+                out = self.act_func(self.qzy_fc22_2(out))
+                out = self.qzy_fc23_2(out)
+                res = out + res 
+
                 # out = self.act_func(self.qzy_bn2(self.qzy_fc3(res)))
                 # out = self.qzy_fc4(out)
                 # res = out + res 
@@ -718,6 +926,24 @@ def train2(self, max_steps, load_step,
             #     mu, logvar = self.inference_net_y_2(y_enc)
             #     logqzy = self.flow_cond_2.logprob(z.detach(), mu, logvar) 
             #     return logqzy
+
+
+            def load_params_v3(self, save_dir, step):
+                save_to=os.path.join(save_dir, "qy_params" + str(step)+".pt")
+                state_dict = torch.load(save_to)
+                # # # print (state_dict)
+                # for key, val in state_dict.items():
+                #     print (key)
+                # fddsf
+                self.load_state_dict(state_dict)
+                print ('loaded params', save_to)
+
+
+            def save_params_v3(self, save_dir, step):
+                save_to=os.path.join(save_dir, "qy_params" + str(step)+".pt")
+                torch.save(self.state_dict(), save_to)
+                print ('saved params', save_to)
+        
 
 
 
@@ -854,7 +1080,7 @@ def train2(self, max_steps, load_step,
 
 
 
-    z_avg_var = deque(maxlen=10)
+    # z_avg_var = deque(maxlen=10)
 
     warmup=0.
 
@@ -1023,6 +1249,7 @@ def train2(self, max_steps, load_step,
 
 
                     logqzy = outputs2['logqzy']
+                    logpzx = outputs2['logpz_x_under_pz']
                     
 
 
@@ -1379,7 +1606,7 @@ def train2(self, max_steps, load_step,
                 # print (img_batch.shape, question_batch.shape, alpha.shape, sampled_words.shape)
                 # fsadf
 
-                outputs2, alpha, word_preds, sampled_words = self.forward_qy2(x=img_batch, q=val_question_batch, qy=qy, generate=True)
+                outputs2, alpha, word_preds, sampled_words = self.forward_qy2(x=val_img_batch, q=val_question_batch, qy=qy, generate=True)
                 _, qy_real_image_gen_words_acc_val = classifier.classifier_loss(x=val_img_batch, attributes=sampled_words.detach())
                 _, qy_gen_image_real_words_acc_val = classifier.classifier_loss(x=alpha.detach(), attributes=val_question_batch)
                 _, qy_gen_image_gen_words_acc_val = classifier.classifier_loss(x=alpha.detach(), attributes=sampled_words.detach())
@@ -1522,12 +1749,13 @@ def train2(self, max_steps, load_step,
             
             add_to_dict(recent_dict, 'loss', loss.data.item())
             add_to_dict(recent_dict, 'logqzy', logqzy.data.item())
+            add_to_dict(recent_dict, 'logpzx', logpzx.data.item())
+
             add_to_dict(recent_dict, 'logpx_give_y_train', logpx_give_y_train.data.item())
             add_to_dict(recent_dict, 'logpx_give_y_val', logpx_give_y_val.data.item())
             add_to_dict(recent_dict, 'qy_real_image_gen_words_acc', qy_real_image_gen_words_acc.data.item())
             add_to_dict(recent_dict, 'qy_gen_image_real_words_acc', qy_gen_image_real_words_acc.data.item())
             add_to_dict(recent_dict, 'qy_gen_image_gen_words_acc', qy_gen_image_gen_words_acc.data.item())
-
 
             add_to_dict(recent_dict, 'qy_real_image_gen_words_acc_val', qy_real_image_gen_words_acc_val.data.item())
             add_to_dict(recent_dict, 'qy_gen_image_real_words_acc_val', qy_gen_image_real_words_acc_val.data.item())
@@ -1638,7 +1866,9 @@ def train2(self, max_steps, load_step,
 
                 all_dict['all_steps'].append(step_count+load_step)
                 all_dict['loss'].append(np.mean(recent_dict['loss']))
-                all_dict['logqzy'].append(np.mean(recent_dict['logqzy'])) 
+                all_dict['logqzy'].append(np.mean(recent_dict['logqzy']))
+                all_dict['logpzx'].append(np.mean(recent_dict['logpzx']))
+
 
                 all_dict['logpx_give_y_train'].append(np.mean(recent_dict['logpx_give_y_train'])) 
                 all_dict['logpx_give_y_val'].append(np.mean(recent_dict['logpx_give_y_val'])) 
@@ -1752,15 +1982,15 @@ def train2(self, max_steps, load_step,
 
         if step_count % save_steps==0 and step_count > 0:
 
-            try:
-                self.save_params_v3(save_dir=params_dir, step=step_count+load_step)
+            # try:
+            qy.save_params_v3(save_dir=params_dir, step=step_count+load_step)
 
-                if self.train_classifier:
-                    classifier.save_params_v3(save_dir=params_dir, step=step_count+load_step)
+            #     if self.train_classifier:
+            #         classifier.save_params_v3(save_dir=params_dir, step=step_count+load_step)
 
-            except:
+            # except:
 
-                print ('problem with saving params')
+            #     print ('problem with saving params')
 
 
             #Save params
@@ -1861,16 +2091,18 @@ def plot_curves_qy(self, save_dir, all_dict):
 
 
     make_curve_subplot(self, rows, cols, row=row, col=col, steps=steps, 
-        values_list=[all_dict['logqzy']], 
-        label_list=['Train: {:.2f}'.format( all_dict['logqzy'][-1]),], 
-        ylabel='logqzy', show_ticks=True, colspan=text_col_width, rowspan=1, title=0)
+        values_list=[all_dict['logqzy'], all_dict['logpzx']], 
+        label_list=['logqzy: {:.2f}'.format( all_dict['logqzy'][-1]),
+                    'logpzx: {:.2f}'.format( all_dict['logpzx'][-1]), ], 
+        ylabel='Likelihood', show_ticks=True, colspan=text_col_width, rowspan=1, title=0)
     row+=1
+
 
     make_curve_subplot(self, rows, cols, row=row, col=col, steps=steps, 
         values_list=[all_dict['logpx_give_y_train'], all_dict['logpx_give_y_val']], 
         label_list=['Train: {:.2f}'.format( all_dict['logpx_give_y_train'][-1]), 
                     'Valid: {:.2f}'.format( all_dict['logpx_give_y_val'][-1])], 
-        ylabel='logpx_give_y_val', show_ticks=True, colspan=text_col_width, rowspan=1, title=0)
+        ylabel='log px|y', show_ticks=True, colspan=text_col_width, rowspan=1, title=0)
     row+=1
 
 
@@ -2936,7 +3168,13 @@ if __name__ == "__main__":
 
     parser.add_argument('--learn_prior', type=int, default=0)
 
+    parser.add_argument('--seed', type=int, default=1)
 
+
+    parser.add_argument('--eval_qy', type=int, default=0)
+
+
+    
     
     
     
@@ -2946,6 +3184,9 @@ if __name__ == "__main__":
     args_dict = vars(args) #convert to dict
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.which_gpu #  '0' #'1' #
+
+
+    torch.manual_seed(args.seed)
 
 
     single_object = args.single
@@ -2980,6 +3221,7 @@ if __name__ == "__main__":
     exp_dir = args.save_to_dir + args.exp_name + '/'
     params_dir = exp_dir + 'params/'
     images_dir = exp_dir + 'images/'
+    code_dir = exp_dir + 'code/'
 
     if not os.path.exists(exp_dir):
         os.makedirs(exp_dir)
@@ -2995,6 +3237,18 @@ if __name__ == "__main__":
     if not os.path.exists(images_dir):
         os.makedirs(images_dir)
         print ('Made dir', images_dir) 
+
+
+    if not os.path.exists(code_dir):
+        os.makedirs(code_dir)
+        print ('Made dir', code_dir) 
+
+
+    #Save args and code
+    json_path = exp_dir+'args_dict.json'
+    with open(json_path, 'w') as outfile:
+        json.dump(args_dict, outfile, sort_keys=True, indent=4)
+    subprocess.call("(rsync -r --exclude=__pycache__/ .. "+code_dir+" )", shell=True)
 
 
 
@@ -3142,6 +3396,7 @@ if __name__ == "__main__":
 
 
 
+
     
     
 
@@ -3160,6 +3415,28 @@ if __name__ == "__main__":
         classifier.load_params_v3(save_dir=args.classifier_load_params_dir, step=args.classifier_load_step)
         classifier.eval()
     print ('classifier Initilized\n')
+
+
+
+
+
+
+
+
+    if args.eval_qy:
+
+        eval_qy(model, val_image_dataset, val_question_dataset, classifier)
+
+        fsdafas
+
+
+
+
+
+
+
+
+
 
 
 

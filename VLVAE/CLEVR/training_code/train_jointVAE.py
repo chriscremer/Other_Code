@@ -16,7 +16,6 @@ import pickle
 import random
 import subprocess
 import json
-import random
 import shutil
 import time
 import argparse
@@ -438,6 +437,70 @@ def compute_log_like(model, image_dataset, question_dataset, n_batches, val=Fals
 
 
 
+def eval_attach_vs_detach(model, image_dataset, question_dataset):
+
+    # models = ['vlvae_agg_detach_qy1', 'vlvae_clevr_detach_seed1', 'vlvae_clevr_detach_seed2']
+    models = ['vlvae_agg_attach_qy1', 'vlvae_clevr_attach_seed1', 'vlvae_clevr_attach_seed2']
+
+    logpx = []
+    logpx_given_y = []
+
+    for m in models:
+        print (m)
+        path = home + "/Documents/VLVAE_exps/"+m+"/params/"
+        model.load_params_v3(save_dir=path, step=400000)
+        
+        model.eval()
+        with torch.no_grad():
+
+            n = len(question_dataset)
+            print (n)
+
+            logpx_model = []
+            logpx_given_y_model = []
+
+            i=0
+            while i < n:
+
+                idx = list(range(i,i+50))
+
+                img_batch = image_dataset[idx]
+                question_batch = question_dataset[idx]
+
+                img_batch = torch.clamp(torch.from_numpy(img_batch), min=1e-5, max=1-1e-5).cuda()
+                question_batch = question_batch.cuda()
+
+                outputs = model.forward(x=img_batch, q=question_batch, inf_type=1, dec_type=0)
+
+                logpx_model.append(outputs['elbo'].data.item())
+                logpx_given_y_model.append(outputs['elbo_qy'].data.item())
+
+
+                if i %500 ==0:
+                    print (i, np.mean(logpx_model), np.mean(logpx_given_y_model))
+
+                i += 50
+
+        logpx.append(np.mean(logpx_model))
+        logpx_given_y.append(np.mean(logpx_given_y_model))
+
+    print (np.mean(logpx), np.std(logpx))
+    print (np.mean(logpx_given_y), np.std(logpx_given_y))
+
+
+    fasda
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -490,7 +553,7 @@ def train2(self, max_steps, load_step,
     self.B = batch_size
     start_time = time.time()
     step_count = 0
-    warmup_steps = 10000. 
+    warmup_steps = 20000. 
 
 
 
@@ -549,8 +612,13 @@ def train2(self, max_steps, load_step,
                 #     print (step)
 
                 # Beta = torch.from_numpy(warmup)
+
+                noise = torch.rand_like(img_batch) / 256.
+                noisy_image = img_batch + noise
+                noisy_image = torch.clamp(noisy_image, min=1e-5, max=1-1e-5)
+
                 self.optimizer_x.zero_grad()
-                outputs = self.forward(x=img_batch, q=question_batch, warmup=torch.tensor([warmup]).cuda(), inf_type=1, dec_type=0) #, k=k_train) #, marginf_type=marginf_type)
+                outputs = self.forward(x=noisy_image, q=question_batch, warmup=torch.tensor([warmup]).cuda(), inf_type=1, dec_type=0) #, k=k_train) #, marginf_type=marginf_type)
                 loss = -outputs['welbo']
                 loss.backward()
                 self.optimizer_x.step()
@@ -2008,6 +2076,10 @@ if __name__ == "__main__":
     parser.add_argument('--qy_detach', type=int, default=1)
     parser.add_argument('--ssl_type', type=str, default='0')
 
+    parser.add_argument('--seed', type=int, default=1)
+    parser.add_argument('--eval_attach_vs_detach', type=int, default=0)
+
+
 
     
     
@@ -2023,6 +2095,11 @@ if __name__ == "__main__":
     single_object = args.single
     single_object_v2 = args.singlev2
     multi_object = args.multi
+
+
+    torch.manual_seed(args.seed)
+
+    print (args.exp_name)
 
 
     data_dir = args.data_dir 
@@ -2212,6 +2289,18 @@ if __name__ == "__main__":
     args_dict['q_max_len'] = q_max_len
     model = VLVAE(args_dict)
     model.cuda()
+
+
+
+
+    if args.eval_attach_vs_detach:
+        # print (len(image_dataset))
+        eval_attach_vs_detach(model, val_image_dataset, val_question_dataset)
+
+        fasdfa
+
+
+
     if args.model_load_step>0:
         model.load_params_v3(save_dir=args.params_load_dir, step=args.model_load_step)
     # print(model)
