@@ -292,7 +292,8 @@ print('\nModel:', hyper_config,'\n')
 
 
 # path_to_load_variables=''
-path_to_save_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_4' #.pt'
+path_to_load_variables= home+'/Documents/Inf_Sub/decoder_exps/hidden_layers_4'
+# path_to_save_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_4' #.pt'
 # path_to_save_variables=home+'/Documents/tmp/pytorch_vae'+str(epochs)+'.pt'
 # path_to_save_variables=this_dir+'/params_'+model_name+'_'
 # path_to_save_variables=''

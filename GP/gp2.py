@@ -1,7 +1,17 @@
 
 
-from __future__ import division
+# from __future__ import division
 import numpy as np
+
+
+# import matplotlib.pyplot as pl
+
+from os.path import expanduser
+home = expanduser("~")
+
+
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as pl
 
 """ This is code for simple GP regression. It assumes a zero mean GP Prior """
@@ -195,6 +205,11 @@ ax.set_title('Posterior Samples',fontsize=6,family='serif')
 # draw samples from the prior 
 n_samps = 5
 ax = pl.subplot2grid((rows,cols), (1,1), frameon=False, colspan=1, rowspan=1)
+print (K_.shape)
+print (K_[0])
+print ()
+print (K_[1])
+fsda
 L_ = np.linalg.cholesky(K_ + 1e-6*np.eye(n))
 f_prior = np.dot(L_, np.random.normal(size=(n,n_samps)))
 ax.plot(X_linspace, f_prior, linewidth=1.)
@@ -226,10 +241,9 @@ ax.tick_params(labelsize=6)
 pl.tight_layout()
 # pl.gca().set_aspect('equal')
 
-pl.show()
-
-
-
+# pl.show()
+pl.savefig(home + '/Downloads/post.png', bbox_inches='tight')
+print ('saved fig')
 
 
 
