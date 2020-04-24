@@ -398,6 +398,20 @@ class AR_Prior(Layer):
         x = x.view(bs, c // 2 ** 2, h * 2, w * 2)
         return x
 
+    def get_logsd(self, x):
+
+        # #v1
+        # logsd = (torch.tanh(x /self.lm ) * self.lm ) - (self.lm /2.)
+
+        # #v2 - softplus of scaled tanh(x)
+        # logsd = torch.log(torch.log(1+torch.exp((torch.tanh(x /self.lm ) * self.lm ) - (self.lm /2.))))
+
+        #v3 - softplus of scaled tanh(x)
+        logsd = torch.log(torch.log(1+torch.exp(x)))
+
+        return logsd
+
+
 
 
     def forward_(self, x, objective):
@@ -408,16 +422,33 @@ class AR_Prior(Layer):
 
         mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
 
+        # print (logsd[0,:,0,0])
+        # fsad
 
         mean = torch.tanh(mean / 100.) * 100.
-        logsd = (torch.tanh(logsd /self.lm ) * self.lm ) - (self.lm /2.)
+        # logsd = (torch.tanh(logsd /self.lm ) * self.lm ) - (self.lm /2.)
+        logsd = self.get_logsd(logsd)
         # logsd = (torch.tanh(logsd /4.) * 4.) -2.
 
-        
-        # LL = self.gauss_log_prob(x, mean=mean, logsd=logsd)
+        # #MIN and MAX Standard deviations
+        # print (np.exp((-1 * self.lm ) - (self.lm /2.)))
+        # print (np.exp((1 * self.lm ) - (self.lm /2.)))
+        # fasdf
 
-        m = dist.Cauchy(mean, torch.exp(logsd))
-        LL = m.log_prob(x)
+
+        # bs, c, h, w = self.input_shape
+        # print (torch.exp(logsd[0, :, 5, 5]))
+        # fadsa
+        # for i in range(h):
+        #     for j in range(w):
+        #         print (i,j, torch.mean(torch.exp(logsd[:, :, i, j])).data.cpu().numpy(), torch.std(torch.exp(logsd[:, :, i, j])).data.cpu().numpy() )
+        # fads
+
+        
+        LL = self.gauss_log_prob(x, mean=mean, logsd=logsd)
+
+        # m = dist.Cauchy(mean, torch.exp(logsd))
+        # LL = m.log_prob(x)
 
 
         LL = LL.view(B,-1).sum(-1)
@@ -436,6 +467,7 @@ class AR_Prior(Layer):
         bs, c, h, w = self.input_shape
         bs = args.sample_size
 
+
         samp = torch.zeros(bs, c, h, w).cuda()
         for i in range(h):
 
@@ -450,9 +482,19 @@ class AR_Prior(Layer):
                 mean_and_logsd   = self.model(samp)
                 mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
 
+                # print (logsd.shape)
+                # print (logsd[:,:,0,0])
+                # fsdaf
+
                 mean = torch.tanh(mean / 100.) * 100.
                 # logsd = (torch.tanh(logsd /4.) * 4.) -2.
-                logsd = (torch.tanh(logsd /self.lm ) * self.lm ) - (self.lm /2.)
+                # logsd = (torch.tanh(logsd /self.lm ) * self.lm ) - (self.lm /2.)
+                logsd = self.get_logsd(logsd)
+
+                # #MIN and MAX Standard deviations
+                # print (np.exp((-1 * self.lm ) - (self.lm /2.)))
+                # print (np.exp((1 * self.lm ) - (self.lm /2.)))
+                # fasdf
 
                 x_ = torch.zeros(bs, c, h, w).cuda()
 
@@ -482,10 +524,16 @@ class AR_Prior(Layer):
 
                     else:
                         eps = torch.zeros_like(mean).normal_().cuda()
-                        x_ = mean + torch.exp(logsd) * eps 
+                        x_ = mean + torch.exp(logsd) * eps  * args.temp
+
+
+                    # print (i,j, torch.mean(torch.exp(logsd[:, :, i, j])).data.cpu().numpy(), torch.std(torch.exp(logsd[:, :, i, j])).data.cpu().numpy() )
+
+
+
                 else:
                     eps = torch.zeros_like(mean).normal_().cuda()
-                    x_ = mean + torch.exp(logsd) * eps 
+                    x_ = mean + torch.exp(logsd) * eps * args.temp
 
                 samp[:, :, i, j] = x_[:, :, i, j]
 
@@ -497,7 +545,8 @@ class AR_Prior(Layer):
         mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
         mean = torch.tanh(mean / 100.) * 100.
         # logsd = (torch.tanh(logsd /4.) * 4.) -2.
-        logsd = (torch.tanh(logsd /self.lm ) * self.lm ) - (self.lm /2.)
+        # logsd = (torch.tanh(logsd /self.lm ) * self.lm ) - (self.lm /2.)
+        logsd = self.get_logsd(logsd)
         LL = self.gauss_log_prob(samp, mean=mean, logsd=logsd)
         LL = LL.view(B,-1).sum(-1)
         objective -= LL
@@ -1555,9 +1604,10 @@ class Glow_(LayerList, nn.Module):
         # # fadsf
 
         
-        # for i in range(len(output_shapes)):
-        #     print (i, output_shapes[i])
-        # fdsa
+        print (input_shape)
+        for i in range(len(output_shapes)):
+            print (i, output_shapes[i])
+        fdsa
 
         self.layers = nn.ModuleList(layers)
         # print(len(self.layers))

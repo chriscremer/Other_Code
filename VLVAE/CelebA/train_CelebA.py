@@ -318,6 +318,125 @@ def make_batch(image_dir, attr_dict, batch_size, indexes, word_to_idx): # val=Fa
 
 
 
+
+
+
+
+def eval_attach_vs_detach(model, val_indexes, image_dir, attr_dict, word_to_idx):
+
+    # models = ['vlvae_agg_detach_celebA', 'vlvae_celebA_detach_seed1', 'vlvae_celebA_detach_seed2']
+    models = ['vlvae_agg_attach_celebA', 'vlvae_celebA_attach_seed1',]
+
+
+    n = len(val_indexes)
+    print (n)
+
+    batch_size = 100
+
+    logpx = []
+    logpx_given_y = []
+
+    for m in models:
+        print (m)
+        path = home + "/Documents/VLVAE_exps/"+m+"/params/"
+        model.load_params_v3(save_dir=path, step=400000)
+        
+        model.eval()
+        with torch.no_grad():
+
+            logpx_model = []
+            logpx_given_y_model = []
+
+            i=0
+            while i+batch_size < n:
+                indexes = val_indexes[i:i+batch_size]
+                #make batch
+                img_batch = []
+                question_batch = []
+                for ii in indexes:
+                    numb = str(ii) 
+                    while len(numb) != 6:
+                        numb = '0' + numb
+                    img_file = image_dir+ numb + '.jpg'
+                    jpgfile = Image.open(img_file)
+                    img = np.array(jpgfile)
+                    img = np.rollaxis(img, 2, 1)# [112,112,3]
+                    img = np.rollaxis(img, 1, 0)
+                    img = img / 255.
+                    cropped_image = img[:, x1:x1+128, y1:y1+128]
+                    cropped_image = torch.Tensor(cropped_image)
+                    downsampled_image = downsample(cropped_image)
+                    img = downsampled_image
+                    img_batch.append(img)
+
+                    word_idxs = get_text_idxs(attr_dict[numb+'.jpg'], word_to_idx)
+                    while len(word_idxs) < 9:
+                        word_idxs.append(0)
+                    question_batch.append(word_idxs)
+
+                img_batch = np.stack(img_batch) #[B,C,W,H]
+                question_batch = np.stack(question_batch) #, 1) #[T,B,L]
+                img_batch = torch.from_numpy(img_batch).cuda()
+                question_batch = torch.from_numpy(question_batch).cuda()
+                img_batch = torch.clamp(img_batch, min=1e-5, max=1-1e-5)
+
+
+                outputs = model.forward(x=img_batch, q=question_batch, inf_type=1, dec_type=0)
+
+                logpx_model.append(outputs['elbo'].data.item())
+                logpx_given_y_model.append(outputs['elbo_qy'].data.item())
+
+
+                if i %500 ==0:
+                    print (i, np.mean(logpx_model), np.mean(logpx_given_y_model))
+
+                i += batch_size
+
+        logpx.append(np.mean(logpx_model))
+        logpx_given_y.append(np.mean(logpx_given_y_model))
+
+    print (np.mean(logpx), np.std(logpx))
+    print (np.mean(logpx_given_y), np.std(logpx_given_y))
+
+
+    fasda
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def train2(self, max_steps, load_step, 
                 image_dir, train_indexes, val_indexes, attr_dict, word_to_idx,
                 save_dir, params_dir, images_dir, batch_size,
@@ -1312,7 +1431,7 @@ def vizualize(self, images, questions,
         sentence = get_sentence2(training_recon_q_sampled_words[img_i])
         dist = training_recon_q_dist[img_i]
         for i in range(len(dist)):
-            make_bar_subplot(self, rows, cols, row=1, col=2+i, range_=range(self.vocab_size), values_=dist[i], text=sentence[i], sampled_word=training_recon_q_sampled_words[img_i][i])
+            make_bar_subplot(self, rows, cols, row=1, col=2+i, range_=range(self.vocab_size), values_=dist[i].cpu(), text=sentence[i], sampled_word=training_recon_q_sampled_words[img_i][i].cpu())
 
         #Row 2
         make_image_subplot(self, rows, cols, row=2, col=0, image=val_img_batch[img_i], text='Validation Recon')
@@ -1326,7 +1445,7 @@ def vizualize(self, images, questions,
         sentence = get_sentence2(val_recon_q_sampled_words[img_i])
         dist = val_recon_q_dist[img_i]
         for i in range(len(dist)):
-            make_bar_subplot(self, rows, cols, row=3, col=2+i, range_=range(self.vocab_size), values_=dist[i], text=sentence[i], sampled_word=val_recon_q_sampled_words[img_i][i])
+            make_bar_subplot(self, rows, cols, row=3, col=2+i, range_=range(self.vocab_size), values_=dist[i].cpu(), text=sentence[i], sampled_word=val_recon_q_sampled_words[img_i][i].cpu())
 
         #Row 4
         make_image_subplot(self, rows, cols, row=4, col=0, image=prior_img[img_i], text='Prior Samples')
@@ -1336,7 +1455,7 @@ def vizualize(self, images, questions,
         sentence = get_sentence2(prior_sampled_words[img_i])
         dist = prior_q_dist[img_i]
         for i in range(len(dist)):
-            make_bar_subplot(self, rows, cols, row=4, col=2+i, range_=range(self.vocab_size), values_=dist[i], text=sentence[i], sampled_word=prior_sampled_words[img_i][i])
+            make_bar_subplot(self, rows, cols, row=4, col=2+i, range_=range(self.vocab_size), values_=dist[i].cpu(), text=sentence[i], sampled_word=prior_sampled_words[img_i][i].cpu())
 
         #Row 5
         make_image_subplot(self, rows, cols, row=5, col=0, image=prior_img[img_i+1], text='')
@@ -1346,7 +1465,7 @@ def vizualize(self, images, questions,
         sentence = get_sentence2(prior_sampled_words[img_i+1])
         dist = prior_q_dist[img_i+1]
         for i in range(len(dist)):
-            make_bar_subplot(self, rows, cols, row=5, col=2+i, range_=range(self.vocab_size), values_=dist[i], text=sentence[i], sampled_word=prior_sampled_words[img_i+1][i])
+            make_bar_subplot(self, rows, cols, row=5, col=2+i, range_=range(self.vocab_size), values_=dist[i].cpu(), text=sentence[i], sampled_word=prior_sampled_words[img_i+1][i].cpu())
 
 
         # plt.tight_layout()
@@ -1632,12 +1751,26 @@ if __name__ == "__main__":
     parser.add_argument('--textAR', type=int, default=1)
 
     parser.add_argument('--ssl_type', type=str, default='0')
+    parser.add_argument('--qy_detach', type=int, default=1)
+
+    parser.add_argument('--seed', type=int, default=1)
+
+    parser.add_argument('--eval_attach_vs_detach', type=int, default=0)
+
+
 
 
     args = parser.parse_args()
     args_dict = vars(args) #convert to dict
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.which_gpu #  '0' #'1' #
+
+    torch.manual_seed(args.seed)
+
+
+    print (args.exp_name)
+
+
 
     data_dir = args.data_dir 
     image_dir = data_dir + 'img_align_celeba/'
@@ -1735,6 +1868,8 @@ if __name__ == "__main__":
     exp_dir = args.save_to_dir + args.exp_name + '/'
     params_dir = exp_dir + 'params/'
     images_dir = exp_dir + 'images/'
+    code_dir = exp_dir + 'code/'
+
 
     if not os.path.exists(exp_dir):
         os.makedirs(exp_dir)
@@ -1751,6 +1886,17 @@ if __name__ == "__main__":
         os.makedirs(images_dir)
         print ('Made dir', images_dir) 
 
+    if not os.path.exists(code_dir):
+        os.makedirs(code_dir)
+        print ('Made dir', code_dir) 
+
+    #Save args and code
+    json_path = exp_dir+'args_dict.json'
+    with open(json_path, 'w') as outfile:
+        json.dump(args_dict, outfile, sort_keys=True, indent=4)
+    subprocess.call("(rsync -r --exclude=__pycache__/ . "+code_dir+" )", shell=True)
+
+
 
 
 
@@ -1763,6 +1909,23 @@ if __name__ == "__main__":
     print ('\nInit VLVAE')
     model = VLVAE(args_dict)
     model.cuda()
+
+
+
+
+    if args.eval_attach_vs_detach:
+
+
+        val_indexes=list(range(180001, n_images))
+
+        eval_attach_vs_detach(model, val_indexes, image_dir, attr_dict, word_to_idx)
+
+        fasdfa
+
+
+
+
+
     if args.model_load_step>0:
         model.load_params_v3(save_dir=args.params_load_dir, step=args.model_load_step)
     # print(model)

@@ -156,11 +156,44 @@ class attribute_classifier(nn.Module):
             for j in range(len(attributes[i])):
                 attributes1[attributes[i][j]-1] = 1.
 
+
+
             y_hat_b = (y_hat[i] > .5)
             acc = np.mean(y_hat_b == attributes1) #, 0)   
             accs.append(acc)
 
+        #     print (y_hat[i])
+        #     print (attributes1)
+        #     print (acc)
+        #     print 
+
+        # fasa
+
         return np.mean(accs)
+
+
+
+
+    # def precision_sequence(self, x, attributes):
+
+    #     y_hat = self.classifier(x)
+    #     y_hat = torch.sigmoid(y_hat).data.cpu().numpy()
+
+    #     accs =[]
+    #     for i in range(len(x)):
+    #         #convert sequence to 19 dim vec
+    #         attributes1 = np.zeros((19))
+    #         for j in range(len(attributes[i])):
+    #             attributes1[attributes[i][j]-1] = 1.
+
+    #         y_hat_b = (y_hat[i] > .5)
+    #         acc = np.mean(y_hat_b == attributes1) #, 0)   
+    #         accs.append(acc)
+
+    #     return np.mean(accs)
+
+
+
 
 
 

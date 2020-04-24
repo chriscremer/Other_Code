@@ -1,4 +1,5 @@
 
+# train4 incorporates more flickr dataset changes, like better memory allocation
 
 import torch
 import torch.nn as nn
@@ -28,14 +29,21 @@ home = expanduser("~")
 # sys.path.insert(0, os.path.abspath(home+'/Other_Code/VLVAE/CLEVR/utils'))
 
 
-from invertible_layers import * 
+# from invertible_layers import * 
+# from invertible_layers_2 import * 
+from invertible_layers_justgauss import * 
+
+
+
+
 from utils import * 
 
 
 from load_data import load_clevr, load_cifar, load_svhn, load_flickr
 
-#https://forums.fast.ai/t/show-gpu-utilization-metrics-inside-training-loop-without-subprocess-call/26594
-import nvidia_smi
+
+# #https://forums.fast.ai/t/show-gpu-utilization-metrics-inside-training-loop-without-subprocess-call/26594
+# import nvidia_smi
 
 
 
@@ -126,20 +134,20 @@ torch.manual_seed(0)
 torch.cuda.manual_seed_all(0)
 
 
-#https://forums.fast.ai/t/show-gpu-utilization-metrics-inside-training-loop-without-subprocess-call/26594
-nvidia_smi.nvmlInit()
-handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
-def get_gpu_mem(concat_string=''):
+# #https://forums.fast.ai/t/show-gpu-utilization-metrics-inside-training-loop-without-subprocess-call/26594
+# nvidia_smi.nvmlInit()
+# handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
+# def get_gpu_mem(concat_string=''):
 
-    # res = nvidia_smi.nvmlDeviceGetUtilizationRates(handle)
-    # print(f'gpu: {res.gpu}%, gpu-mem: {res.memory}%')
+#     # res = nvidia_smi.nvmlDeviceGetUtilizationRates(handle)
+#     # print(f'gpu: {res.gpu}%, gpu-mem: {res.memory}%')
 
-    res = nvidia_smi.nvmlDeviceGetMemoryInfo(handle)
-    # print(f'mem: {res.used / (1024**2)} (GiB)') # usage in GiB
-    print(concat_string, f'mem: {100 * (res.used / res.total):.3f}%') # percentage 
-    # print(f'mem: {res.used / (1024**2)} (GiB), {100 * (res.used / res.total):.3f}%') # percentage 
-    # print(f'mem: {res.used, res.total} ') # percentage 
-    # print(f'mem: {res.used/ (1024**2) /1000., res.total/ (1024**2) /1000.}  ') # percentage 
+#     res = nvidia_smi.nvmlDeviceGetMemoryInfo(handle)
+#     # print(f'mem: {res.used / (1024**2)} (GiB)') # usage in GiB
+#     print(concat_string, f'mem: {100 * (res.used / res.total):.3f}%') # percentage 
+#     # print(f'mem: {res.used / (1024**2)} (GiB), {100 * (res.used / res.total):.3f}%') # percentage 
+#     # print(f'mem: {res.used, res.total} ') # percentage 
+#     # print(f'mem: {res.used/ (1024**2) /1000., res.total/ (1024**2) /1000.}  ') # percentage 
 
 
 def myprint(list_):
@@ -307,12 +315,18 @@ elif args.dataset=='cifar':
     # print (len(test_x), 'test set len')
     svhn_test_x = load_svhn(data_dir=home+'/Documents/')
     # svhn_test_x = test_x
-    
+
+
 # dataset = train_x
 elif args.dataset=='flickr':
 
-    train_x, test_x = load_flickr(batch_size=args.batch_size, data_dir='/scratch/gobi1/ccremer/Flickr_Faces/images1024x1024/',
-                                                            data_dir_test='/scratch/gobi1/ccremer/Flickr_Faces/images1024x1024_test/')
+    if not args.quick:
+        train_x, test_x = load_flickr(batch_size=args.batch_size, data_dir='/scratch/gobi1/ccremer/Flickr_Faces/images1024x1024/',
+                                                            data_dir_test='/scratch/gobi1/ccremer/Flickr_Faces/images1024x1024_test/') 
+    else:
+        train_x, test_x = load_flickr(batch_size=args.batch_size, data_dir='/scratch/gobi1/ccremer/Flickr_Faces/images1024x1024_oneimage/',
+                                                            data_dir_test='/scratch/gobi1/ccremer/Flickr_Faces/images1024x1024_test/')          
+
     shape = train_x[0][0].shape
 
 
@@ -322,7 +336,6 @@ print ('Test Set', len(test_x)) #, test_x[0].shape)
 print (shape)
 # print (torch.min(train_x[0:100]), torch.max(train_x[0:100]))
 # print (torch.min(test_x[0:100]), torch.max(test_x[0:100]))
-# fafa
 ###########################################################################################
 
 
@@ -336,12 +349,12 @@ print (shape)
 print ('\nInitializing Model')
 batch_size = args.batch_size
 if shape[2]> 200:
-    sampling_batch_size = 64 #2 #64
+    sampling_batch_size = 16 ##25 #2 #64
 else:
-    sampling_batch_size = 25
+    sampling_batch_size = 64
 model = Glow_((sampling_batch_size, shape[0], shape[1], shape[2]), args).cuda()
 # print(model)
-print("number of model parameters:", sum([np.prod(p.size()) for p in model.parameters()]))
+print("number of model parameters:", sum([np.prod(p.size()) for p in model.parameters()])/ 1e6 , 'Mil')
 # fasdfad
 # model = nn.DataParallel(model).cuda()
 # count =0
@@ -349,9 +362,9 @@ for layer in model.layers:
     # print (count, str(layer)[:6])
     # count+=1
     if 'Att' in str(layer) or 'AR_P' in str(layer):
-        print("number of AR parameters:", sum([np.prod(p.size()) for p in layer.parameters()]))
+        print("number of AR parameters:", sum([np.prod(p.size()) for p in layer.parameters()]) / 1e6, 'Mil')
 
-get_gpu_mem('Model takes')
+# get_gpu_mem('Model takes')
 ###########################################################################################
 
 
@@ -369,7 +382,8 @@ optim = optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-10)
 # optim = optim.Adam(model.parameters(), lr=args.lr, weight_decay=.01)
 # optim = optim.Adam(model.parameters(), lr=1e-5, weight_decay=.0001)
 # scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=45, gamma=0.1)
-lr_sched = torch.optim.lr_scheduler.StepLR(optim, step_size=50, gamma=0.999)
+# lr_sched = torch.optim.lr_scheduler.StepLR(optim, step_size=100, gamma=0.999)
+lr_sched = torch.optim.lr_scheduler.StepLR(optim, step_size=1, gamma=0.999)
 # lr_sched = torch.optim.lr_scheduler.StepLR(optim, step_size=3, gamma=0.999)
 
 # for i in range (200000):
@@ -379,18 +393,20 @@ lr_sched = torch.optim.lr_scheduler.StepLR(optim, step_size=50, gamma=0.999)
 # fsfsda
 
 
-get_gpu_mem()
+# get_gpu_mem()
 
 # # data dependant init
 if args.load_step == 0:
     if shape[2] > 200:
-        data_init_batchsize = 8
+        data_init_batchsize = min(8,len(train_x))
     else:
-        data_init_batchsize = 100
+        data_init_batchsize = min(100,len(train_x))
     init_loader = torch.utils.data.DataLoader(train_x, batch_size=data_init_batchsize, 
                         shuffle=True, num_workers=1, drop_last=True)
     with torch.no_grad():
         model.eval()
+
+        
         for img in init_loader:
 
             if isinstance(img, list):
@@ -400,18 +416,26 @@ if args.load_step == 0:
 
             img = img.cuda()
 
-            get_gpu_mem()
+            # get_gpu_mem()
 
             # print (img.shape)
             # print (torch.min(img), torch.max(img))
             # fasdf
             objective = torch.zeros_like(img[:, 0, 0, 0])
+
+            # print (objective.shape)
+
+            # model.test_reversability(img, objective)
+            # fdsfas
             _ = model(img, objective)
-            get_gpu_mem()
+
+            # fadfa
+
+            # get_gpu_mem()
             objective = 0
             img = 0
             torch.cuda.empty_cache()
-            get_gpu_mem()
+            # get_gpu_mem()
 
             break
     print ('data dependent init complete with', data_init_batchsize, 'datapoints')
@@ -435,7 +459,7 @@ loader = torch.utils.data.DataLoader(train_x, batch_size=min(args.batch_size,len
                                 shuffle=True, num_workers=0, drop_last=True)
 iter_loader = iter(loader)
 
-get_gpu_mem()
+# get_gpu_mem()
 
 ###########################################################################################
 
@@ -464,6 +488,7 @@ get_gpu_mem()
 # training loop
 # ------------------------------------------------------------------------------
 print ('\nTraining Beginning')
+print ('Batch Size', args.batch_size)
 max_steps = args.max_steps
 model.train()
 t = time.time()
@@ -503,7 +528,13 @@ for step_not_including_load in range(max_steps+1):
     # if step % 4 != 1:
     # dequantize
     # print (torch.min(img), torch.max(img))
+
+    # print (img.shape)
+
+
     img += torch.zeros_like(img).uniform_(0., 1./args.n_bins)
+
+
     # print (torch.min(img), torch.max(img))
     # fdasfasd
     img = torch.clamp(img, min=1e-5, max=1-1e-5)
@@ -512,30 +543,15 @@ for step_not_including_load in range(max_steps+1):
     # We scale [0,255] to [0,1] so by chage of var formula, we gotta do this 
     objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
     # log_det_jacobian cost (and some prior from Split OP)
+
     z, objective = model(img, objective)
+    
+    # get_gpu_mem()
     nll_train = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
     # Generative loss
     nobj = torch.mean(nll_train)
 
     nobj_opt = nobj
-
-    # else:
-
-    #     with torch.no_grad():
-    #         #Get generated data 
-    #         args.sample_size = args.batch_size 
-    #         args.special_sample = False
-    #         sample = model.module.sample(args)
-    #         # print (sample.shape)
-
-    #     img = torch.clamp(sample, min=1e-5, max=1-1e-5)
-    #     objective = torch.zeros_like(img[:, 0, 0, 0])
-    #     objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
-    #     z, objective = model(img, objective)
-    #     nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
-    #     nobj_generated = torch.mean(nll)
-
-    #     nobj_opt = -nobj_generated
 
 
 
@@ -555,7 +571,7 @@ for step_not_including_load in range(max_steps+1):
         torch.nn.utils.clip_grad_norm_(model.parameters(), 100)
         # torch.nn.utils.clip_grad_norm_(model.parameters(), 20)
         optim.step()
-        lr_sched.step()
+        # lr_sched.step()
         ###########################################################################################
 
 
@@ -581,6 +597,10 @@ for step_not_including_load in range(max_steps+1):
     ###########################################################################################
     if step %args.print_every == 0:
 
+        # print (img[0][0][0][:10])
+
+        
+
         T=time.time() - t
         t = time.time()
     
@@ -599,18 +619,7 @@ for step_not_including_load in range(max_steps+1):
             img = torch.clamp(img, min=1e-5, max=1-1e-5)
             objective = torch.zeros_like(img[:, 0, 0, 0])
             objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
-
-
-
-            # get_gpu_mem()
-            # torch.cuda.empty_cache()
-            # get_gpu_mem()
-
             z, objective = model(img, objective)
-
-            
-
-
             nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
             nobj_train = torch.mean(nll)
 
@@ -652,18 +661,20 @@ for step_not_including_load in range(max_steps+1):
 
 
             if step > 125 and args.plotimages_every != 1:
+            # if step > 1 and args.plotimages_every != 1:
 
-                #Get generated data likelihood
-                args.sample_size = sampling_batch_size
-                args.temp = 1.
-                args.special_sample = False #True #False
-                sample = model.module.sample(args)
-                img = torch.clamp(sample, min=1e-5, max=1-1e-5)
-                objective = torch.zeros_like(img[:, 0, 0, 0])
-                objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
-                z, objective = model(img, objective)
-                nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
-                nobj_generated = torch.mean(nll)
+            #     #Get generated data likelihood
+            #     args.sample_size = batch_size #sampling_batch_size
+            #     args.temp = 1.
+            #     args.special_sample = False #True #False
+            #     print ('sampling model')
+            #     sample = model.module.sample(args)
+            #     img = torch.clamp(sample, min=1e-5, max=1-1e-5)
+            #     objective = torch.zeros_like(img[:, 0, 0, 0])
+            #     objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+            #     z, objective = model(img, objective)
+            #     nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+            #     nobj_generated = torch.mean(nll)
 
 
                 # RECORD DATA
@@ -673,7 +684,10 @@ for step_not_including_load in range(max_steps+1):
                 results_dict['lr'].append(lr_sched.get_lr()[0])
                 results_dict['T'].append(T)
                 results_dict['BPD']['Test'].append(numpy(nobj_test))
-                results_dict['BPD']['Generated'].append(numpy(nobj_generated))
+                if step <= args.plotimages_every:
+                    results_dict['BPD']['Generated'].append(None)
+                else:
+                    results_dict['BPD']['Generated'].append(numpy(nobj_generated))
                 results_dict['BPD_sd'].append(np.std(numpy(nll_train)))
                 if args.dataset=='cifar':
                     results_dict['BPD']['SVHN'].append(numpy(nobj_test_svhn))
@@ -710,59 +724,32 @@ for step_not_including_load in range(max_steps+1):
                 os.remove(images_dir + f)
 
 
+        # get_gpu_mem()
+        objective = 0
+        img = 0
+        torch.cuda.empty_cache()
+        # get_gpu_mem()
+
         with torch.no_grad():
-
-            # if args.base_dist == 'Gauss':
-            #     model_args = {}
-            #     temps = [.5,1.,1.5,2.]
-            #     for temp_i in range(len(temps)):
-
-            #         model_args['temp'] = temps[temp_i]
-
-            #         sample = model.sample(model_args)
-
-            #         sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
-
-
-            #         # print (torch.min(sample), torch.max(sample), sample.shape)
-
-            #         objective = torch.zeros_like(sample[:, 0, 0, 0]) + float(-np.log(args.n_bins) * np.prod(sample.shape[1:]))
-            #         z, objective = model(sample, objective)
-            #         nll = (-objective) / float(np.log(2.) * np.prod(sample.shape[1:]))
-            #         nobj_sample = torch.mean(nll)
-
-            #         print (temps[temp_i], nobj_sample)
-
-
-            #         if (sample!=sample).any():
-            #             print ('nans in sample!!')
-            #             # fafad
-
-            #         sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
-            #         grid = utils.make_grid(sample)
-            #         img_file = images_dir +'plot'+str(step)+'_temp' +str(temp_i) + '.png'
-
-            #         utils.save_image(grid, img_file)
-            #         # print ('saved', img_file)
-            #     print ('saved images')
-
-            # else:
 
             args.special_sample = False #True #False
             args.special_h = 8 #24
             args.temp = 1.
             args.sample_size = sampling_batch_size
+            print ('sampling model')
             sample = model.module.sample(args)
-
-
             # sample = torch.clamp(sample, min=1e-5, max=1-1e-5)
-            grid = utils.make_grid(sample)
+            grid = utils.make_grid(sample, nrow=int(np.sqrt(sampling_batch_size)))
             img_file = images_dir +'plot'+str(step)+'.png'
-
             utils.save_image(grid, img_file)
             # print ('saved', img_file)
             print ('saved image', img_file)
-
+            img = torch.clamp(sample, min=1e-5, max=1-1e-5)
+            objective = torch.zeros_like(img[:, 0, 0, 0])
+            objective += float(-np.log(args.n_bins) * np.prod(img.shape[1:]))
+            z, objective = model(img, objective)
+            nll = (-objective) / float(np.log(2.) * np.prod(img.shape[1:]))
+            nobj_generated = torch.mean(nll)
 
 
             if ( ((step_not_including_load/args.plotimages_every) ==1 ) or (args.plotimages_every ==1 and step_not_including_load==0)) and args.plotimages_every != 1:
@@ -771,20 +758,30 @@ for step_not_including_load in range(max_steps+1):
                                     shuffle=True, num_workers=1, drop_last=True)
                 iter_loader_init = iter(init_loader)
                 img = next(iter_loader_init)
-                grid = utils.make_grid(img)
+                if isinstance(img, list):
+                    img = img[0]
+                    img = img * 255. / 256. 
+
+                img += torch.zeros_like(img).uniform_(0., 1./args.n_bins)
+                img = torch.clamp(img, min=1e-5, max=1-1e-5)
+
+                grid = utils.make_grid(img, nrow=int(np.sqrt(sampling_batch_size)))
                 img_file = images_dir +'realimages.png'
                 utils.save_image(grid, img_file)
                 print ('saved', img_file)
 
 
-                init_loader = torch.utils.data.DataLoader(test_x, batch_size=min(sampling_batch_size,len(train_x)), 
-                                    shuffle=True, num_workers=1, drop_last=True)
-                iter_loader_init = iter(init_loader)
-                img = next(iter_loader_init)
-                grid = utils.make_grid(img)
-                img_file = images_dir +'realimages_test.png'
-                utils.save_image(grid, img_file)
-                print ('saved', img_file)
+                # init_loader = torch.utils.data.DataLoader(test_x, batch_size=min(sampling_batch_size,len(train_x)), 
+                #                     shuffle=True, num_workers=1, drop_last=True)
+                # iter_loader_init = iter(init_loader)
+                # img = next(iter_loader_init)
+                # if isinstance(img, list):
+                #     img = img[0]
+                #     img = img * 255. / 256. 
+                # grid = utils.make_grid(img)
+                # img_file = images_dir +'realimages_test.png'
+                # utils.save_image(grid, img_file)
+                # print ('saved', img_file)
 
 
             if args.plotimages_every == 1: 

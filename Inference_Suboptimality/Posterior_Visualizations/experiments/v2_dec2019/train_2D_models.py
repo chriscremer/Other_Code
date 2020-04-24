@@ -1,21 +1,19 @@
 
 
+
 # Train model
 
 
 import sys, os
-sys.path.insert(0, '../models')
-sys.path.insert(0, '../models/utils')
+sys.path.insert(0, '..')
+sys.path.insert(0, '../../models')
+sys.path.insert(0, '../../models/utils')
 
 import time
 import numpy as np
 import pickle
 from os.path import expanduser
 home = expanduser("~")
-# import matplotlib.pyplot as plt
-import torch
-import matplotlib
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
@@ -59,7 +57,7 @@ train_x = mnist_data[0][0]
 valid_x = mnist_data[1][0]
 test_x = mnist_data[2][0]
 train_x = np.concatenate([train_x, valid_x], axis=0)
-print (train_x.shape)
+# print (train_x.shape)
 
 # #For debug purposes
 # train_x = train_x[:1000]
@@ -67,7 +65,6 @@ print (train_x.shape)
 
 print (train_x.shape)
 print (test_x.shape)
-
 
 
 
@@ -209,15 +206,15 @@ else:
 
 
 #Train params
-learning_rate = .0001
+learning_rate = .001
 batch_size = 100
 k = 1
 epochs = 3000
 
 #save params and compute IW and AIS
-start_at = 1000
-save_freq = 1000
-display_epoch = 10
+start_at = 1
+save_freq = 20
+display_epoch = 1
 
 
 # Test params
@@ -251,6 +248,7 @@ path_to_save_variables=this_dir+'/params_'+args.model+'_'
 
 if torch.cuda.is_available():
     model.cuda()
+
 
 
 
@@ -325,9 +323,9 @@ def train_with_log(model, train_x, test_x, k, batch_size, learning_rate,
 
         if epoch%display_epoch==0:
             print ('Train Epoch: {}/{}'.format(epoch, epochs),
-                'LL:{:.3f}'.format(-loss.data[0]),
-                'logpxz:{:.3f}'.format(logpxz.data[0]),
-                'logqz:{:.3f}'.format(logqz.data[0]),
+                'LL:{:.3f}'.format(-loss.item()),
+                'logpxz:{:.3f}'.format(logpxz.item()),
+                'logqz:{:.3f}'.format(logqz.item()),
                 'T:{:.2f}'.format(time.time()-time_),
                 )
             time_ = time.time()

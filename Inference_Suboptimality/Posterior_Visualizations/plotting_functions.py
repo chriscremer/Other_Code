@@ -199,6 +199,8 @@ def plot_isocontours2_exp_norm(ax, func, xlimits=[-6, 6], ylimits=[-6, 6],
         plt.legend(nm, lbl, fontsize=4) 
 
 
+    # ax.patch.set_edgecolor('black')
+
     ax.set_yticks([])
     ax.set_xticks([])
     plt.gca().set_aspect('equal', adjustable='box')
@@ -953,7 +955,7 @@ def plot_kde(ax, samps, xlimits=[-6, 6], ylimits=[-6, 6],
     f = np.reshape(kernel(positions).T, X.shape)
 
     # cfset = ax.contourf(X, Y, f, cmap=cmap)
-    cfset = ax.contour(X, Y, f, cmap=cmap)
+    cfset = ax.contour(X, Y, f, cmap=cmap, linewidths=1.)
 
 
     ax.set_yticks([])

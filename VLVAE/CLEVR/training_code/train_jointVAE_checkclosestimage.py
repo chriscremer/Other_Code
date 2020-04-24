@@ -973,15 +973,15 @@ def train2(self, max_steps, load_step,
                 #         print ('problem with viz plotting')
 
 
-                try:
-                    vizualize_dependence(model,
+                # try:
+                vizualize_dependence(model,
                                 val_img_batch, val_question_batch, 
                                 images_dir, step_count+load_step, xs, ys, xs_1, ys_2, n_samps)
-                except:
-                    if self.quick_check:
-                        raise
-                    else:
-                        print ('problem with dependence viz plotting')
+                # except:
+                #     if self.quick_check:
+                #         raise
+                #     else:
+                #         print ('problem with dependence viz plotting')
 
                 # print (
                 #             'LL:{:.4f}'.format(LL),
@@ -1521,10 +1521,10 @@ def vizualize_dependence(self,
     def make_text_subplot(self, rows, cols, row, col, text, above_text=''):
 
         ax = plt.subplot2grid((rows,cols), (row,col), frameon=False, colspan=1)
-        ax.text(-0.15, .2, text, transform=ax.transAxes, family='serif', size=6)
+        ax.text(-0.15, .2, text, transform=ax.transAxes, family='serif', size=8)
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.text(0.19, 1.08, above_text, transform=ax.transAxes, family='serif', size=6)
+        ax.text(0.19, 1.08, above_text, transform=ax.transAxes, family='serif', size=8)
 
 
     def make_image_subplot(self, rows, cols, row, col, image, text=''):
@@ -1538,7 +1538,7 @@ def vizualize_dependence(self,
         ax.imshow(image) #, cmap='gray')
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.text(0.19, 1.08, text, transform=ax.transAxes, family='serif', size=6)
+        ax.text(0.06, 1.08, text, transform=ax.transAxes, family='serif', size=8)
 
 
     rows = 6
@@ -1603,376 +1603,602 @@ def vizualize_dependence(self,
 
 
 
-
-
-
-
-
-
-def vizualize_2D(self, step):
-
-    batch_size = 20
-
-
-    title_size = 6
-    markersize = 4
-
-
-    k=5
-
-
-    #PLot the encodings of the dataset 
     rows = 6
-    cols = 2
-    fig = plt.figure(figsize=(2+cols,4+rows), facecolor='white', dpi=150)
+    cols=  5
+    text_col_width = 1
 
 
+    fig = plt.figure(figsize=(5+cols,3+rows), facecolor='white', dpi=150)
 
 
-    ax = plt.subplot2grid((rows,cols), (0,0), frameon=False)
+    for j in range(int(rows)):
+        print (j)
 
-    n_batches = 20
-    #Prior samples
-    for i in range(n_batches):
-        # img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, red_indexes)
+        # if j==0:
+        #     make_text_subplot(self, rows, cols, row=int(rows/2) + j, col=0, text=get_sentence(val_question_batch[j], newline_every=[3,4]), above_text='q(z|y)')
+        # else:
 
-        z = torch.FloatTensor(batch_size, self.z_size).normal_().numpy() #.cuda() * std
-
-        if i == 0:
-            zs = z
+        if j==0:
+            make_text_subplot(self, rows, cols, row=j, col=0, text=get_sentence(val_question_batch[j], newline_every=[3,4]), above_text='Conditioning Text')
         else:
-            zs = np.concatenate([zs, z], 0)
+            make_text_subplot(self, rows, cols, row=j, col=0, text=get_sentence(val_question_batch[j], newline_every=[3,4]))
 
-        # print (zs.shape)
-        # fdsf
+        samp_i = 0
+        # for samp_i in range(n_samps):
+            # if j==0:
+            #     make_image_subplot(self, rows, cols, row=int(rows/2)+j, col=1+samp_i, image=xs[samp_i][j], text='p(x|z'+str(samp_i)+')')
+            # else:
+
+        if j==0:
+            make_image_subplot(self, rows, cols, row=j, col=1+samp_i, image=xs[samp_i][j], text='Generated Image')
+        else:   
+            make_image_subplot(self, rows, cols, row=j, col=1+samp_i, image=xs[samp_i][j])
+
+        gen_image= xs[samp_i][j]
+        print (gen_image.shape)
+
+            # if j==0:
+            #     make_text_subplot(self, rows, cols, row=int(rows/2)+j, col=1+samp_i+n_samps, text=get_sentence(ys_2[samp_i][j], newline_every=[3,4]), above_text='p(y|z'+str(samp_i)+')')
+            # else:
+            #     make_text_subplot(self, rows, cols, row=int(rows/2)+j, col=1+samp_i+n_samps, text=get_sentence(ys_2[samp_i][j], newline_every=[3,4]))
+
+        closest_dists = [float('Inf') , float('Inf') , float('Inf') ]
+        closest_idxs = [0,0,0]
+
+        for i in range(len(train_image_dataset)):
 
 
-    ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
-
-    ax.set_xlim(left=-8, right=8)
-    ax.set_ylim([-8,8])
-    ax.set_title('a) z~N(0,1)', fontsize=title_size)
-    ax.xaxis.set_tick_params(labelsize=5)
-    ax.yaxis.set_tick_params(labelsize=5)
-    plt.gca().set_aspect('equal', adjustable='box')
-    # ax.set_xticks([])
-    ax.tick_params(axis='x', colors='white')
-    ax.grid(True, alpha=.3)
+            dist = np.mean((gen_image.data.cpu().numpy() - train_image_dataset[i])**2)
+            cur_idx = i
 
 
+            for d in range(len(closest_dists)):
+                
+                if dist < closest_dists[d]:
+                    temp_dist = closest_dists[d]
+                    temp_idx = closest_idxs[d]
+                    closest_dists[d] = dist
+                    closest_idxs[d] = cur_idx
+                    dist = temp_dist
+                    cur_idx = temp_idx
 
+            if i % 1000 == 0:
+                print (i, len(train_image_dataset), closest_dists, closest_idxs)
+            # print (i, train_image_dataset[i].shape)
 
-    ax = plt.subplot2grid((rows,cols), (0,1), frameon=False)
+        if j==0:
+            make_image_subplot(self, rows, cols, row=j, col=2, image=torch.from_numpy(train_image_dataset[closest_idxs[0]]), text='Closest Training\n     Image 1')
+            make_image_subplot(self, rows, cols, row=j, col=3, image=torch.from_numpy(train_image_dataset[closest_idxs[1]]), text='Closest Training\n     Image 2')
+            make_image_subplot(self, rows, cols, row=j, col=4, image=torch.from_numpy(train_image_dataset[closest_idxs[2]]), text='Closest Training\n     Image 3')
 
-    # n_batches = 10
-    #Dataset encodings
-    for i in range(n_batches):
-        img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, train_indexes)
-        z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
-
-        if i == 0:
-            zs = z
         else:
-            zs = np.concatenate([zs, z], 0)
+            make_image_subplot(self, rows, cols, row=j, col=2, image=torch.from_numpy(train_image_dataset[closest_idxs[0]]))
+            make_image_subplot(self, rows, cols, row=j, col=3, image=torch.from_numpy(train_image_dataset[closest_idxs[1]]))
+            make_image_subplot(self, rows, cols, row=j, col=4, image=torch.from_numpy(train_image_dataset[closest_idxs[2]]))
 
-        # print (zs.shape)
-        # fdsf
 
 
-    ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
 
-    ax.set_xlim(left=-8, right=8)
-    ax.set_ylim([-8,8])
-    ax.set_title('b) Dataset Encodings', fontsize=title_size)
-    ax.xaxis.set_tick_params(labelsize=5)
-    # ax.text(0.3, .9, text, transform=ax.transAxes, family='serif', size=6)
-    plt.gca().set_aspect('equal', adjustable='box')
-    ax.yaxis.set_tick_params(labelsize=5)
-    # ax.set_xticks([])
-    ax.tick_params(axis='x', colors='white')
-    ax.grid(True, alpha=.3)
 
 
 
 
-    ax = plt.subplot2grid((rows,cols), (1,0), frameon=False)
 
-    for i in range(n_batches):
-        img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, [train_indexes[0]])
-        # z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
-        # z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
-        z = SIR(self, question_batch, inf_type=2, dec_type=2, k=1)
 
-        if i == 0:
-            zs = z
-        else:
-            zs = np.concatenate([zs, z], 0)
 
-    ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
-
-    ax.set_xlim(left=-8, right=8)
-    ax.set_ylim([-8,8])
-    ax.set_title('c) '+get_sentence(question_batch[0]), fontsize=title_size)
-    plt.gca().set_aspect('equal', adjustable='box')
-    ax.yaxis.set_tick_params(labelsize=5)
-    ax.xaxis.set_tick_params(labelsize=5)
-    # ax.set_xticks([])
-    ax.tick_params(axis='x', colors='white')
-    ax.grid(True, alpha=.3)
-
-
-
-
-    ax = plt.subplot2grid((rows,cols), (1,1), frameon=False)
-
-    for i in range(n_batches):
-        img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, [train_indexes[3]])
-        # z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
-        # z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
-        z = SIR(self, question_batch, inf_type=2, dec_type=2, k=1)
-
-        if i == 0:
-            zs = z
-        else:
-            zs = np.concatenate([zs, z], 0)
-
-    ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
-
-    ax.set_xlim(left=-8, right=8)
-    ax.set_ylim([-8,8])
-    ax.set_title('d) '+get_sentence(question_batch[0]), fontsize=title_size)
-    plt.gca().set_aspect('equal', adjustable='box')
-    ax.xaxis.set_tick_params(labelsize=5)
-    ax.yaxis.set_tick_params(labelsize=5)
-    # ax.set_xticks([])
-    ax.tick_params(axis='x', colors='white')
-    ax.grid(True, alpha=.3)
-
-
-    ax = plt.subplot2grid((rows,cols), (2,0), frameon=False)
-
-    for i in range(n_batches):
-        img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, [train_indexes[5]])
-        # z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
-        # z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
-        z = SIR(self, question_batch, inf_type=2, dec_type=2, k=1)
-
-        if i == 0:
-            zs = z
-        else:
-            zs = np.concatenate([zs, z], 0)
-
-    ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
-
-    ax.set_xlim(left=-8, right=8)
-    ax.set_ylim([-8,8])
-    ax.set_title('e) '+get_sentence(question_batch[0]), fontsize=title_size)
-    plt.gca().set_aspect('equal', adjustable='box')
-    ax.xaxis.set_tick_params(labelsize=5)
-    ax.yaxis.set_tick_params(labelsize=5)
-    # ax.set_xticks([])
-    ax.tick_params(axis='x', colors='white')
-    ax.grid(True, alpha=.3)
-
-
-    ax = plt.subplot2grid((rows,cols), (2,1), frameon=False)
-
-    for i in range(n_batches):
-        img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, [train_indexes[1]])
-        # z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
-        # z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
-        z = SIR(self, question_batch, inf_type=2, dec_type=2, k=1)
-
-        if i == 0:
-            zs = z
-        else:
-            zs = np.concatenate([zs, z], 0)
-
-    ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
-
-    ax.set_xlim(left=-8, right=8)
-    ax.set_ylim([-8,8])
-    ax.set_title('f) '+get_sentence(question_batch[0]), fontsize=title_size)
-    plt.gca().set_aspect('equal', adjustable='box')
-    ax.xaxis.set_tick_params(labelsize=5)
-    ax.yaxis.set_tick_params(labelsize=5)
-    # ax.set_xticks([])
-    ax.tick_params(axis='x', colors='white')
-    ax.grid(True, alpha=.3)
-
-
-
-
-    ax = plt.subplot2grid((rows,cols), (3,0), frameon=False)
-
-    for i in range(n_batches):
-        img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, [train_indexes[1]])
-        z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
-
-        if i == 0:
-            zs = z
-        else:
-            zs = np.concatenate([zs, z], 0)
-
-    ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
-
-    ax.set_xlim(left=-8, right=8)
-    ax.set_ylim([-8,8])
-    ax.set_title('g) image '+get_sentence(question_batch[0]), fontsize=title_size)
-    plt.gca().set_aspect('equal', adjustable='box')
-    # ax.xaxis.set_tick_params(labelsize=5)
-    ax.yaxis.set_tick_params(labelsize=5)
-    ax.tick_params(axis='x', colors='white')
-    ax.grid(True, alpha=.3)
-
-
-
-
-
-
-    ax = plt.subplot2grid((rows,cols), (3,1), frameon=False)
-
-    for i in range(n_batches):
-        img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, [train_indexes[5]])
-        z = SIR(self, question_batch, inf_type=2, dec_type=2, k=k)
-
-        if i == 0:
-            zs = z
-        else:
-            zs = np.concatenate([zs, z], 0)
-
-    ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
-
-    zs_11 = zs
-
-    ax.set_xlim(left=-8, right=8)
-    ax.set_ylim([-8,8])
-    ax.set_title('h) k'+str(k)+' ' +get_sentence(question_batch[0]), fontsize=title_size)
-    plt.gca().set_aspect('equal', adjustable='box')
-    ax.xaxis.set_tick_params(labelsize=5)
-    ax.yaxis.set_tick_params(labelsize=5)
-    # ax.set_xticks([])
-    ax.grid(True, alpha=.3)
-    ax.tick_params(axis='x', colors='white')
-
-
-
-
-
-
-
-
-    ax = plt.subplot2grid((rows,cols), (4,0), frameon=False)
-
-    for i in range(n_batches):
-        img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, [train_indexes[0]])
-        z = SIR(self, question_batch, inf_type=2, dec_type=2, k=k)
-
-        if i == 0:
-            zs = z
-        else:
-            zs = np.concatenate([zs, z], 0)
-
-    ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
-
-    ax.set_xlim(left=-8, right=8)
-    ax.set_ylim([-8,8])
-    ax.set_title('i) k'+str(k)+' ' +get_sentence(question_batch[0]), fontsize=title_size)
-    plt.gca().set_aspect('equal', adjustable='box')
-    ax.xaxis.set_tick_params(labelsize=5)
-    ax.yaxis.set_tick_params(labelsize=5)
-    # ax.set_xticks([])
-    ax.grid(True, alpha=.3)
-    ax.tick_params(axis='x', colors='white')
-
-
-
-
-
-
-
-    ax = plt.subplot2grid((rows,cols), (4,1), frameon=False)
-
-
-    ax.scatter(x=zs_11[:,0],y=zs_11[:,1], c='blue', s=markersize, alpha=.3)
-    ax.scatter(x=zs[:,0],y=zs[:,1], c='red', s=markersize, alpha=.3)
-
-    ax.set_xlim(left=-8, right=8)
-    ax.set_ylim([-8,8])
-    ax.set_title('j) combined the k plots', fontsize=title_size)
-    plt.gca().set_aspect('equal', adjustable='box')
-    ax.xaxis.set_tick_params(labelsize=5)
-    ax.yaxis.set_tick_params(labelsize=5)
-    # ax.set_xticks([])
-    ax.grid(True, alpha=.3)
-    ax.tick_params(axis='x', colors='white')
-
-
-
-
-
-    word1 = 'small red metal sphere'
-    red_indexes = get_indexes(train_question_dataset, word=word1)
-
-    ax = plt.subplot2grid((rows,cols), (5,0), frameon=False)
-
-    for i in range(n_batches):
-        img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, red_indexes)
-        z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
-
-        if i == 0:
-            zs = z
-        else:
-            zs = np.concatenate([zs, z], 0)
-
-    ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
-
-    ax.set_xlim(left=-8, right=8)
-    ax.set_ylim([-8,8])
-    ax.set_title('k) x agg.'+' ' +get_sentence(question_batch[0]), fontsize=title_size)
-    plt.gca().set_aspect('equal', adjustable='box')
-    ax.xaxis.set_tick_params(labelsize=5)
-    ax.yaxis.set_tick_params(labelsize=5)
-    # ax.set_xticks([])
-    ax.grid(True, alpha=.3)
-
-
-
-
-
-    word1 = 'small blue metal sphere'
-    red_indexes = get_indexes(train_question_dataset, word=word1)
-
-    ax = plt.subplot2grid((rows,cols), (5,1), frameon=False)
-
-    for i in range(n_batches):
-        img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, red_indexes)
-        z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
-
-        if i == 0:
-            zs = z
-        else:
-            zs = np.concatenate([zs, z], 0)
-
-    ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
-
-    ax.set_xlim(left=-8, right=8)
-    ax.set_ylim([-8,8])
-    ax.set_title('l) x agg.'+' ' +get_sentence(question_batch[0]), fontsize=title_size)
-    plt.gca().set_aspect('equal', adjustable='box')
-    ax.xaxis.set_tick_params(labelsize=5)
-    ax.yaxis.set_tick_params(labelsize=5)
-    # ax.set_xticks([])
-    ax.grid(True, alpha=.3)
-
-
-
-
-
-    plt_path = images_dir+'fig1_2D_prior'+str(step)+'.png'
+    # plt.tight_layout()
+    plt_path = images_dir + 'conditional'+str(step_count)+'_'+str(img_i) +'_closestimage'+str(args.seed)+'.png'
     plt.savefig(plt_path)
-    print ('saved plot', plt_path)
-    plt.close()
+    print ('saved viz',plt_path)
+    plt.close(fig)
+    # fdsf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    rows = 6
+    cols=  5
+    text_col_width = 1
+
+
+    fig = plt.figure(figsize=(5+cols,3+rows), facecolor='white', dpi=150)
+
+
+    for j in range(int(rows)):
+        print (j)
+
+        # if j==0:
+        #     make_text_subplot(self, rows, cols, row=int(rows/2) + j, col=0, text=get_sentence(val_question_batch[j], newline_every=[3,4]), above_text='q(z|y)')
+        # else:
+
+        if j==0:
+            make_text_subplot(self, rows, cols, row=j, col=0, text=get_sentence(val_question_batch[j], newline_every=[3,4]), above_text='Conditioning Text')
+        else:
+            make_text_subplot(self, rows, cols, row=j, col=0, text=get_sentence(val_question_batch[j], newline_every=[3,4]))
+
+        samp_i = 0
+        # for samp_i in range(n_samps):
+            # if j==0:
+            #     make_image_subplot(self, rows, cols, row=int(rows/2)+j, col=1+samp_i, image=xs[samp_i][j], text='p(x|z'+str(samp_i)+')')
+            # else:
+
+        if j==0:
+            make_image_subplot(self, rows, cols, row=j, col=1+samp_i, image=xs[samp_i][j], text='Generated Image')
+        else:   
+            make_image_subplot(self, rows, cols, row=j, col=1+samp_i, image=xs[samp_i][j])
+
+        gen_image= xs[samp_i][j]
+        print (gen_image.shape)
+
+            # if j==0:
+            #     make_text_subplot(self, rows, cols, row=int(rows/2)+j, col=1+samp_i+n_samps, text=get_sentence(ys_2[samp_i][j], newline_every=[3,4]), above_text='p(y|z'+str(samp_i)+')')
+            # else:
+            #     make_text_subplot(self, rows, cols, row=int(rows/2)+j, col=1+samp_i+n_samps, text=get_sentence(ys_2[samp_i][j], newline_every=[3,4]))
+
+        closest_dists = [float('Inf') , float('Inf') , float('Inf') ]
+        closest_idxs = [0,0,0]
+
+        for i in range(len(val_image_dataset)):
+
+
+            dist = np.mean((gen_image.data.cpu().numpy() - val_image_dataset[i])**2)
+            cur_idx = i
+
+
+            for d in range(len(closest_dists)):
+                
+                if dist < closest_dists[d]:
+                    temp_dist = closest_dists[d]
+                    temp_idx = closest_idxs[d]
+                    closest_dists[d] = dist
+                    closest_idxs[d] = cur_idx
+                    dist = temp_dist
+                    cur_idx = temp_idx
+
+            if i % 1000 == 0:
+                print (i, len(val_image_dataset), closest_dists, closest_idxs)
+            # print (i, train_image_dataset[i].shape)
+
+        if j==0:
+            make_image_subplot(self, rows, cols, row=j, col=2, image=torch.from_numpy(val_image_dataset[closest_idxs[0]]), text='Closest Training\n     Image 1')
+            make_image_subplot(self, rows, cols, row=j, col=3, image=torch.from_numpy(val_image_dataset[closest_idxs[1]]), text='Closest Training\n     Image 2')
+            make_image_subplot(self, rows, cols, row=j, col=4, image=torch.from_numpy(val_image_dataset[closest_idxs[2]]), text='Closest Training\n     Image 3')
+
+        else:
+            make_image_subplot(self, rows, cols, row=j, col=2, image=torch.from_numpy(val_image_dataset[closest_idxs[0]]))
+            make_image_subplot(self, rows, cols, row=j, col=3, image=torch.from_numpy(val_image_dataset[closest_idxs[1]]))
+            make_image_subplot(self, rows, cols, row=j, col=4, image=torch.from_numpy(val_image_dataset[closest_idxs[2]]))
+
+
+
+
+
+
+
+
+
+
+
+
+    # plt.tight_layout()
+    plt_path = images_dir + 'conditional'+str(step_count)+'_'+str(img_i) +'_closestimage'+str(args.seed)+'_val.png'
+    plt.savefig(plt_path)
+    print ('saved viz',plt_path)
+    plt.close(fig)
+    # fdsf
+
+
+
+
+
+
+
+
+
+
+
+
+    fasdf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# def vizualize_2D(self, step):
+
+#     batch_size = 20
+
+
+#     title_size = 6
+#     markersize = 4
+
+
+#     k=5
+
+
+#     #PLot the encodings of the dataset 
+#     rows = 6
+#     cols = 2
+#     fig = plt.figure(figsize=(2+cols,4+rows), facecolor='white', dpi=150)
+
+
+
+
+#     ax = plt.subplot2grid((rows,cols), (0,0), frameon=False)
+
+#     n_batches = 20
+#     #Prior samples
+#     for i in range(n_batches):
+#         # img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, red_indexes)
+
+#         z = torch.FloatTensor(batch_size, self.z_size).normal_().numpy() #.cuda() * std
+
+#         if i == 0:
+#             zs = z
+#         else:
+#             zs = np.concatenate([zs, z], 0)
+
+#         # print (zs.shape)
+#         # fdsf
+
+
+#     ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
+
+#     ax.set_xlim(left=-8, right=8)
+#     ax.set_ylim([-8,8])
+#     ax.set_title('a) z~N(0,1)', fontsize=title_size)
+#     ax.xaxis.set_tick_params(labelsize=5)
+#     ax.yaxis.set_tick_params(labelsize=5)
+#     plt.gca().set_aspect('equal', adjustable='box')
+#     # ax.set_xticks([])
+#     ax.tick_params(axis='x', colors='white')
+#     ax.grid(True, alpha=.3)
+
+
+
+
+#     ax = plt.subplot2grid((rows,cols), (0,1), frameon=False)
+
+#     # n_batches = 10
+#     #Dataset encodings
+#     for i in range(n_batches):
+#         img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, train_indexes)
+#         z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
+
+#         if i == 0:
+#             zs = z
+#         else:
+#             zs = np.concatenate([zs, z], 0)
+
+#         # print (zs.shape)
+#         # fdsf
+
+
+#     ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
+
+#     ax.set_xlim(left=-8, right=8)
+#     ax.set_ylim([-8,8])
+#     ax.set_title('b) Dataset Encodings', fontsize=title_size)
+#     ax.xaxis.set_tick_params(labelsize=5)
+#     # ax.text(0.3, .9, text, transform=ax.transAxes, family='serif', size=6)
+#     plt.gca().set_aspect('equal', adjustable='box')
+#     ax.yaxis.set_tick_params(labelsize=5)
+#     # ax.set_xticks([])
+#     ax.tick_params(axis='x', colors='white')
+#     ax.grid(True, alpha=.3)
+
+
+
+
+#     ax = plt.subplot2grid((rows,cols), (1,0), frameon=False)
+
+#     for i in range(n_batches):
+#         img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, [train_indexes[0]])
+#         # z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
+#         # z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
+#         z = SIR(self, question_batch, inf_type=2, dec_type=2, k=1)
+
+#         if i == 0:
+#             zs = z
+#         else:
+#             zs = np.concatenate([zs, z], 0)
+
+#     ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
+
+#     ax.set_xlim(left=-8, right=8)
+#     ax.set_ylim([-8,8])
+#     ax.set_title('c) '+get_sentence(question_batch[0]), fontsize=title_size)
+#     plt.gca().set_aspect('equal', adjustable='box')
+#     ax.yaxis.set_tick_params(labelsize=5)
+#     ax.xaxis.set_tick_params(labelsize=5)
+#     # ax.set_xticks([])
+#     ax.tick_params(axis='x', colors='white')
+#     ax.grid(True, alpha=.3)
+
+
+
+
+#     ax = plt.subplot2grid((rows,cols), (1,1), frameon=False)
+
+#     for i in range(n_batches):
+#         img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, [train_indexes[3]])
+#         # z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
+#         # z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
+#         z = SIR(self, question_batch, inf_type=2, dec_type=2, k=1)
+
+#         if i == 0:
+#             zs = z
+#         else:
+#             zs = np.concatenate([zs, z], 0)
+
+#     ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
+
+#     ax.set_xlim(left=-8, right=8)
+#     ax.set_ylim([-8,8])
+#     ax.set_title('d) '+get_sentence(question_batch[0]), fontsize=title_size)
+#     plt.gca().set_aspect('equal', adjustable='box')
+#     ax.xaxis.set_tick_params(labelsize=5)
+#     ax.yaxis.set_tick_params(labelsize=5)
+#     # ax.set_xticks([])
+#     ax.tick_params(axis='x', colors='white')
+#     ax.grid(True, alpha=.3)
+
+
+#     ax = plt.subplot2grid((rows,cols), (2,0), frameon=False)
+
+#     for i in range(n_batches):
+#         img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, [train_indexes[5]])
+#         # z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
+#         # z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
+#         z = SIR(self, question_batch, inf_type=2, dec_type=2, k=1)
+
+#         if i == 0:
+#             zs = z
+#         else:
+#             zs = np.concatenate([zs, z], 0)
+
+#     ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
+
+#     ax.set_xlim(left=-8, right=8)
+#     ax.set_ylim([-8,8])
+#     ax.set_title('e) '+get_sentence(question_batch[0]), fontsize=title_size)
+#     plt.gca().set_aspect('equal', adjustable='box')
+#     ax.xaxis.set_tick_params(labelsize=5)
+#     ax.yaxis.set_tick_params(labelsize=5)
+#     # ax.set_xticks([])
+#     ax.tick_params(axis='x', colors='white')
+#     ax.grid(True, alpha=.3)
+
+
+#     ax = plt.subplot2grid((rows,cols), (2,1), frameon=False)
+
+#     for i in range(n_batches):
+#         img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, [train_indexes[1]])
+#         # z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
+#         # z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
+#         z = SIR(self, question_batch, inf_type=2, dec_type=2, k=1)
+
+#         if i == 0:
+#             zs = z
+#         else:
+#             zs = np.concatenate([zs, z], 0)
+
+#     ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
+
+#     ax.set_xlim(left=-8, right=8)
+#     ax.set_ylim([-8,8])
+#     ax.set_title('f) '+get_sentence(question_batch[0]), fontsize=title_size)
+#     plt.gca().set_aspect('equal', adjustable='box')
+#     ax.xaxis.set_tick_params(labelsize=5)
+#     ax.yaxis.set_tick_params(labelsize=5)
+#     # ax.set_xticks([])
+#     ax.tick_params(axis='x', colors='white')
+#     ax.grid(True, alpha=.3)
+
+
+
+
+#     ax = plt.subplot2grid((rows,cols), (3,0), frameon=False)
+
+#     for i in range(n_batches):
+#         img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, [train_indexes[1]])
+#         z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
+
+#         if i == 0:
+#             zs = z
+#         else:
+#             zs = np.concatenate([zs, z], 0)
+
+#     ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
+
+#     ax.set_xlim(left=-8, right=8)
+#     ax.set_ylim([-8,8])
+#     ax.set_title('g) image '+get_sentence(question_batch[0]), fontsize=title_size)
+#     plt.gca().set_aspect('equal', adjustable='box')
+#     # ax.xaxis.set_tick_params(labelsize=5)
+#     ax.yaxis.set_tick_params(labelsize=5)
+#     ax.tick_params(axis='x', colors='white')
+#     ax.grid(True, alpha=.3)
+
+
+
+
+
+
+#     ax = plt.subplot2grid((rows,cols), (3,1), frameon=False)
+
+#     for i in range(n_batches):
+#         img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, [train_indexes[5]])
+#         z = SIR(self, question_batch, inf_type=2, dec_type=2, k=k)
+
+#         if i == 0:
+#             zs = z
+#         else:
+#             zs = np.concatenate([zs, z], 0)
+
+#     ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
+
+#     zs_11 = zs
+
+#     ax.set_xlim(left=-8, right=8)
+#     ax.set_ylim([-8,8])
+#     ax.set_title('h) k'+str(k)+' ' +get_sentence(question_batch[0]), fontsize=title_size)
+#     plt.gca().set_aspect('equal', adjustable='box')
+#     ax.xaxis.set_tick_params(labelsize=5)
+#     ax.yaxis.set_tick_params(labelsize=5)
+#     # ax.set_xticks([])
+#     ax.grid(True, alpha=.3)
+#     ax.tick_params(axis='x', colors='white')
+
+
+
+
+
+
+
+
+#     ax = plt.subplot2grid((rows,cols), (4,0), frameon=False)
+
+#     for i in range(n_batches):
+#         img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, [train_indexes[0]])
+#         z = SIR(self, question_batch, inf_type=2, dec_type=2, k=k)
+
+#         if i == 0:
+#             zs = z
+#         else:
+#             zs = np.concatenate([zs, z], 0)
+
+#     ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
+
+#     ax.set_xlim(left=-8, right=8)
+#     ax.set_ylim([-8,8])
+#     ax.set_title('i) k'+str(k)+' ' +get_sentence(question_batch[0]), fontsize=title_size)
+#     plt.gca().set_aspect('equal', adjustable='box')
+#     ax.xaxis.set_tick_params(labelsize=5)
+#     ax.yaxis.set_tick_params(labelsize=5)
+#     # ax.set_xticks([])
+#     ax.grid(True, alpha=.3)
+#     ax.tick_params(axis='x', colors='white')
+
+
+
+
+
+
+
+#     ax = plt.subplot2grid((rows,cols), (4,1), frameon=False)
+
+
+#     ax.scatter(x=zs_11[:,0],y=zs_11[:,1], c='blue', s=markersize, alpha=.3)
+#     ax.scatter(x=zs[:,0],y=zs[:,1], c='red', s=markersize, alpha=.3)
+
+#     ax.set_xlim(left=-8, right=8)
+#     ax.set_ylim([-8,8])
+#     ax.set_title('j) combined the k plots', fontsize=title_size)
+#     plt.gca().set_aspect('equal', adjustable='box')
+#     ax.xaxis.set_tick_params(labelsize=5)
+#     ax.yaxis.set_tick_params(labelsize=5)
+#     # ax.set_xticks([])
+#     ax.grid(True, alpha=.3)
+#     ax.tick_params(axis='x', colors='white')
+
+
+
+
+
+#     word1 = 'small red metal sphere'
+#     red_indexes = get_indexes(train_question_dataset, word=word1)
+
+#     ax = plt.subplot2grid((rows,cols), (5,0), frameon=False)
+
+#     for i in range(n_batches):
+#         img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, red_indexes)
+#         z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
+
+#         if i == 0:
+#             zs = z
+#         else:
+#             zs = np.concatenate([zs, z], 0)
+
+#     ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
+
+#     ax.set_xlim(left=-8, right=8)
+#     ax.set_ylim([-8,8])
+#     ax.set_title('k) x agg.'+' ' +get_sentence(question_batch[0]), fontsize=title_size)
+#     plt.gca().set_aspect('equal', adjustable='box')
+#     ax.xaxis.set_tick_params(labelsize=5)
+#     ax.yaxis.set_tick_params(labelsize=5)
+#     # ax.set_xticks([])
+#     ax.grid(True, alpha=.3)
+
+
+
+
+
+#     word1 = 'small blue metal sphere'
+#     red_indexes = get_indexes(train_question_dataset, word=word1)
+
+#     ax = plt.subplot2grid((rows,cols), (5,1), frameon=False)
+
+#     for i in range(n_batches):
+#         img_batch, question_batch = make_batch2(train_image_dataset, train_question_dataset, batch_size, red_indexes)
+#         z = SIR_x(self, img_batch, inf_type=1, dec_type=1, k=1)
+
+#         if i == 0:
+#             zs = z
+#         else:
+#             zs = np.concatenate([zs, z], 0)
+
+#     ax.scatter(x=zs[:,0],y=zs[:,1], c='blue', s=markersize, alpha=.3)
+
+#     ax.set_xlim(left=-8, right=8)
+#     ax.set_ylim([-8,8])
+#     ax.set_title('l) x agg.'+' ' +get_sentence(question_batch[0]), fontsize=title_size)
+#     plt.gca().set_aspect('equal', adjustable='box')
+#     ax.xaxis.set_tick_params(labelsize=5)
+#     ax.yaxis.set_tick_params(labelsize=5)
+#     # ax.set_xticks([])
+#     ax.grid(True, alpha=.3)
+
+
+
+
+
+#     plt_path = images_dir+'fig1_2D_prior'+str(step)+'.png'
+#     plt.savefig(plt_path)
+#     print ('saved plot', plt_path)
+#     plt.close()
 
 
 

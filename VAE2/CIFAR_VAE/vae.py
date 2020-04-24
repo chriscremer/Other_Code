@@ -71,17 +71,23 @@ class VAE(nn.Module):
 
         self.image_decoder = Decoder(z_size=self.x_enc_size, output_nc=3, n_residual_blocks=3, output_size=self.input_size)
 
-        decoder_params = [ z_to_enc_params[0] + list(self.image_decoder.parameters()) ]
+        self.decoder_params = [ z_to_enc_params[0] + list(self.image_decoder.parameters()) ]
 
 
 
-        decode0_params = [x_inf_params[0] + decoder_params[0]]  
+        decode0_params = [x_inf_params[0] + self.decoder_params[0]] 
+
+
         self.optimizer_x = optim.Adam(decode0_params[0], lr=lr, weight_decay=.0000001)
         self.scheduler_x = lr_scheduler.StepLR(self.optimizer_x, step_size=1, gamma=0.999995)
 
 
+        self.optimizer_enc = optim.Adam(x_inf_params[0], lr=lr, weight_decay=.0000001)
+        self.scheduler_enc = lr_scheduler.StepLR(self.optimizer_enc, step_size=1, gamma=0.999995)
 
 
+        self.optimizer_dec = optim.Adam(self.decoder_params[0], lr=lr, weight_decay=.0000001)
+        self.scheduler_dec = lr_scheduler.StepLR(self.optimizer_dec, step_size=1, gamma=0.999995)
 
 
 
