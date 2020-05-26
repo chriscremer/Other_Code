@@ -188,9 +188,9 @@ def train_encoder_and_decoder(model, train_x, test_x, k, batch_size,
             if total_epochs%display_epoch==0:
                 print ('Train Epoch: {}/{}'.format(epoch, epochs),
                     'total_epochs {}'.format(total_epochs),
-                    'LL:{:.3f}'.format(-loss.data[0]),
-                    'logpxz:{:.3f}'.format(logpxz.data[0]),
-                    'logqz:{:.3f}'.format(logqz.data[0]),
+                    'LL:{:.3f}'.format(-loss.data.item()),
+                    'logpxz:{:.3f}'.format(logpxz.data.item()),
+                    'logqz:{:.3f}'.format(logqz.data.item()),
                     'warmup:{:.3f}'.format(warmup),
                     'T:{:.2f}'.format(time.time()-time_),
                     )
@@ -206,6 +206,8 @@ def train_encoder_and_decoder(model, train_x, test_x, k, batch_size,
                 save_file = path_to_save_variables+'_generator_'+str(total_epochs)+'.pt'
                 torch.save(model.generator.state_dict(), save_file)
                 print ('saved variables ' + save_file)
+
+                dafads
 
 
 
@@ -232,7 +234,7 @@ def train_encoder_and_decoder(model, train_x, test_x, k, batch_size,
 
 
 # Which gpu
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
 
 x_size = 784
@@ -241,28 +243,9 @@ batch_size = 20
 k = 1
 #save params 
 start_at = 100
-save_freq = 500
-display_epoch = 3
+save_freq = 20 #500
+display_epoch = 1
 
-# hyper_config = { 
-#                 'x_size': x_size,
-#                 'z_size': z_size,
-#                 'act_func': F.tanh,# F.relu,
-#                 'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
-#                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
-#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
-#                 'cuda': 1
-#             }
-
-# hyper_config = { 
-#                 'x_size': x_size,
-#                 'z_size': z_size,
-#                 'act_func': F.tanh,# F.relu,
-#                 'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
-#                 'decoder_arch': [[z_size,x_size]],
-#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
-#                 'cuda': 1
-#             }
 
 
 hyper_config = { 
@@ -270,10 +253,37 @@ hyper_config = {
                 'z_size': z_size,
                 'act_func': F.tanh,# F.relu,
                 'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
-                'decoder_arch': [[z_size,200],[200,200],[200,200],[200,200],[200,x_size]],
+                'decoder_arch': [[z_size,x_size]],
                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
-                'cuda': 1
+                'cuda': 1,
+                'hnf': False
             }
+
+            
+# hyper_config = { 
+#                 'x_size': x_size,
+#                 'z_size': z_size,
+#                 'act_func': F.tanh,# F.relu,
+#                 'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+#                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
+#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+#                 'cuda': 1,
+#                     'hnf': False
+#             }
+
+
+
+
+# hyper_config = { 
+#                 'x_size': x_size,
+#                 'z_size': z_size,
+#                 'act_func': F.tanh,# F.relu,
+#                 'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+#                 'decoder_arch': [[z_size,200],[200,200],[200,200],[200,200],[200,x_size]],
+#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+#                 'cuda': 1,
+#                 'hnf': False
+#             }
 
 
 q = Gaussian(hyper_config)
@@ -291,13 +301,15 @@ print('\nModel:', hyper_config,'\n')
 
 
 
-# path_to_load_variables=''
-path_to_load_variables= home+'/Documents/Inf_Sub/decoder_exps/hidden_layers_4'
+path_to_load_variables=''
+# path_to_load_variables= home+'/Documents/Inf_Sub/decoder_exps/hidden_layers_4'
 # path_to_save_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_4' #.pt'
 # path_to_save_variables=home+'/Documents/tmp/pytorch_vae'+str(epochs)+'.pt'
 # path_to_save_variables=this_dir+'/params_'+model_name+'_'
 # path_to_save_variables=''
 
+
+path_to_save_variables=  home+'/Documents/Inf_Sub/decoder_exps/hidden_layers_0'
 
 
 print('\nTraining')

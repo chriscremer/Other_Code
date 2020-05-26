@@ -68,7 +68,7 @@ def test_vae(model, data_x, batch_size, display, k):
 
         elbo, logpxz, logqz = model.forward2(batch, k=k)
 
-        elbos.append(elbo.data[0])
+        elbos.append(elbo.data.item())
 
         # if i%display==0:
         #     print (i,len(data_x)/ batch_size, np.mean(elbos))
@@ -96,7 +96,7 @@ def test(model, data_x, batch_size, display, k):
 
         elbo, logpxz, logqz = model(batch, k=k)
 
-        elbos.append(elbo.data[0])
+        elbos.append(elbo.data.item())
 
         # if i%display==0:
         #     print (i,len(data_x)/ batch_size, np.mean(elbos))
@@ -180,18 +180,19 @@ z_size = 50
 #                 'cuda': 1
 #             }
 
-#no hidden decoder
-# hyper_config = { 
-#                 'x_size': x_size,
-#                 'z_size': z_size,
-#                 'act_func': F.tanh,# F.relu,
-#                 'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
-#                 'decoder_arch': [[z_size,x_size]],
-#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
-#                 'cuda': 1
-#             }
+# #no hidden decoder
+hyper_config = { 
+                'x_size': x_size,
+                'z_size': z_size,
+                'act_func': F.tanh,# F.relu,
+                'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+                'decoder_arch': [[z_size,x_size]],
+                'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+                'cuda': 1,
+                    'hnf': False
+            }
 
-# 2 hidden decoder
+# # 2 hidden decoder
 # hyper_config = { 
 #                 'x_size': x_size,
 #                 'z_size': z_size,
@@ -199,20 +200,22 @@ z_size = 50
 #                 'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
 #                 'decoder_arch': [[z_size,200],[200,200],[200,x_size]],
 #                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
-#                 'cuda': 1
+#                 'cuda': 1,
+#                     'hnf': False
 #             }
 
 
-# 4 hidden decoder
-hyper_config = { 
-                'x_size': x_size,
-                'z_size': z_size,
-                'act_func': F.tanh,# F.relu,
-                'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
-                'decoder_arch': [[z_size,200],[200,200],[200,200],[200,200],[200,x_size]],
-                'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
-                'cuda': 1
-            }
+# # 4 hidden decoder
+# hyper_config = { 
+#                 'x_size': x_size,
+#                 'z_size': z_size,
+#                 'act_func': F.tanh,# F.relu,
+#                 'encoder_arch': [[x_size,200],[200,200],[200,z_size*2]],
+#                 'decoder_arch': [[z_size,200],[200,200],[200,200],[200,200],[200,x_size]],
+#                 'q_dist': standard, #FFG_LN#,#hnf,#aux_nf,#flow1,#,
+#                 'cuda': 1,
+#                 'hnf': False
+#             }
 
 
 
@@ -239,9 +242,12 @@ print (model.generator)
 
 print ('Load params for decoder')
 # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_generator_3280.pt'
-path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_4_generator_3280.pt'
+# path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_4_generator_3280.pt'
 # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_2_generator_3280.pt'
 # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_0_generator_3280.pt'
+
+
+path_to_load_variables=  home+'/Documents/Inf_Sub/decoder_exps/hidden_layers_0_generator_100.pt'
 
 model.generator.load_state_dict(torch.load(path_to_load_variables, map_location=lambda storage, loc: storage))
 print ('loaded variables ' + path_to_load_variables)
@@ -249,8 +255,26 @@ print ()
 
 
 
+
+
+# path_to_load_variables=  home+'/Documents/Inf_Sub/decoder_exps/hidden_layers_4_encoder_25.pt'
+
+# model.generator.load_state_dict(torch.load(path_to_load_variables, map_location=lambda storage, loc: storage))
+# print ('loaded variables ' + path_to_load_variables)
+# print ()
+
+
+
+
+
+
+
+
+
+
+
 compute_local_opt = 1
-compute_amort = 0
+compute_amort = 1
 
 
 if compute_amort:
@@ -261,10 +285,11 @@ if compute_amort:
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_encoder_3280.pt'
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_regencoder_encoder_3280.pt'
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/vae_smallencoder_withflow_encoder_3280.pt'
-    path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_4_encoder_3280.pt'
+    # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_4_encoder_3280.pt'
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_2_encoder_3280.pt'
     # path_to_load_variables=home+'/Documents/tmp/inference_suboptimality/decoder_exps/hidden_layers_0_encoder_3280.pt'
 
+    path_to_load_variables=  home+'/Documents/Inf_Sub/decoder_exps/hidden_layers_0_encoder_100.pt'
 
 
 
@@ -287,7 +312,7 @@ if compute_amort:
 
 # start_time = time.time()
 
-n_data = 2 #1000 #100
+n_data = 5 #1000 #100
 
 vaes = []
 iwaes = []
@@ -364,7 +389,7 @@ if compute_amort:
 # print ('amortized VAE',VAE_train)
 # print()
 
-
+print ('Done.')
 
 
 
