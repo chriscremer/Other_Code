@@ -58,6 +58,7 @@ from optimize_local import optimize_local_expressive_only_sample_2
 
 
 from optimize_local2 import optimize_local_gaussian_mean_logvar
+from optimize_local2 import optimize_local_gaussian_mean_logvar2
 from optimize_local2 import optimize_local_flow1
 
 
@@ -443,8 +444,13 @@ if __name__ == "__main__":
 
         # levels = np.linspace(10., 120., 10)
         # print (levels)
-        levels = []
-        # legend = True
+        # levels = []
+        # levels = np.linspace(0., 170., 10)
+        levels = np.linspace(-20., 170., 10)
+        # levels[0]
+        # print (levels)
+        # fasd
+        legend = False
 
         # plot_isocontours2_exp_norm(ax, func, cmap='Greens', legend=legend,xlimits=xlimits,ylimits=ylimits)
         _ = plot_isocontours_new(ax, func, cmap='Greens', legend=legend, xlimits=xlimits,ylimits=ylimits, levels=levels)
@@ -512,9 +518,8 @@ if __name__ == "__main__":
             row +=1
             ax = plt.subplot2grid((rows,cols), (row, samp_i+1), frameon=False)
             func = lambda zs: model.logposterior_func(samp_torch,zs)
-            plot_isocontours2_exp_norm(ax, func, cmap='Greens', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
+            plot_isocontours_new(ax, func, cmap='Greens', legend=False,xlimits=xlimits,ylimits=ylimits,alpha=1., levels=levels)
             # plot_isocontours2_exp_norm(ax, func, cmap='Blues', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
-
 
 
             # x = train_x[i]
@@ -527,7 +532,12 @@ if __name__ == "__main__":
 
             logposterior = lambda aa: model.logposterior_func2(x=x,z=aa)
             print ('optimiznig local ffg', samp_i)
+
+
             mean, logvar, z = optimize_local_gaussian_mean_logvar(logposterior, model, x)
+            # mean, logvar, z = optimize_local_gaussian_mean_logvar2(logposterior, model, x)
+
+            
 
             func = lambda zs: lognormal4(torch.Tensor(zs), torch.squeeze(mean.data.cpu()), torch.squeeze(logvar.data.cpu()))
             # plot_isocontours(ax, func, cmap='Purples',xlimits=xlimits,ylimits=ylimits)
@@ -562,9 +572,10 @@ if __name__ == "__main__":
             row +=1
             ax = plt.subplot2grid((rows,cols), (row, samp_i+1), frameon=False)
             func = lambda zs: model.logposterior_func(samp_torch,zs)
-            plot_isocontours2_exp_norm(ax, func, cmap='Greens', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
+            # plot_isocontours2_exp_norm(ax, func, cmap='Greens', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
             # plot_isocontours2_exp_norm(ax, func, cmap='Blues', legend=legend,xlimits=xlimits,ylimits=ylimits,alpha=1.)
 
+            plot_isocontours_new(ax, func, cmap='Greens', legend=False,xlimits=xlimits,ylimits=ylimits,alpha=1., levels=levels)
 
 
             # x = train_x[i]
@@ -640,7 +651,7 @@ if __name__ == "__main__":
     # plt.savefig(home+'/Documents/tmp/2D_models/standard/first.png')
     # name_file = home+'/Documents/tmp/2D_models/'+ args.model +'/'+args.model+'_'+args.epoch+'_'+args.set+ '.png'
 
-    name_file = home+'/Documents/tmp/2D_models/rearranged_real.png'
+    name_file = home+'/Documents/tmp/2D_models/rearranged_real_2.png'
     plt.savefig(name_file)
     print ('Saved fig', name_file)
     
@@ -648,7 +659,7 @@ if __name__ == "__main__":
     # plt.savefig(name_file)
     # print ('Saved fig', name_file)
     
-    name_file = home+'/Documents/tmp/2D_models/rearranged_real.pdf'
+    name_file = home+'/Documents/tmp/2D_models/rearranged_real_2.pdf'
     plt.savefig(name_file)
     print ('Saved fig', name_file)
 

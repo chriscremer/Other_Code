@@ -188,6 +188,175 @@ def optimize_local_gaussian_mean_logvar(logposterior, model, x):
 
 
 
+def optimize_local_gaussian_mean_logvar2(logposterior, model, x):
+
+    # B = x.shape[0]
+    B = x.size()[0] #batch size
+    # input to log posterior is z, [P,B,Z]
+    # I think B will be 1 for now
+
+    mean = Variable(torch.zeros(B, model.z_size).type(model.dtype), requires_grad=True)
+    logvar = Variable(torch.zeros(B, model.z_size).type(model.dtype), requires_grad=True)
+
+    optimizer = optim.Adam([mean, logvar], lr=.001)
+    # time_ = time.time()
+    # n_data = len(train_x)
+    # arr = np.array(range(n_data))
+
+    P = 50
+
+
+    last_100 = []
+    best_last_100_avg = -1
+    consecutive_worse = 0
+    for epoch in range(1, 99999): # 999999):
+
+        if quick:
+        # if 1:
+
+            break
+
+        #Sample
+        eps = Variable(torch.FloatTensor(P, B, model.z_size).normal_().type(model.dtype)) #[P,B,Z]
+        z = eps.mul(torch.exp(.5*logvar)) + mean  #[P,B,Z]
+        logqz = lognormal(z, mean, logvar) #[P,B]
+        logpx = logposterior(z)
+
+        loss = -(torch.mean( 1.5 * logpx-logqz))
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        loss_np = loss.data.cpu().numpy()
+        last_100.append(loss_np)
+        if epoch % 100 ==0:
+
+            last_100_avg = np.mean(last_100)
+            if last_100_avg< best_last_100_avg or best_last_100_avg == -1:
+                consecutive_worse=0
+                best_last_100_avg = last_100_avg
+            else:
+                consecutive_worse +=1 
+                # print(consecutive_worse)
+                if consecutive_worse> 10:
+                    # print ('done')
+                    break
+
+            print (epoch, last_100_avg, consecutive_worse,mean)
+            # print (torch.mean(logpx))
+
+            last_100 = []
+
+        if epoch %1000 ==0:
+            # print (logpx)
+            # print (logqz)
+            print (torch.mean( logpx))
+            print (torch.mean( logqz))
+            print (torch.std( logpx))
+            print (torch.std( logqz))
+
+
+
+
+
+    #Round 2
+
+    last_100 = []
+    best_last_100_avg = -1
+    consecutive_worse = 0
+    for epoch in range(1, 99999): # 999999):
+
+        if quick:
+        # if 1:
+            break
+
+        #Sample
+        eps = Variable(torch.FloatTensor(P, B, model.z_size).normal_().type(model.dtype)) #[P,B,Z]
+        z = eps.mul(torch.exp(.5*logvar)) + mean  #[P,B,Z]
+        logqz = lognormal(z, mean, logvar) #[P,B]
+        logpx = logposterior(z)
+
+        loss = -(torch.mean(logpx-logqz))
+        
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        loss_np = loss.data.cpu().numpy()
+        last_100.append(loss_np)
+        if epoch % 100 ==0:
+
+            last_100_avg = np.mean(last_100)
+            if last_100_avg< best_last_100_avg or best_last_100_avg == -1:
+                consecutive_worse=0
+                best_last_100_avg = last_100_avg
+            else:
+                consecutive_worse +=1 
+                # print(consecutive_worse)
+                if consecutive_worse> 10:
+                    # print ('done')
+                    break
+
+            print (epoch, last_100_avg, consecutive_worse,mean, '2')
+            # print (torch.mean(logpx))
+
+            last_100 = []
+
+        if epoch %1000 ==0:
+            # print (logpx)
+            # print (logqz)
+            print (torch.mean( logpx))
+            print (torch.mean( logqz))
+            print (torch.std( logpx))
+            print (torch.std( logqz))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    return mean, logvar, z
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
